@@ -40,12 +40,63 @@ claude-toolsはClaude Codeプラグインを配布するためのマーケット
 
 各プラグインは以下を満たす必要がある：
 
-1. **独立したGitHubリポジトリ**として存在
-2. `.claude-plugin/plugin.json` を含む（Claude Code plugin形式）
-3. **MIT License**
+1. `.claude-plugin/plugin.json` を含む（Claude Code plugin形式）
+2. **MIT License**
 
-## インストール方法
+**配置方法**:
+- **Submodule**: 独立したGitHubリポジトリをサブモジュールとして配置
+- **Direct**: マーケットプレイス内に直接配置
+
+## CLI コマンド
+
+> 参照: [Claude Code 公式ドキュメント](https://code.claude.com/docs/en/discover-plugins)
+
+### マーケットプレイス管理
 
 ```bash
+# マーケットプレイス追加（GitHub リポジトリ）
 /plugin marketplace add signalcompose/claude-tools
+
+# マーケットプレイス追加（ローカルディレクトリ）
+/plugin marketplace add ./my-marketplace
+
+# マーケットプレイス追加（リモートURL）
+/plugin marketplace add https://example.com/marketplace.json
+
+# マーケットプレイス一覧
+/plugin marketplace list
+
+# マーケットプレイス更新
+/plugin marketplace update claude-tools
+
+# マーケットプレイス削除
+/plugin marketplace remove claude-tools
 ```
+
+### プラグイン管理
+
+```bash
+# プラグインインストール（形式: plugin-name@marketplace-name）
+/plugin install cvi@claude-tools
+
+# プラグインアンインストール
+/plugin uninstall cvi@claude-tools
+
+# プラグイン無効化（アンインストールせずに無効化）
+/plugin disable cvi@claude-tools
+
+# プラグイン有効化
+/plugin enable cvi@claude-tools
+```
+
+### インタラクティブUI
+
+```bash
+# プラグイン管理UI起動
+/plugin
+```
+
+タブ:
+- **Discover**: 利用可能なプラグインを閲覧
+- **Installed**: インストール済みプラグインを管理
+- **Marketplaces**: マーケットプレイスを管理
