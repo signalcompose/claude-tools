@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(~/.cvi/**)",
+      "Edit(~/.cvi/**)",
+      "Bash(bash ${CLAUDE_PLUGIN_ROOT}/scripts/*)"
+    ]
+  }
+}
