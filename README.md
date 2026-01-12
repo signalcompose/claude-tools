@@ -11,7 +11,7 @@ This repository serves as a marketplace for Claude Code plugins developed by Sig
 | Plugin | Description | Status |
 |--------|-------------|--------|
 | [CVI](./plugins/cvi) | Claude Voice Integration - Voice notifications for Claude Code on macOS | Available |
-| [YPM](./plugins/ypm) | Your Project Manager - Project management for Claude Code | Coming Soon |
+| [YPM](./plugins/ypm) | Your Project Manager - Project management for Claude Code | Available |
 
 ## Installation
 

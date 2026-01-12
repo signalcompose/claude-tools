@@ -8,6 +8,12 @@
       "description": "Claude Voice Integration - Voice notifications for Claude Code on macOS",
       "path": "./plugins/cvi",
       "keywords": ["voice", "notification", "macos", "tts", "accessibility"]
+    },
+    {
+      "name": "ypm",
+      "description": "Your Project Manager - Project management for Claude Code",
+      "path": "./plugins/ypm",
+      "keywords": ["project", "management", "workflow", "productivity"]
     }
   ]
 }
