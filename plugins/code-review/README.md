@@ -123,7 +123,7 @@ plugins/code-review/
 │   └── trufflehog-scan.md    # Security scan command
 ├── skills/
 │   └── review-commit/
-│       └── content.md        # Review skill definition
+│       └── SKILL.md        # Review skill definition
 ├── scripts/
 │   ├── approve-review.sh     # Saves approval hash
 │   └── check-code-review.sh  # Pre-commit hook script
