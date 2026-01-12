@@ -1,4 +1,5 @@
 ---
+name: review-commit
 description: "Run code review and approve for commit (integrates with check-code-review.sh hook)"
 ---
 
