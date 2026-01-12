@@ -1,0 +1,132 @@
+#!/bin/bash
+
+# CVI - Claude Voice Integration
+# Language configuration tool
+
+CONFIG_DIR="$HOME/.cvi"
+CONFIG_FILE="$CONFIG_DIR/config"
+
+# Ensure config directory exists
+mkdir -p "$CONFIG_DIR"
+
+# Show usage
+usage() {
+    cat <<EOF
+CVI Language Configuration
+
+Usage:
+  cvi-lang [LANG]       Set voice language
+  cvi-lang              Show current language
+  cvi-lang reset        Reset to default (Japanese)
+
+Supported Languages:
+  ja                    Japanese (日本語)
+  en                    English
+
+Examples:
+  cvi-lang ja           Set to Japanese
+  cvi-lang en           Set to English
+  cvi-lang              Show current setting
+
+Notes:
+  - Language setting affects fallback messages
+  - Actual voice is controlled by 'cvi-voice' command
+  - Use 'cvi-voice system' to use OS language-specific Siri voices
+EOF
+}
+
+# Get current language
+get_lang() {
+    if [ -f "$CONFIG_FILE" ]; then
+        grep "^VOICE_LANG=" "$CONFIG_FILE" | cut -d'=' -f2
+    else
+        echo "ja"
+    fi
+}
+
+# Set language
+set_lang() {
+    local lang=$1
+
+    # Validate language
+    if [[ ! "$lang" =~ ^(ja|en)$ ]]; then
+        echo "Error: Unsupported language '$lang'"
+        echo "Supported: ja (Japanese), en (English)"
+        exit 1
+    fi
+
+    # Update or create config file
+    if [ -f "$CONFIG_FILE" ]; then
+        # Update existing
+        if grep -q "^VOICE_LANG=" "$CONFIG_FILE"; then
+            sed -i '' "s/^VOICE_LANG=.*/VOICE_LANG=$lang/" "$CONFIG_FILE"
+        else
+            echo "VOICE_LANG=$lang" >> "$CONFIG_FILE"
+        fi
+    else
+        # Create new
+        echo "VOICE_LANG=$lang" > "$CONFIG_FILE"
+    fi
+
+    # Test message
+    local test_msg
+    case "$lang" in
+        ja)
+            test_msg="読み上げ言語を日本語に設定しました。"
+            echo "✅ Voice language set to Japanese (日本語)"
+            ;;
+        en)
+            test_msg="Voice language set to English."
+            echo "✅ Voice language set to English"
+            ;;
+    esac
+
+    # Load speech rate and voice from config
+    SPEECH_RATE=$(grep "^SPEECH_RATE=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    SPEECH_RATE=${SPEECH_RATE:-200}
+
+    VOICE_EN=$(grep "^VOICE_EN=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    VOICE_EN=${VOICE_EN:-Samantha}
+
+    # Test with sample (use configured voice)
+    echo "Testing with sample message..."
+    if [ "$lang" = "en" ]; then
+        if [ "$VOICE_EN" = "system" ]; then
+            say -r "$SPEECH_RATE" "$test_msg"
+        else
+            say -v "$VOICE_EN" -r "$SPEECH_RATE" "$test_msg"
+        fi
+    else
+        say -r "$SPEECH_RATE" "$test_msg"
+    fi
+}
+
+# Main
+case "$1" in
+    "")
+        # Show current language
+        current=$(get_lang)
+        case "$current" in
+            ja)
+                echo "Current language: Japanese (日本語)"
+                ;;
+            en)
+                echo "Current language: English"
+                ;;
+            *)
+                echo "Current language: $current"
+                ;;
+        esac
+        ;;
+    reset)
+        # Reset to default (Japanese)
+        set_lang "ja"
+        ;;
+    -h|--help|help)
+        usage
+        ;;
+    *)
+        # Set language
+        set_lang "$1"
+        ;;
+esac

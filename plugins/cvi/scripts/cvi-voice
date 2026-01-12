@@ -1,0 +1,409 @@
+#!/bin/bash
+
+# CVI - Claude Voice Integration
+# Voice selection command for language-specific voices
+
+CONFIG_FILE="$HOME/.cvi/config"
+
+# Ensure config directory exists
+mkdir -p "$(dirname "$CONFIG_FILE")"
+
+# Create config file if it doesn't exist
+if [ ! -f "$CONFIG_FILE" ]; then
+    cat > "$CONFIG_FILE" <<EOF
+CVI_ENABLED=on
+SPEECH_RATE=200
+VOICE_LANG=ja
+VOICE_EN=Samantha
+VOICE_JA=system
+AUTO_DETECT_LANG=false
+VOICE_MODE=auto
+EOF
+fi
+
+# Show usage
+usage() {
+    cat <<EOF
+CVI - Voice Selection
+
+Usage:
+  cvi-voice                Show current voice settings
+  cvi-voice en [VOICE]     Set English voice
+  cvi-voice ja [VOICE]     Set Japanese voice
+  cvi-voice mode [MODE]    Set voice mode (auto/fixed)
+  cvi-voice fixed [VOICE]  Set fixed voice for all languages
+  cvi-voice list [LANG]    List available voices (en/ja/all)
+  cvi-voice reset          Reset to default settings
+
+Voice Modes:
+  auto     Automatically select voice based on language (default)
+  fixed    Use a fixed voice for all languages
+
+Popular Voices:
+  English:
+    system        System default (English Siri if configured)
+    Samantha      US English (Female) - Natural and clear
+    Karen         Australian English (Female) - Clear and pleasant
+    Daniel        UK English (Male) - British accent
+    Zoe           UK English (Female) - Premium voice
+
+  Japanese:
+    system        System default (Japanese Siri if configured)
+    Kyoko         Japanese (Female) - Standard voice
+    Otoya         Japanese (Male) - Standard voice
+
+Examples:
+  cvi-voice                    # Show current settings
+  cvi-voice en Zoe             # Set English voice to Zoe
+  cvi-voice ja system          # Set Japanese voice to system default
+  cvi-voice mode auto          # Use automatic voice selection
+  cvi-voice mode fixed         # Use fixed voice for all languages
+  cvi-voice fixed Zoe          # Always use Zoe regardless of language
+  cvi-voice list               # List all available voices
+  cvi-voice reset              # Reset to default settings
+
+Note:
+- In 'auto' mode, voices are selected based on detected/configured language
+- In 'fixed' mode, the specified voice is used for all languages
+- Use AUTO_DETECT_LANG setting in cvi-auto command to enable language detection
+EOF
+}
+
+# List available voices
+list_voices() {
+    local filter=$1
+
+    if [ "$filter" = "ja" ] || [ "$filter" = "all" ] || [ -z "$filter" ]; then
+        echo "🇯🇵 Japanese Voices:"
+        say -v '?' | grep 'ja_JP' | sed 's/^/  /'
+        echo ""
+    fi
+
+    if [ "$filter" = "en" ] || [ "$filter" = "all" ] || [ -z "$filter" ]; then
+        echo "🇺🇸 US English:"
+        say -v '?' | grep 'en_US' | grep -E '(Samantha|Fred|Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley)' | sed 's/^/  /'
+        echo ""
+        echo "🇬🇧 UK English:"
+        say -v '?' | grep 'en_GB' | sed 's/^/  /'
+        echo ""
+        echo "🇦🇺 Australian English:"
+        say -v '?' | grep 'en_AU' | sed 's/^/  /'
+        echo ""
+        echo "🇮🇪 Irish English:"
+        say -v '?' | grep 'en_IE' | sed 's/^/  /'
+        echo ""
+        echo "🇿🇦 South African English:"
+        say -v '?' | grep 'en_ZA' | sed 's/^/  /'
+        echo ""
+        echo "🇮🇳 Indian English:"
+        say -v '?' | grep 'en_IN' | sed 's/^/  /'
+    fi
+}
+
+# Show current settings
+show_current() {
+    echo "=== Current Voice Settings ==="
+    echo ""
+
+    # Load current settings
+    local voice_en=$(grep "^VOICE_EN=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    local voice_ja=$(grep "^VOICE_JA=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    local voice_mode=$(grep "^VOICE_MODE=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    local voice_fixed=$(grep "^VOICE_FIXED=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    local auto_detect=$(grep "^AUTO_DETECT_LANG=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+
+    # Set defaults if not found
+    voice_en=${voice_en:-Samantha}
+    voice_ja=${voice_ja:-system}
+    voice_mode=${voice_mode:-auto}
+    auto_detect=${auto_detect:-false}
+
+    echo "Voice Mode: $voice_mode"
+
+    if [ "$voice_mode" = "fixed" ] && [ -n "$voice_fixed" ]; then
+        echo "Fixed Voice: $voice_fixed (used for all languages)"
+    else
+        echo "English Voice: $voice_en"
+        echo "Japanese Voice: $voice_ja"
+    fi
+
+    echo "Language Auto-Detection: $auto_detect"
+    echo ""
+
+    # Show voice details if available
+    if [ "$voice_mode" = "fixed" ] && [ -n "$voice_fixed" ] && [ "$voice_fixed" != "system" ]; then
+        local voice_info=$(say -v '?' | grep "^$voice_fixed " | head -1)
+        if [ -n "$voice_info" ]; then
+            echo "Fixed Voice Details: $voice_info"
+        fi
+    else
+        if [ "$voice_en" != "system" ]; then
+            local en_info=$(say -v '?' | grep "^$voice_en " | head -1)
+            if [ -n "$en_info" ]; then
+                echo "English Voice Details: $en_info"
+            fi
+        fi
+
+        if [ "$voice_ja" != "system" ]; then
+            local ja_info=$(say -v '?' | grep "^$voice_ja " | head -1)
+            if [ -n "$ja_info" ]; then
+                echo "Japanese Voice Details: $ja_info"
+            fi
+        fi
+    fi
+}
+
+# Set English voice
+set_english_voice() {
+    local voice=$1
+
+    # Special handling for 'system'
+    if [ "$voice" = "system" ]; then
+        sed -i '' "s/^VOICE_EN=.*/VOICE_EN=system/" "$CONFIG_FILE"
+        echo "✅ English voice set to: system default"
+        echo ""
+        echo "Testing with sample message..."
+        say "Hello. English voice set to system default."
+        return
+    fi
+
+    # Check if voice exists and is English
+    if ! say -v '?' | grep -q "^$voice "; then
+        echo "Error: Voice '$voice' not found"
+        echo ""
+        echo "Use 'cvi-voice list en' to see available English voices"
+        exit 1
+    fi
+
+    if ! say -v '?' | grep "^$voice " | grep -q "en_"; then
+        echo "Error: '$voice' is not an English voice"
+        echo ""
+        echo "Use 'cvi-voice list en' to see English voices only"
+        exit 1
+    fi
+
+    # Update config
+    if grep -q "^VOICE_EN=" "$CONFIG_FILE"; then
+        sed -i '' "s/^VOICE_EN=.*/VOICE_EN=$voice/" "$CONFIG_FILE"
+    else
+        echo "VOICE_EN=$voice" >> "$CONFIG_FILE"
+    fi
+
+    echo "✅ English voice set to: $voice"
+    echo ""
+    echo "Testing with sample message..."
+    say -v "$voice" "Hello, this is $voice speaking. English voice settings updated."
+}
+
+# Set Japanese voice
+set_japanese_voice() {
+    local voice=$1
+
+    # Special handling for 'system'
+    if [ "$voice" = "system" ]; then
+        if grep -q "^VOICE_JA=" "$CONFIG_FILE"; then
+            sed -i '' "s/^VOICE_JA=.*/VOICE_JA=system/" "$CONFIG_FILE"
+        else
+            echo "VOICE_JA=system" >> "$CONFIG_FILE"
+        fi
+        echo "✅ Japanese voice set to: system default"
+        echo ""
+        echo "Testing with sample message..."
+        say "こんにちは。日本語音声をシステムデフォルトに設定しました。"
+        return
+    fi
+
+    # Check if voice exists and is Japanese
+    if ! say -v '?' | grep -q "^$voice "; then
+        echo "Error: Voice '$voice' not found"
+        echo ""
+        echo "Use 'cvi-voice list ja' to see available Japanese voices"
+        exit 1
+    fi
+
+    if ! say -v '?' | grep "^$voice " | grep -q "ja_JP"; then
+        echo "Error: '$voice' is not a Japanese voice"
+        echo ""
+        echo "Use 'cvi-voice list ja' to see Japanese voices only"
+        exit 1
+    fi
+
+    # Update config
+    if grep -q "^VOICE_JA=" "$CONFIG_FILE"; then
+        sed -i '' "s/^VOICE_JA=.*/VOICE_JA=$voice/" "$CONFIG_FILE"
+    else
+        echo "VOICE_JA=$voice" >> "$CONFIG_FILE"
+    fi
+
+    echo "✅ Japanese voice set to: $voice"
+    echo ""
+    echo "Testing with sample message..."
+    say -v "$voice" "こんにちは。$voiceです。日本語音声の設定を更新しました。"
+}
+
+# Set voice mode
+set_voice_mode() {
+    local mode=$1
+
+    if [[ ! "$mode" =~ ^(auto|fixed)$ ]]; then
+        echo "Error: Invalid mode '$mode'"
+        echo "Valid modes: auto, fixed"
+        exit 1
+    fi
+
+    if grep -q "^VOICE_MODE=" "$CONFIG_FILE"; then
+        sed -i '' "s/^VOICE_MODE=.*/VOICE_MODE=$mode/" "$CONFIG_FILE"
+    else
+        echo "VOICE_MODE=$mode" >> "$CONFIG_FILE"
+    fi
+
+    echo "✅ Voice mode set to: $mode"
+
+    if [ "$mode" = "auto" ]; then
+        echo ""
+        echo "Voice will be automatically selected based on detected/configured language."
+    else
+        echo ""
+        echo "Use 'cvi-voice fixed [VOICE]' to set the fixed voice for all languages."
+    fi
+}
+
+# Set fixed voice
+set_fixed_voice() {
+    local voice=$1
+
+    # Special handling for 'system'
+    if [ "$voice" = "system" ]; then
+        if grep -q "^VOICE_FIXED=" "$CONFIG_FILE"; then
+            sed -i '' "s/^VOICE_FIXED=.*/VOICE_FIXED=system/" "$CONFIG_FILE"
+        else
+            echo "VOICE_FIXED=system" >> "$CONFIG_FILE"
+        fi
+
+        # Also set mode to fixed
+        if grep -q "^VOICE_MODE=" "$CONFIG_FILE"; then
+            sed -i '' "s/^VOICE_MODE=.*/VOICE_MODE=fixed/" "$CONFIG_FILE"
+        else
+            echo "VOICE_MODE=fixed" >> "$CONFIG_FILE"
+        fi
+
+        echo "✅ Fixed voice set to: system default"
+        echo "✅ Voice mode set to: fixed"
+        echo ""
+        echo "Testing with sample messages..."
+        say "Hello. This is a test."
+        say "こんにちは。テストです。"
+        return
+    fi
+
+    # Check if voice exists
+    if ! say -v '?' | grep -q "^$voice "; then
+        echo "Error: Voice '$voice' not found"
+        echo ""
+        echo "Use 'cvi-voice list' to see available voices"
+        exit 1
+    fi
+
+    # Update config
+    if grep -q "^VOICE_FIXED=" "$CONFIG_FILE"; then
+        sed -i '' "s/^VOICE_FIXED=.*/VOICE_FIXED=$voice/" "$CONFIG_FILE"
+    else
+        echo "VOICE_FIXED=$voice" >> "$CONFIG_FILE"
+    fi
+
+    # Also set mode to fixed
+    if grep -q "^VOICE_MODE=" "$CONFIG_FILE"; then
+        sed -i '' "s/^VOICE_MODE=.*/VOICE_MODE=fixed/" "$CONFIG_FILE"
+    else
+        echo "VOICE_MODE=fixed" >> "$CONFIG_FILE"
+    fi
+
+    echo "✅ Fixed voice set to: $voice"
+    echo "✅ Voice mode set to: fixed"
+    echo ""
+    echo "Testing with sample messages..."
+    say -v "$voice" "Hello. This is $voice speaking in English."
+    say -v "$voice" "こんにちは。$voiceが日本語を話しています。"
+}
+
+# Reset to defaults
+reset_voice() {
+    cat > "$CONFIG_FILE" <<EOF
+CVI_ENABLED=on
+SPEECH_RATE=200
+VOICE_LANG=ja
+VOICE_EN=Samantha
+VOICE_JA=system
+AUTO_DETECT_LANG=false
+VOICE_MODE=auto
+EOF
+
+    echo "✅ Voice settings reset to defaults:"
+    echo "  - English Voice: Samantha"
+    echo "  - Japanese Voice: system"
+    echo "  - Voice Mode: auto"
+    echo "  - Language Auto-Detection: false"
+    echo ""
+    echo "Testing with sample message..."
+    say -v Samantha "Voice settings have been reset to defaults."
+}
+
+# Main
+case "$1" in
+    "")
+        show_current
+        ;;
+    en)
+        if [ -z "$2" ]; then
+            echo "Error: Please specify an English voice"
+            echo "Usage: cvi-voice en [VOICE]"
+            echo ""
+            echo "Use 'cvi-voice list en' to see available English voices"
+            exit 1
+        fi
+        set_english_voice "$2"
+        ;;
+    ja)
+        if [ -z "$2" ]; then
+            echo "Error: Please specify a Japanese voice"
+            echo "Usage: cvi-voice ja [VOICE]"
+            echo ""
+            echo "Use 'cvi-voice list ja' to see available Japanese voices"
+            exit 1
+        fi
+        set_japanese_voice "$2"
+        ;;
+    mode)
+        if [ -z "$2" ]; then
+            echo "Error: Please specify a mode (auto/fixed)"
+            echo "Usage: cvi-voice mode [auto|fixed]"
+            exit 1
+        fi
+        set_voice_mode "$2"
+        ;;
+    fixed)
+        if [ -z "$2" ]; then
+            echo "Error: Please specify a voice for fixed mode"
+            echo "Usage: cvi-voice fixed [VOICE]"
+            echo ""
+            echo "Use 'cvi-voice list' to see available voices"
+            exit 1
+        fi
+        set_fixed_voice "$2"
+        ;;
+    list)
+        list_voices "$2"
+        ;;
+    reset)
+        reset_voice
+        ;;
+    help|--help|-h)
+        usage
+        ;;
+    *)
+        echo "Error: Unknown command '$1'"
+        echo ""
+        usage
+        exit 1
+        ;;
+esac
