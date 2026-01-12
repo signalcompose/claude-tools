@@ -20,6 +20,20 @@
       "source": "./plugins/ypm",
       "category": "productivity",
       "homepage": "https://github.com/signalcompose/ypm"
+    },
+    {
+      "name": "chezmoi",
+      "description": "Dotfiles management integration using chezmoi",
+      "source": "./plugins/chezmoi",
+      "category": "productivity",
+      "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/chezmoi"
+    },
+    {
+      "name": "code-review",
+      "description": "Code review workflow integration for git commits",
+      "source": "./plugins/code-review",
+      "category": "developer-tools",
+      "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/code-review"
     }
   ]
 }
