@@ -1,0 +1,3 @@
+[submodule "plugins/cvi"]
+	path = plugins/cvi
+	url = https://github.com/signalcompose/cvi.git
