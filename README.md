@@ -165,7 +165,7 @@ EOF
 ```bash
 cvi on       # 音声通知を有効化
 cvi off      # 音声通知を無効化
-cvi status   # 現在の設定を表示
+cvi show     # 現在の設定を表示
 cvi help     # ヘルプを表示
 ```
 

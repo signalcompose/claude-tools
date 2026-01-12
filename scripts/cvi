@@ -20,7 +20,7 @@ Usage:
 Commands:
   on                Enable voice notifications
   off               Disable voice notifications
-  status            Show current status
+  show              Show current status
   help              Show this help message
 
 Configuration Commands:
@@ -31,7 +31,7 @@ Configuration Commands:
 Examples:
   cvi on            Enable voice notifications
   cvi off           Disable voice notifications
-  cvi status        Show enabled/disabled status
+  cvi show          Show enabled/disabled status
   cvi help          Show this help
 
 Note: When disabled, voice notifications will be skipped but hooks remain active.
@@ -121,7 +121,7 @@ case "$1" in
     off)
         set_status "off"
         ;;
-    status)
+    show)
         show_status
         ;;
     help|--help|-h|"")
