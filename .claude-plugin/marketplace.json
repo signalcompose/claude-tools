@@ -29,7 +29,7 @@
       "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/chezmoi"
     },
     {
-      "name": "code-review",
+      "name": "code",
       "description": "Code review workflow integration for git commits",
       "source": "./plugins/code-review",
       "category": "developer-tools",

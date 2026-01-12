@@ -13,7 +13,7 @@ This repository serves as a marketplace for Claude Code plugins developed by Sig
 | [CVI](./plugins/cvi) | Claude Voice Integration - Voice notifications for Claude Code on macOS | Available |
 | [YPM](./plugins/ypm) | Your Project Manager - Project management for Claude Code | Available |
 | [chezmoi](./plugins/chezmoi) | Dotfiles management integration using chezmoi | Available |
-| [code-review](./plugins/code-review) | Code review workflow integration for git commits | Available |
+| [code](./plugins/code-review) | Code review workflow integration for git commits | Available |
 
 ## Installation
 
