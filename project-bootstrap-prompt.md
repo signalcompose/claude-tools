@@ -573,14 +573,18 @@ Phase 6（環境設定ファイルの整備）に進んでよろしいですか�
          "Read(./**/*.key)",
          "Bash(rm -rf :*)",
          "Bash(rm -r :*)",
+         "Bash(rm -fr :*)",
          "Bash(git push --force :*)",
          "Bash(git push -f :*)",
          "Bash(git reset --hard :*)",
          "Bash(git clean -f :*)",
+         "Bash(git clean -fd :*)",
          "Bash(gh repo delete :*)",
          "Bash(gh secret :*)",
          "Bash(sudo :*)",
-         "Bash(chmod 777 :*)"
+         "Bash(chmod 777 :*)",
+         "Bash(curl :* | :*)",
+         "Bash(wget :* | :*)"
        ]
      },
      "cleanupPeriodDays": 30
