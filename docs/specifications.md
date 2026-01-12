@@ -49,26 +49,54 @@ claude-toolsはClaude Codeプラグインを配布するためのマーケット
 
 ## CLI コマンド
 
-### マーケットプレイス追加
+> 参照: [Claude Code 公式ドキュメント](https://code.claude.com/docs/en/discover-plugins)
+
+### マーケットプレイス管理
 
 ```bash
+# マーケットプレイス追加（GitHub リポジトリ）
 /plugin marketplace add signalcompose/claude-tools
-```
 
-### マーケットプレイス更新
+# マーケットプレイス追加（ローカルディレクトリ）
+/plugin marketplace add ./my-marketplace
 
-```bash
-/plugin marketplace update claude-tools
-```
+# マーケットプレイス追加（リモートURL）
+/plugin marketplace add https://example.com/marketplace.json
 
-### プラグインインストール
-
-```bash
-/plugin install <plugin-name>@claude-tools
-```
-
-### プラグイン一覧確認
-
-```bash
+# マーケットプレイス一覧
 /plugin marketplace list
+
+# マーケットプレイス更新
+/plugin marketplace update claude-tools
+
+# マーケットプレイス削除
+/plugin marketplace remove claude-tools
 ```
+
+### プラグイン管理
+
+```bash
+# プラグインインストール（形式: plugin-name@marketplace-name）
+/plugin install cvi@claude-tools
+
+# プラグインアンインストール
+/plugin uninstall cvi@claude-tools
+
+# プラグイン無効化（アンインストールせずに無効化）
+/plugin disable cvi@claude-tools
+
+# プラグイン有効化
+/plugin enable cvi@claude-tools
+```
+
+### インタラクティブUI
+
+```bash
+# プラグイン管理UI起動
+/plugin
+```
+
+タブ:
+- **Discover**: 利用可能なプラグインを閲覧
+- **Installed**: インストール済みプラグインを管理
+- **Marketplaces**: マーケットプレイスを管理

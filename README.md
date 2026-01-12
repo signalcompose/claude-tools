@@ -23,10 +23,13 @@ This repository serves as a marketplace for Claude Code plugins developed by Sig
 /plugin marketplace add signalcompose/claude-tools
 ```
 
-### 2. Install Plugins
+### 2. Browse and Install Plugins
 
+Use the interactive `/plugin` command to browse available plugins and install them.
+
+Or use CLI commands:
 ```bash
-# Install specific plugin
+# Install specific plugin (plugin-name@marketplace-name)
 /plugin install cvi@claude-tools
 /plugin install ypm@claude-tools
 /plugin install chezmoi@claude-tools
@@ -39,12 +42,32 @@ This repository serves as a marketplace for Claude Code plugins developed by Sig
 /plugin marketplace update claude-tools
 ```
 
+### 4. Other Commands
+
+```bash
+# List all marketplaces
+/plugin marketplace list
+
+# Remove marketplace
+/plugin marketplace remove claude-tools
+
+# Uninstall plugin
+/plugin uninstall cvi@claude-tools
+
+# Disable plugin (without uninstalling)
+/plugin disable cvi@claude-tools
+
+# Enable plugin
+/plugin enable cvi@claude-tools
+```
+
 ## Quick Start
 
-1. Add the marketplace with `/plugin marketplace add signalcompose/claude-tools`
-2. Install desired plugins with `/plugin install <plugin>@claude-tools`
-3. Use plugin commands (e.g., `/cvi:status`, `/ypm:update`, `/chezmoi:check`, `/code:review-commit`)
-4. See individual plugin documentation for detailed usage
+1. Add the marketplace: `/plugin marketplace add signalcompose/claude-tools`
+2. Browse plugins: `/plugin` → Discover tab
+3. Install desired plugins
+4. Use plugin commands (e.g., `/cvi:status`, `/ypm:update`, `/chezmoi:check`, `/code:review-commit`)
+5. See individual plugin documentation for detailed usage
 
 ## Documentation
 
