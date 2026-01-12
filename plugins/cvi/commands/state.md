@@ -1,8 +1,8 @@
 ---
-description: Control CVI voice notification (on/off/status)
+description: Control CVI voice notification (on/off/show)
 ---
 
-# CVI Main Control
+# CVI State Control
 
 CVI（Claude Voice Integration）の音声通知機能を制御します。
 
@@ -16,15 +16,15 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/cvi $ARGUMENTS
 
 - `on` - 音声通知を有効化
 - `off` - 音声通知を無効化
-- `status` - 現在のステータスを表示
+- `show` - 現在のステータスを表示
 - `help` - ヘルプを表示
 - （引数なし） - ヘルプを表示
 
 ## 使用例
 
-- `/cvi on` - 音声通知を有効化
-- `/cvi off` - 音声通知を無効化
-- `/cvi status` - 現在の設定を確認
+- `/cvi:state on` - 音声通知を有効化
+- `/cvi:state off` - 音声通知を無効化
+- `/cvi:state show` - 現在の設定を確認
 
 ## 関連コマンド
 
