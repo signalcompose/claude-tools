@@ -1,0 +1,25 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "claude-tools",
+  "description": "Claude Code plugins by SignalCompose",
+  "owner": {
+    "name": "SignalCompose",
+    "email": "contact@signalcompose.com"
+  },
+  "plugins": [
+    {
+      "name": "cvi",
+      "description": "Claude Voice Integration - Voice notifications for Claude Code on macOS",
+      "source": "./plugins/cvi",
+      "category": "productivity",
+      "homepage": "https://github.com/signalcompose/cvi"
+    },
+    {
+      "name": "ypm",
+      "description": "Your Project Manager - Project management for Claude Code",
+      "source": "./plugins/ypm",
+      "category": "productivity",
+      "homepage": "https://github.com/signalcompose/ypm"
+    }
+  ]
+}
