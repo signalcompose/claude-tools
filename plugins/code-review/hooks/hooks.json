@@ -1,0 +1,13 @@
+{
+  "hooks": [
+    {
+      "matcher": "Bash",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-code-review.sh"
+        }
+      ]
+    }
+  ]
+}

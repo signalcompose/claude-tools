@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(~/.local/share/chezmoi/**)",
+      "Read(~/.config/chezmoi/**)",
+      "Bash(chezmoi *)",
+      "Bash(bash ${CLAUDE_PLUGIN_ROOT}/scripts/*)"
+    ],
+    "ask": [
+      "Edit(~/.local/share/chezmoi/**)",
+      "Edit(~/.config/chezmoi/**)",
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(age *)",
+      "Bash(age-keygen *)"
+    ],
+    "deny": [
+      "Read(~/.config/chezmoi/key.txt)"
+    ]
+  }
+}

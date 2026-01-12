@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git diff *)",
+      "Bash(git status *)",
+      "Bash(bash ${CLAUDE_PLUGIN_ROOT}/scripts/*)"
+    ],
+    "ask": [
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Edit(**)"
+    ]
+  }
+}
