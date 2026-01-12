@@ -1,0 +1,19 @@
+# Serena MCP
+.serena/
+
+# Claude Code
+.claude/review-approved
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
