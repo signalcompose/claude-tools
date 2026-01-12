@@ -40,12 +40,35 @@ claude-toolsはClaude Codeプラグインを配布するためのマーケット
 
 各プラグインは以下を満たす必要がある：
 
-1. **独立したGitHubリポジトリ**として存在
-2. `.claude-plugin/plugin.json` を含む（Claude Code plugin形式）
-3. **MIT License**
+1. `.claude-plugin/plugin.json` を含む（Claude Code plugin形式）
+2. **MIT License**
 
-## インストール方法
+**配置方法**:
+- **Submodule**: 独立したGitHubリポジトリをサブモジュールとして配置
+- **Direct**: マーケットプレイス内に直接配置
+
+## CLI コマンド
+
+### マーケットプレイス追加
 
 ```bash
 /plugin marketplace add signalcompose/claude-tools
+```
+
+### マーケットプレイス更新
+
+```bash
+/plugin marketplace update claude-tools
+```
+
+### プラグインインストール
+
+```bash
+/plugin install <plugin-name>@claude-tools
+```
+
+### プラグイン一覧確認
+
+```bash
+/plugin marketplace list
 ```

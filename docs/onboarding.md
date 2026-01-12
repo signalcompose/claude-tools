@@ -8,12 +8,16 @@ claude-toolsはSignalComposeが提供するClaude Codeプラグインのマー�
 
 ```
 claude-tools/
-├── marketplace.json    # プラグインカタログ
-├── plugins/            # サブモジュール格納
-│   └── cvi/           # CVI plugin
-├── docs/              # ドキュメント
-├── .claude/           # Claude Code設定
-└── CLAUDE.md          # プロジェクト設定
+├── .claude-plugin/
+│   └── marketplace.json  # プラグインカタログ
+├── plugins/              # プラグイン格納
+│   ├── cvi/             # CVI plugin (submodule)
+│   ├── ypm/             # YPM plugin (submodule)
+│   ├── chezmoi/         # chezmoi plugin
+│   └── code-review/     # code plugin
+├── docs/                # ドキュメント
+├── .claude/             # Claude Code設定
+└── CLAUDE.md            # プロジェクト設定
 ```
 
 ## 開発環境セットアップ
