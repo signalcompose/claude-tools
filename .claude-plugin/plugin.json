@@ -1,0 +1,12 @@
+{
+  "name": "cvi",
+  "version": "1.0.0",
+  "description": "Claude Voice Integration - Voice notifications for Claude Code on macOS",
+  "author": {
+    "name": "signalcompose",
+    "email": "info@signalcompose.com"
+  },
+  "repository": "https://github.com/signalcompose/cvi",
+  "license": "MIT",
+  "keywords": ["voice", "notification", "macos", "tts", "accessibility"]
+}

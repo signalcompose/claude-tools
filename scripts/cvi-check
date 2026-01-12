@@ -1,0 +1,146 @@
+#!/bin/bash
+
+# CVI - Claude Voice Integration
+# Setup diagnostic tool
+
+CONFIG_DIR="$HOME/.cvi"
+CONFIG_FILE="$CONFIG_DIR/config"
+SCRIPTS_DIR="$HOME/.claude/scripts"
+
+echo "🔍 CVI セットアップ診断"
+echo ""
+
+# Check Siri voice
+echo -n "Siri音声: "
+# Test if system default voice sounds natural (Siri-like)
+# We can't directly detect Siri, but we can check if say works
+if command -v say >/dev/null 2>&1; then
+    # Create a test audio file
+    TEST_AUDIO="/tmp/cvi_voice_test_$$.aiff"
+    say -o "$TEST_AUDIO" "test" 2>/dev/null
+
+    if [ -f "$TEST_AUDIO" ]; then
+        # Check file size - Siri voices tend to produce larger files
+        FILE_SIZE=$(stat -f%z "$TEST_AUDIO" 2>/dev/null || echo "0")
+        rm -f "$TEST_AUDIO"
+
+        if [ "$FILE_SIZE" -gt 10000 ]; then
+            echo "✅ 設定済み（推定）"
+            SIRI_OK=true
+        else
+            echo "⚠️  未設定の可能性があります"
+            SIRI_OK=false
+        fi
+    else
+        echo "❌ 音声生成に失敗"
+        SIRI_OK=false
+    fi
+else
+    echo "❌ sayコマンドが見つかりません"
+    SIRI_OK=false
+fi
+
+# Check script permissions
+echo -n "スクリプト実行権限: "
+SCRIPTS_OK=true
+for script in notify-end.sh notify-input.sh kill-voice.sh cvi-speed cvi-lang; do
+    if [ ! -x "$SCRIPTS_DIR/$script" ]; then
+        echo "❌ $script に実行権限がありません"
+        SCRIPTS_OK=false
+    fi
+done
+if $SCRIPTS_OK; then
+    echo "✅ OK"
+fi
+
+# Check hooks configuration
+echo -n "hooks設定: "
+SETTINGS_FILE="$HOME/.claude/settings.json"
+if [ -f "$SETTINGS_FILE" ]; then
+    if grep -q "notify-end.sh" "$SETTINGS_FILE" && grep -q "kill-voice.sh" "$SETTINGS_FILE"; then
+        echo "✅ OK"
+        HOOKS_OK=true
+    else
+        echo "⚠️  不完全"
+        HOOKS_OK=false
+    fi
+else
+    echo "❌ settings.jsonが見つかりません"
+    HOOKS_OK=false
+fi
+
+# Check configuration file
+if [ -f "$CONFIG_FILE" ]; then
+    # Read speech rate
+    SPEECH_RATE=$(grep "^SPEECH_RATE=" "$CONFIG_FILE" | cut -d'=' -f2)
+    SPEECH_RATE=${SPEECH_RATE:-200}
+    echo "✅ 読み上げ速度: ${SPEECH_RATE} wpm"
+
+    # Read language
+    VOICE_LANG=$(grep "^VOICE_LANG=" "$CONFIG_FILE" | cut -d'=' -f2)
+    VOICE_LANG=${VOICE_LANG:-ja}
+    case "$VOICE_LANG" in
+        ja)
+            echo "✅ 言語設定: 日本語"
+            ;;
+        en)
+            echo "✅ 言語設定: English"
+            # Show English voice setting
+            VOICE_EN=$(grep "^VOICE_EN=" "$CONFIG_FILE" | cut -d'=' -f2)
+            VOICE_EN=${VOICE_EN:-Samantha}
+            echo "✅ 英語音声: $VOICE_EN"
+            ;;
+        *)
+            echo "⚠️  言語設定: $VOICE_LANG (不明)"
+            ;;
+    esac
+else
+    echo "ℹ️  設定ファイル: デフォルト設定を使用中"
+fi
+
+echo ""
+
+# Summary
+if $SIRI_OK && $SCRIPTS_OK && $HOOKS_OK; then
+    echo "✅ すべて正常です！"
+    exit 0
+else
+    echo "⚠️  問題が見つかりました"
+    echo ""
+
+    # Provide suggestions
+    if ! $SIRI_OK; then
+        cat <<EOF
+【Siri音声の設定方法】
+より自然で流暢な読み上げのために、Siri音声の設定をおすすめします：
+
+1. システム設定 > アクセシビリティ > 読み上げコンテンツ
+2. 「システムの声」で「Siri (声2)」または「Eloquence」を選択
+3. 設定完了後、以下のコマンドでテスト：
+   say "これはテストメッセージです"
+
+Siri音声で読み上げられれば設定完了です。
+
+EOF
+    fi
+
+    if ! $SCRIPTS_OK; then
+        cat <<EOF
+【スクリプト実行権限の付与】
+chmod +x ~/.claude/scripts/*.sh
+chmod +x ~/.claude/scripts/cvi-*
+
+EOF
+    fi
+
+    if ! $HOOKS_OK; then
+        cat <<EOF
+【hooks設定】
+~/.claude/settings.jsonにhooksを追加してください。
+詳細は README.md を参照してください。
+
+EOF
+    fi
+
+    exit 1
+fi

@@ -1,0 +1,136 @@
+#!/bin/bash
+
+# CVI - Claude Voice Integration
+# Main control command
+
+CONFIG_DIR="$HOME/.cvi"
+CONFIG_FILE="$CONFIG_DIR/config"
+
+# Ensure config directory exists
+mkdir -p "$CONFIG_DIR"
+
+# Show usage
+usage() {
+    cat <<EOF
+CVI - Claude Voice Integration
+
+Usage:
+  cvi [COMMAND]
+
+Commands:
+  on                Enable voice notifications
+  off               Disable voice notifications
+  status            Show current status
+  help              Show this help message
+
+Configuration Commands:
+  cvi-speed         Set reading speed
+  cvi-lang          Set language (ja/en)
+  cvi-check         Diagnostic check
+
+Examples:
+  cvi on            Enable voice notifications
+  cvi off           Disable voice notifications
+  cvi status        Show enabled/disabled status
+  cvi help          Show this help
+
+Note: When disabled, voice notifications will be skipped but hooks remain active.
+EOF
+}
+
+# Get current status
+get_status() {
+    if [ -f "$CONFIG_FILE" ]; then
+        STATUS=$(grep "^CVI_ENABLED=" "$CONFIG_FILE" | cut -d'=' -f2)
+    fi
+    STATUS=${STATUS:-on}
+    echo "$STATUS"
+}
+
+# Set status
+set_status() {
+    local status=$1
+
+    # Update or create config file
+    if [ -f "$CONFIG_FILE" ]; then
+        # Update existing
+        if grep -q "^CVI_ENABLED=" "$CONFIG_FILE"; then
+            sed -i '' "s/^CVI_ENABLED=.*/CVI_ENABLED=$status/" "$CONFIG_FILE"
+        else
+            echo "CVI_ENABLED=$status" >> "$CONFIG_FILE"
+        fi
+    else
+        # Create new
+        echo "CVI_ENABLED=$status" > "$CONFIG_FILE"
+    fi
+
+    if [ "$status" = "on" ]; then
+        echo "✅ CVI voice notifications: ENABLED"
+        echo ""
+        echo "Voice notifications will be played on task completion."
+    else
+        echo "⏸️  CVI voice notifications: DISABLED"
+        echo ""
+        echo "Voice notifications are muted. Use 'cvi on' to re-enable."
+    fi
+}
+
+# Show status
+show_status() {
+    local status=$(get_status)
+
+    echo "🔊 CVI Status"
+    echo ""
+
+    if [ "$status" = "on" ]; then
+        echo "✅ Voice notifications: ENABLED"
+    else
+        echo "⏸️  Voice notifications: DISABLED"
+    fi
+
+    # Show other settings if config exists
+    if [ -f "$CONFIG_FILE" ]; then
+        SPEECH_RATE=$(grep "^SPEECH_RATE=" "$CONFIG_FILE" | cut -d'=' -f2)
+        VOICE_LANG=$(grep "^VOICE_LANG=" "$CONFIG_FILE" | cut -d'=' -f2)
+
+        if [ -n "$SPEECH_RATE" ]; then
+            echo "📊 Reading speed: ${SPEECH_RATE} wpm"
+        fi
+
+        if [ -n "$VOICE_LANG" ]; then
+            case "$VOICE_LANG" in
+                ja)
+                    echo "🌐 Language: 日本語"
+                    ;;
+                en)
+                    echo "🌐 Language: English"
+                    ;;
+                *)
+                    echo "🌐 Language: $VOICE_LANG"
+                    ;;
+            esac
+        fi
+    fi
+}
+
+# Main
+case "$1" in
+    on)
+        set_status "on"
+        ;;
+    off)
+        set_status "off"
+        ;;
+    status)
+        show_status
+        ;;
+    help|--help|-h|"")
+        usage
+        ;;
+    *)
+        echo "Error: Unknown command '$1'"
+        echo ""
+        usage
+        exit 1
+        ;;
+esac
