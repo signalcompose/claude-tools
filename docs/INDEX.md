@@ -11,6 +11,7 @@ SignalComposeが提供するClaude Codeプラグインのマーケットプレ�
 | [specifications.md](./specifications.md) | マーケットプレイス仕様 |
 | [architecture.md](./architecture.md) | アーキテクチャ（サブモジュール構成） |
 | [development-guide.md](./development-guide.md) | プラグイン追加・更新ガイド |
+| [onboarding.md](./onboarding.md) | オンボーディングガイド |
 
 ## Research
 
