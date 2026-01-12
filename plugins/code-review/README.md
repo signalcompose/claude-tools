@@ -21,11 +21,12 @@ Claude Code integration for code review workflow before commits.
 /plugin install code-review
 ```
 
-## Skills
+## Commands & Skills
 
-| Skill | Description |
-|-------|-------------|
+| Command/Skill | Description |
+|---------------|-------------|
 | `/code:review-commit` | Review staged changes and approve for commit |
+| `/code:trufflehog-scan` | Run TruffleHog security scan on current project |
 
 ## Usage
 
@@ -118,6 +119,8 @@ The code review checks for:
 plugins/code-review/
 ├── .claude-plugin/
 │   └── plugin.json           # Plugin metadata
+├── commands/
+│   └── trufflehog-scan.md    # Security scan command
 ├── skills/
 │   └── review-commit/
 │       └── content.md        # Review skill definition
