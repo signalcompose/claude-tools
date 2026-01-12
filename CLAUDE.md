@@ -82,7 +82,7 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 # 1. サブモジュール追加
 git submodule add https://github.com/signalcompose/<plugin>.git plugins/<plugin>
 
-# 2. marketplace.json更新
+# 2. .claude-plugin/marketplace.json更新
 # plugins配列に新しいプラグイン情報を追加
 
 # 3. README.md更新
@@ -105,9 +105,11 @@ git commit -m "chore(plugins): update <plugin> to latest"
 
 ```
 claude-tools/
-├── marketplace.json    # プラグインカタログ
+├── .claude-plugin/
+│   └── marketplace.json    # プラグインカタログ
 ├── plugins/            # サブモジュール
-│   └── cvi/           # CVI plugin
+│   ├── cvi/           # CVI plugin
+│   └── ypm/           # YPM plugin
 ├── docs/              # ドキュメント
 │   ├── INDEX.md
 │   ├── specifications.md
