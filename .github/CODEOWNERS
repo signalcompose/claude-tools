@@ -1,0 +1,20 @@
+# CODEOWNERS
+# 重要ファイルの変更には承認が必要
+
+# グローバル設定
+* @dropcontrol
+
+# GitHub設定ファイル
+/.github/ @dropcontrol
+
+# CI/CD設定
+/.github/workflows/ @dropcontrol
+
+# 依存関係
+/requirements.txt @dropcontrol
+
+# セキュリティ設定
+/.gitignore @dropcontrol
+
+# プラグイン設定
+/.claude-plugin/ @dropcontrol

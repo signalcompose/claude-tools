@@ -1,0 +1,45 @@
+# Export Configuration for YPM Community Release
+# =============================================================================
+# Purpose: Configuration for exporting private repository to public community version
+# Usage: /ypm-export-community or ~/.claude/scripts/export-to-community.sh
+# =============================================================================
+# IMPORTANT: Copy this file to .export-config.yml and update paths for your environment
+
+export:
+  # Private repository path (absolute path)
+  # Example: "/Users/username/Src/proj_YPM/YPM-yamato"
+  private_repo: "/path/to/your/private/repo"
+
+  # Public repository URL
+  # Example: "https://github.com/organization/public-repo.git"
+  public_repo_url: "https://github.com/organization/public-repo.git"
+
+  # Files and directories to exclude from export
+  # These files contain personal project information and should not be public
+  exclude_paths:
+    - PROJECT_STATUS.md    # Personal project tracking data
+    - config.yml           # Personal directory paths and settings
+    - CLAUDE.md            # Personal Claude Code configuration
+    - docs/research/       # Internal research and strategy documents
+
+  # Commit message sanitization patterns
+  # Replace sensitive project information with generic placeholders
+  sanitize_patterns:
+    # Replace project names with generic placeholder
+    - pattern: "oshireq|orbitscore|picopr|TabClear|DUNGIA|godot-mcp|YPM-yamato"
+      replace: "[project]"
+
+    # Replace project counts with generic placeholder (Japanese)
+    - pattern: "\\d+プロジェクト"
+      replace: "[N]プロジェクト"
+
+    # Replace project counts with generic placeholder (English)
+    - pattern: "\\d+ projects"
+      replace: "[N] projects"
+
+    # Replace time references with generic placeholders (Japanese)
+    - pattern: "\\d+分前"
+      replace: "[時間]前"
+
+    - pattern: "\\d+日前"
+      replace: "[日数]前"
