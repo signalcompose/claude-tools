@@ -47,5 +47,5 @@ claude-toolsはClaude Codeプラグインを配布するためのマーケット
 ## インストール方法
 
 ```bash
-/plugin add signalcompose/claude-tools
+/plugin marketplace add signalcompose/claude-tools
 ```

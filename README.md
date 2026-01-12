@@ -16,7 +16,7 @@ This repository serves as a marketplace for Claude Code plugins developed by Sig
 ## Installation
 
 ```bash
-/plugin add signalcompose/claude-tools
+/plugin marketplace add signalcompose/claude-tools
 ```
 
 ## Quick Start
