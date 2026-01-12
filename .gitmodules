@@ -1,3 +1,6 @@
 [submodule "plugins/cvi"]
 	path = plugins/cvi
 	url = https://github.com/signalcompose/cvi.git
+[submodule "plugins/ypm"]
+	path = plugins/ypm
+	url = https://github.com/signalcompose/ypm.git
