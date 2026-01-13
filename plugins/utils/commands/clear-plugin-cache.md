@@ -1,5 +1,4 @@
 ---
-name: clear-plugin-cache
 description: Clear plugin cache to fix stale version issues after /plugin update
 argument-hint: <plugin-name> [--marketplace <name>] [--all] [--dry-run]
 allowed-tools:
