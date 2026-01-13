@@ -1,0 +1,17 @@
+{
+  "description": "Utils common hooks for Claude Code",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/inject-session-context.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}
