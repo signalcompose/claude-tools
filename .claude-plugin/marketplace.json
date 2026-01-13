@@ -34,6 +34,13 @@
       "source": "./plugins/code-review",
       "category": "developer-tools",
       "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/code-review"
+    },
+    {
+      "name": "utils",
+      "description": "Utility commands for Claude Code plugin management (cache clearing, etc.)",
+      "source": "./plugins/utils",
+      "category": "developer-tools",
+      "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/utils"
     }
   ]
 }

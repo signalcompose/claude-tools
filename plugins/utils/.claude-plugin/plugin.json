@@ -1,0 +1,11 @@
+{
+  "name": "utils",
+  "version": "1.0.0",
+  "description": "Utility commands for Claude Code plugin management",
+  "author": {
+    "name": "SignalCompose"
+  },
+  "repository": "https://github.com/signalcompose/claude-tools",
+  "license": "MIT",
+  "keywords": ["utility", "cache", "plugin-management"]
+}
