@@ -48,7 +48,7 @@ Wait for the agent to complete and return results.
 
 ### Step 4: Approve for Commit
 
-If review passes, run the approval script:
+**MANDATORY**: If review passes, you MUST run the approval script. Do NOT approve manually or skip this step.
 
 ```bash
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/approve-review.sh
@@ -70,4 +70,6 @@ This skill works with `check-code-review.sh` as a pre-commit hook:
 
 - ALWAYS use Task tool with `pr-review-toolkit:code-reviewer` agent
 - NEVER review code manually - delegate to the agent
+- ALWAYS run `approve-review.sh` script after review passes
+- NEVER approve manually or skip the approval script
 - Hash changes if staged content changes (requires re-review)
