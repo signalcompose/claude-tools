@@ -49,6 +49,11 @@ if [ "$ENGLISH_PRACTICE" = "on" ]; then
    ⚠️  THIS DOES NOT CHANGE CLAUDE'S RESPONSE LANGUAGE
    → You MUST respond in the language set by Claude Code's "language" setting
    → English Practice is for USER input only, not Claude output
+
+   🔴 CLARIFICATION RULES (user is practicing English):
+   → If user's English is unclear or ambiguous, ASK for clarification
+   → Do NOT guess the meaning - confirm before acting
+   → When user asks "How do you say X in English?", answer the question
 EOF
 fi
 
