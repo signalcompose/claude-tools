@@ -5,22 +5,40 @@
 
 CONFIG_DIR="$HOME/.cvi"
 CONFIG_FILE="$CONFIG_DIR/config"
-SCRIPTS_DIR="$HOME/.claude/scripts"
+
+# Determine scripts directory (plugin or standalone)
+if [ -n "$CLAUDE_PLUGIN_ROOT" ]; then
+    SCRIPTS_DIR="$CLAUDE_PLUGIN_ROOT/scripts"
+    PLUGIN_MODE=true
+else
+    # Try to find plugin cache location
+    PLUGIN_CACHE="$HOME/.claude/plugins/cache/claude-tools/cvi"
+    if [ -d "$PLUGIN_CACHE" ]; then
+        # Find latest version
+        LATEST_VERSION=$(ls -1 "$PLUGIN_CACHE" 2>/dev/null | sort -V | tail -1)
+        if [ -n "$LATEST_VERSION" ]; then
+            SCRIPTS_DIR="$PLUGIN_CACHE/$LATEST_VERSION/scripts"
+            PLUGIN_MODE=true
+        else
+            SCRIPTS_DIR="$HOME/.claude/scripts"
+            PLUGIN_MODE=false
+        fi
+    else
+        SCRIPTS_DIR="$HOME/.claude/scripts"
+        PLUGIN_MODE=false
+    fi
+fi
 
 echo "🔍 CVI セットアップ診断"
 echo ""
 
 # Check Siri voice
 echo -n "Siri音声: "
-# Test if system default voice sounds natural (Siri-like)
-# We can't directly detect Siri, but we can check if say works
 if command -v say >/dev/null 2>&1; then
-    # Create a test audio file
     TEST_AUDIO="/tmp/cvi_voice_test_$$.aiff"
     say -o "$TEST_AUDIO" "test" 2>/dev/null
 
     if [ -f "$TEST_AUDIO" ]; then
-        # Check file size - Siri voices tend to produce larger files
         FILE_SIZE=$(stat -f%z "$TEST_AUDIO" 2>/dev/null || echo "0")
         rm -f "$TEST_AUDIO"
 
@@ -43,30 +61,51 @@ fi
 # Check script permissions
 echo -n "スクリプト実行権限: "
 SCRIPTS_OK=true
-for script in notify-end.sh notify-input.sh kill-voice.sh cvi-speed cvi-lang; do
+MISSING_SCRIPTS=""
+for script in notify-end.sh kill-voice.sh; do
     if [ ! -x "$SCRIPTS_DIR/$script" ]; then
-        echo "❌ $script に実行権限がありません"
+        MISSING_SCRIPTS="$MISSING_SCRIPTS $script"
         SCRIPTS_OK=false
     fi
 done
 if $SCRIPTS_OK; then
     echo "✅ OK"
+else
+    echo "❌ 以下のスクリプトに実行権限がありません:$MISSING_SCRIPTS"
 fi
 
 # Check hooks configuration
 echo -n "hooks設定: "
-SETTINGS_FILE="$HOME/.claude/settings.json"
-if [ -f "$SETTINGS_FILE" ]; then
-    if grep -q "notify-end.sh" "$SETTINGS_FILE" && grep -q "kill-voice.sh" "$SETTINGS_FILE"; then
-        echo "✅ OK"
-        HOOKS_OK=true
+if $PLUGIN_MODE; then
+    # Plugin mode: check plugin's hooks.json
+    HOOKS_JSON="$SCRIPTS_DIR/../hooks/hooks.json"
+    if [ -f "$HOOKS_JSON" ]; then
+        if grep -q "notify-end.sh" "$HOOKS_JSON" && grep -q "kill-voice.sh" "$HOOKS_JSON"; then
+            echo "✅ OK (プラグインモード)"
+            HOOKS_OK=true
+        else
+            echo "⚠️  hooks.json が不完全"
+            HOOKS_OK=false
+        fi
     else
-        echo "⚠️  不完全"
+        echo "❌ hooks.json が見つかりません"
         HOOKS_OK=false
     fi
 else
-    echo "❌ settings.jsonが見つかりません"
-    HOOKS_OK=false
+    # Standalone mode: check settings.json
+    SETTINGS_FILE="$HOME/.claude/settings.json"
+    if [ -f "$SETTINGS_FILE" ]; then
+        if grep -q "notify-end.sh" "$SETTINGS_FILE" && grep -q "kill-voice.sh" "$SETTINGS_FILE"; then
+            echo "✅ OK"
+            HOOKS_OK=true
+        else
+            echo "⚠️  不完全"
+            HOOKS_OK=false
+        fi
+    else
+        echo "❌ settings.jsonが見つかりません"
+        HOOKS_OK=false
+    fi
 fi
 
 # Check configuration file
@@ -98,6 +137,15 @@ else
     echo "ℹ️  設定ファイル: デフォルト設定を使用中"
 fi
 
+# Show mode info
+echo ""
+if $PLUGIN_MODE; then
+    echo "ℹ️  インストールモード: プラグイン"
+    echo "   スクリプトパス: $SCRIPTS_DIR"
+else
+    echo "ℹ️  インストールモード: スタンドアロン"
+fi
+
 echo ""
 
 # Summary
@@ -108,7 +156,6 @@ else
     echo "⚠️  問題が見つかりました"
     echo ""
 
-    # Provide suggestions
     if ! $SIRI_OK; then
         cat <<EOF
 【Siri音声の設定方法】
@@ -125,21 +172,38 @@ EOF
     fi
 
     if ! $SCRIPTS_OK; then
-        cat <<EOF
+        if $PLUGIN_MODE; then
+            cat <<EOF
+【スクリプト実行権限の付与】
+chmod +x "$SCRIPTS_DIR"/*.sh
+
+EOF
+        else
+            cat <<EOF
 【スクリプト実行権限の付与】
 chmod +x ~/.claude/scripts/*.sh
 chmod +x ~/.claude/scripts/cvi-*
 
 EOF
+        fi
     fi
 
     if ! $HOOKS_OK; then
-        cat <<EOF
+        if $PLUGIN_MODE; then
+            cat <<EOF
+【hooks設定】
+プラグインのhooksが正しく読み込まれていない可能性があります。
+Claude Codeを再起動してください。
+
+EOF
+        else
+            cat <<EOF
 【hooks設定】
 ~/.claude/settings.jsonにhooksを追加してください。
 詳細は README.md を参照してください。
 
 EOF
+        fi
     fi
 
     exit 1
