@@ -5,30 +5,39 @@
 # Read hook input from stdin
 INPUT=$(cat)
 
+# Validate input
+if [[ -z "$INPUT" ]]; then
+    exit 0
+fi
+
 # Extract command from tool_input
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 if [[ -z "$COMMAND" ]]; then
-    # Fallback: try to extract with grep
     COMMAND=$(echo "$INPUT" | grep -o '"command"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"command"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
 fi
 
 # Check if this was a gh pr create command
 if [[ "$COMMAND" =~ gh[[:space:]]+pr[[:space:]]+create ]]; then
-    # Extract tool output (the result of the command)
+    # Extract tool output
     OUTPUT=$(echo "$INPUT" | jq -r '.tool_output // empty' 2>/dev/null)
+    if [[ -z "$OUTPUT" ]]; then
+        OUTPUT=$(echo "$INPUT" | grep -o '"tool_output"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"tool_output"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+    fi
 
-    # Check if PR URL was returned (indicates success)
+    # Check if PR URL was returned
     if [[ "$OUTPUT" =~ https://github.com/.*/pull/[0-9]+ ]]; then
-        # Extract PR number
         PR_URL=$(echo "$OUTPUT" | grep -o 'https://github.com/[^/]*/[^/]*/pull/[0-9]*' | head -1)
         PR_NUM=$(echo "$PR_URL" | grep -o '[0-9]*$')
 
-        echo ""
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "📋 PR #${PR_NUM} created. Run self-review:"
-        echo ""
-        echo "   /code:review-pr ${PR_NUM}"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        # Validate PR number before output
+        if [[ -n "$PR_NUM" ]]; then
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📋 PR #${PR_NUM} created. Run self-review:"
+            echo ""
+            echo "   /pr-review-toolkit:review-pr ${PR_NUM}"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        fi
     fi
 fi
 
