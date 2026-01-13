@@ -14,6 +14,7 @@ This repository serves as a marketplace for Claude Code plugins developed by Sig
 | [YPM](./plugins/ypm) | Your Project Manager - Project management for Claude Code | Available |
 | [chezmoi](./plugins/chezmoi) | Dotfiles management integration using chezmoi | Available |
 | [code](./plugins/code-review) | Code review workflow integration for git commits | Available |
+| [utils](./plugins/utils) | Utility commands for plugin management (cache clearing, etc.) | Available |
 
 ## Installation
 
@@ -34,6 +35,7 @@ Or use CLI commands:
 /plugin install ypm@claude-tools
 /plugin install chezmoi@claude-tools
 /plugin install code@claude-tools
+/plugin install utils@claude-tools
 ```
 
 ### 3. Update Marketplace
@@ -66,7 +68,7 @@ Or use CLI commands:
 1. Add the marketplace: `/plugin marketplace add signalcompose/claude-tools`
 2. Browse plugins: `/plugin` → Discover tab
 3. Install desired plugins
-4. Use plugin commands (e.g., `/cvi:status`, `/ypm:update`, `/chezmoi:check`, `/code:review-commit`)
+4. Use plugin commands (e.g., `/cvi:status`, `/ypm:update`, `/chezmoi:check`, `/code:review-commit`, `/utils:clear-plugin-cache`)
 5. See individual plugin documentation for detailed usage
 
 ## Documentation
