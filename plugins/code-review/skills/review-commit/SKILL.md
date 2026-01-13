@@ -8,7 +8,7 @@ Review staged changes using the code-reviewer agent and approve them for commit.
 
 ## Overview
 
-This skill performs automated code review on staged git changes using the `pr-review-toolkit:code-reviewer` agent. If the review passes, it saves a hash that allows the pre-commit hook to verify the review was completed.
+This skill delegates code review to the `pr-review-toolkit:code-reviewer` agent via Task tool. Manual review is NOT allowed - always use the agent.
 
 ## Execution Steps
 
@@ -24,20 +24,16 @@ git diff --cached --stat
 
 ### Step 2: Launch Code Reviewer Agent
 
-Use the Task tool to launch the `pr-review-toolkit:code-reviewer` agent:
+**MANDATORY**: You MUST use the Task tool to launch the agent. Do NOT review code manually.
 
 ```
-Task tool parameters:
+Task tool call:
 - subagent_type: "pr-review-toolkit:code-reviewer"
 - prompt: "Review the staged changes (git diff --cached) for this commit. Check for CLAUDE.md compliance, bugs, and code quality issues. Report only issues with confidence >= 80."
 - description: "Review staged changes"
 ```
 
-The agent will:
-- Check CLAUDE.md compliance
-- Detect bugs and logic errors
-- Evaluate code quality
-- Score issues by confidence (only report >= 80)
+Wait for the agent to complete and return results.
 
 ### Step 3: Handle Review Results
 
@@ -70,9 +66,8 @@ This skill works with `check-code-review.sh` as a pre-commit hook:
 4. If passed, approval hash is saved
 5. Subsequent `git commit` proceeds if hash matches
 
-## Notes
+## Important
 
-- Review is based on staged changes only (`git diff --cached`)
-- Uses `pr-review-toolkit:code-reviewer` agent for automated review
+- ALWAYS use Task tool with `pr-review-toolkit:code-reviewer` agent
+- NEVER review code manually - delegate to the agent
 - Hash changes if staged content changes (requires re-review)
-- Approval file is automatically deleted after successful commit
