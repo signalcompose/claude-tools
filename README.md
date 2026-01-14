@@ -71,6 +71,42 @@ Or use CLI commands:
 4. Use plugin commands (e.g., `/cvi:status`, `/ypm:update`, `/chezmoi:check`, `/code:review-commit`, `/utils:clear-plugin-cache`)
 5. See individual plugin documentation for detailed usage
 
+## Updating Plugins
+
+### Update Marketplace
+
+```bash
+/plugin marketplace update claude-tools
+```
+
+### Clear Plugin Cache (Important!)
+
+Due to a known Claude Code bug ([#14061](https://github.com/anthropics/claude-code/issues/14061), [#15642](https://github.com/anthropics/claude-code/issues/15642)), running `/plugin marketplace update` updates the marketplace repository but **does not invalidate the plugin cache**. This means updated plugins may not work correctly.
+
+**To apply updates properly:**
+
+1. Update the marketplace:
+   ```bash
+   /plugin marketplace update claude-tools
+   ```
+
+2. Clear the cache for updated plugins:
+   ```bash
+   # Clear specific plugin cache
+   /utils:clear-plugin-cache cvi
+   /utils:clear-plugin-cache utils
+
+   # Or clear all plugin caches for this marketplace
+   /utils:clear-plugin-cache --all --marketplace claude-tools
+   ```
+
+3. Restart Claude Code
+
+**Dry run** (see what would be deleted):
+```bash
+/utils:clear-plugin-cache cvi --dry-run
+```
+
 ## Documentation
 
 - [docs/INDEX.md](./docs/INDEX.md) - Documentation index
