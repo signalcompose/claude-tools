@@ -97,7 +97,7 @@ Due to a known Claude Code bug ([#14061](https://github.com/anthropics/claude-co
    /utils:clear-plugin-cache utils
 
    # Or clear all plugin caches for this marketplace
-   /utils:clear-plugin-cache --all
+   /utils:clear-plugin-cache --all --marketplace claude-tools
    ```
 
 3. Restart Claude Code
