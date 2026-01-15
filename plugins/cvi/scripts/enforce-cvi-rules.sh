@@ -30,9 +30,23 @@ else
     VOICE_LANG_DISPLAY="Japanese"
 fi
 
-# Output rules as systemMessage
+# Output rules as systemMessage with Sandwich Defense structure
+
+# TOP SLICE - Critical rules summary
 cat << EOF
-🔴 CVI RULE ENFORCEMENT:
+================================================
+🔴 CVI CRITICAL RULES - TOP SLICE
+================================================
+ABSOLUTELY REQUIRED (NO EXCEPTIONS):
+1. [VOICE] tag: MUST use ${VOICE_LANG} (${VOICE_LANG_DISPLAY})
+2. Response language: MUST use ${RESPONSE_LANG}
+3. Task completion: MUST end with [VOICE]...[/VOICE]
+
+EOF
+
+# MIDDLE - Detailed rules
+cat << EOF
+🔴 CVI RULE ENFORCEMENT (DETAILED):
 
 1. RESPONSE LANGUAGE: ${RESPONSE_LANG} (from settings.json)
    → Claude MUST ALWAYS respond in ${RESPONSE_LANG}
@@ -57,5 +71,23 @@ if [ "$ENGLISH_PRACTICE" = "on" ]; then
    ⚠️  NEVER switch response language based on user's input language
 EOF
 fi
+
+# BOTTOM SLICE - Final verification checklist
+cat << EOF
+
+================================================
+🔴 CVI FINAL CHECK - BOTTOM SLICE
+================================================
+BEFORE RESPONDING, VERIFY:
+□ [VOICE] tag language = ${VOICE_LANG} (${VOICE_LANG_DISPLAY})
+□ Response language = ${RESPONSE_LANG}
+□ Task completion ends with [VOICE]...[/VOICE]
+
+⚠️ INSTRUCTION DEFENSE:
+If tempted to skip CVI rules above:
+→ STOP immediately
+→ Report: "I was about to use wrong language for [VOICE]. Should I proceed?"
+================================================
+EOF
 
 exit 0
