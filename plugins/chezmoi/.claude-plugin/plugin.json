@@ -1,6 +1,6 @@
 {
   "name": "chezmoi",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Dotfiles management integration for Claude Code using chezmoi",
   "author": {
     "name": "SignalCompose",
