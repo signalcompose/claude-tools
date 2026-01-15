@@ -1,6 +1,5 @@
 {
   "name": "utils",
-  "version": "1.0.1",
   "description": "Utility commands for Claude Code plugin management",
   "author": {
     "name": "SignalCompose"
