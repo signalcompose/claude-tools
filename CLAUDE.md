@@ -74,6 +74,32 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 - ❌ Force Push
 - ❌ Squashマージ
 
+### バージョン管理ルール
+
+**PRマージ前**:
+- 変更内容に応じてプラグインのセマンティックバージョンを更新
+  - `MAJOR`: 後方互換性のない変更
+  - `MINOR`: 後方互換性のある機能追加
+  - `PATCH`: バグ修正・メンテナンス
+- 対象ファイル: `plugins/<plugin>/.claude-plugin/plugin.json`
+
+**PRマージ後**:
+- Subtree管理プラグインは各リポジトリに変更を反映
+
+```bash
+# CVI
+git subtree push --prefix=plugins/cvi https://github.com/signalcompose/cvi.git main
+
+# YPM
+git subtree push --prefix=plugins/ypm https://github.com/signalcompose/ypm.git main
+```
+
+**Subtree管理プラグイン一覧**:
+| Plugin | Repository |
+|--------|------------|
+| cvi | signalcompose/cvi |
+| ypm | signalcompose/ypm |
+
 ## よくある操作
 
 ### プラグイン追加
