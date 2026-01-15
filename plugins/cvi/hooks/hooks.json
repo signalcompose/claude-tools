@@ -33,6 +33,11 @@
             "type": "command",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/kill-voice.sh",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/show-cvi-settings.sh",
+            "timeout": 2000
           }
         ]
       }

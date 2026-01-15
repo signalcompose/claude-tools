@@ -76,6 +76,22 @@ The [VOICE] tag language is controlled by `VOICE_LANG` in `~/.cvi/config`:
 [VOICE]設定ファイルを3つ更新しました。テストは全て成功しています。[/VOICE]
 ```
 
+## English Practice Mode
+
+When `ENGLISH_PRACTICE=on` in `~/.cvi/config`:
+
+**If user input contains non-ASCII characters (Japanese, etc.):**
+1. Show English equivalent: `> "English instruction"`
+2. Prompt: `your turn`
+3. **Wait for user to repeat in English**
+4. **Then execute the instruction**
+
+**Important clarifications:**
+- This mode affects USER prompts only, not Claude's response language
+- Claude responds in the language set by Claude Code's `language` setting
+- If user's English is unclear, ask for clarification before acting
+- When user asks "How do you say X in English?", answer the question
+
 ## Fallback Behavior
 
 If no [VOICE] tag is present, the first 200 characters of the response are automatically read aloud. Using a [VOICE] tag provides better control over what is spoken.
