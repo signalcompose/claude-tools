@@ -1,6 +1,5 @@
 {
   "name": "ypm",
-  "version": "1.0.1",
   "description": "Multi-project progress tracking system powered by Claude Code. Automatically tracks status of multiple projects from Git history and documentation.",
   "author": {
     "name": "Hiroshi Yamato",

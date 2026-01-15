@@ -1,6 +1,5 @@
 {
   "name": "cvi",
-  "version": "1.1.0",
   "description": "Claude Voice Integration - Voice notifications for Claude Code on macOS",
   "author": {
     "name": "signalcompose",

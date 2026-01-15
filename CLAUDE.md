@@ -76,12 +76,15 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 
 ### バージョン管理ルール
 
-**PRマージ前**:
-- 変更内容に応じてプラグインのセマンティックバージョンを更新
-  - `MAJOR`: 後方互換性のない変更
-  - `MINOR`: 後方互換性のある機能追加
-  - `PATCH`: バグ修正・メンテナンス
-- 対象ファイル: `plugins/<plugin>/.claude-plugin/plugin.json`
+**Hash-based Versioning**:
+- プラグインはGit commit hashで自動管理（Anthropic公式と同様）
+- `plugin.json`にversionフィールドは不要
+- Claude Codeがインストール時にcommit SHAを記録
+
+**利点**:
+- 手動バージョン更新のオーバーヘッド削減
+- 頻繁な修正に対応しやすい
+- 正確なコード追跡が可能
 
 **PRマージ後**:
 - Subtree管理プラグインは各リポジトリに変更を反映
