@@ -58,10 +58,6 @@ No additional configuration required. The plugin uses:
 
 This plugin uses `context: fork` to isolate large outputs from the main conversation context, preventing context pollution from verbose Codex responses.
 
-### Security
-
-Tool access is restricted to `Bash(codex:*)` pattern, ensuring only Codex-related commands can be executed within the skill context.
-
 ## Troubleshooting
 
 ### "Codex CLI is not installed"

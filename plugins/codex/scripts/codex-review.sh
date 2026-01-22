@@ -26,6 +26,13 @@ echo "---"
 set +e  # Temporarily disable exit on error to capture exit code
 
 if [ "$TARGET" = "--staged" ]; then
+    # Verify we're in a git repository
+    if ! git rev-parse --is-inside-work-tree &> /dev/null; then
+        echo "ERROR: Not in a git repository."
+        echo "Navigate to a git repository to review staged changes."
+        exit 1
+    fi
+
     # Review staged changes
     STAGED_DIFF=$(git diff --cached)
 

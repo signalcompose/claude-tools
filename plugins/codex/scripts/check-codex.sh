@@ -1,6 +1,8 @@
 #!/bin/bash
 # check-codex.sh - Verify Codex CLI installation
 
+set -e
+
 if ! command -v codex &> /dev/null; then
     echo "ERROR: Codex CLI is not installed."
     echo ""
