@@ -14,10 +14,9 @@ OpenAI Codex CLI integration for Claude Code.
    npm install -g @openai/codex
    ```
 
-2. Set your OpenAI API key:
-   ```bash
-   export OPENAI_API_KEY=your-api-key
-   ```
+2. Authentication (one of):
+   - Run `codex` to complete OAuth authentication, OR
+   - Set `OPENAI_API_KEY` environment variable
 
 ## Installation
 
@@ -49,7 +48,7 @@ Review code using Codex CLI.
 ## Configuration
 
 No additional configuration required. The plugin uses:
-- `OPENAI_API_KEY` environment variable for authentication
+- OAuth authentication (`~/.codex/auth.json`) or `OPENAI_API_KEY` environment variable
 - 120-second timeout for all operations
 
 ## Technical Details
@@ -67,10 +66,14 @@ Install Codex CLI globally:
 npm install -g @openai/codex
 ```
 
-### "OPENAI_API_KEY not set"
+### "Codex CLI is not authenticated"
 
-Export your API key:
+Complete one of the following:
 ```bash
+# Option 1: OAuth authentication (recommended)
+codex
+
+# Option 2: API key
 export OPENAI_API_KEY=your-api-key
 ```
 
