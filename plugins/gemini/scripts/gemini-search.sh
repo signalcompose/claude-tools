@@ -42,7 +42,7 @@ set -e  # Re-enable exit on error
 
 if [ $exit_code -eq 124 ]; then
     echo ""
-    echo "WARNING: Search timed out after 60 seconds."
+    echo "ERROR: Search timed out after 60 seconds."
     echo "Try a more specific query or check your network connection."
     exit 124
 elif [ $exit_code -ne 0 ]; then
