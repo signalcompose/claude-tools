@@ -30,7 +30,7 @@ All scripts are located in `${CLAUDE_PLUGIN_ROOT}/scripts/`.
 ${CLAUDE_PLUGIN_ROOT}/scripts/check-codex.sh
 ```
 
-Verifies Codex CLI is installed and API key is configured.
+Verifies Codex CLI is installed and authentication is configured (OAuth or API key).
 
 ### 2. Research Mode (codex exec)
 
