@@ -2,6 +2,7 @@
 # gemini-search.sh - Execute web search using Gemini CLI
 
 set -e
+set -o pipefail
 
 RAW_QUERY="$1"
 

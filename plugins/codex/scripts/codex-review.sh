@@ -39,7 +39,15 @@ if [ "$TARGET" = "--staged" ]; then
     fi
 
     # Review staged changes
-    STAGED_DIFF=$(git diff --cached)
+    STAGED_DIFF=$(git diff --cached 2>&1)
+    DIFF_EXIT_CODE=$?
+
+    if [ $DIFF_EXIT_CODE -ne 0 ]; then
+        echo "ERROR: Failed to get staged changes."
+        echo "Git output: $STAGED_DIFF"
+        echo "Try running 'git status' to diagnose the issue."
+        exit 1
+    fi
 
     if [ -z "$STAGED_DIFF" ]; then
         echo "No staged changes to review."
