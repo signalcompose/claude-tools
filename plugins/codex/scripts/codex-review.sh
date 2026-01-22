@@ -45,6 +45,8 @@ elif command -v timeout &> /dev/null; then
     TIMEOUT_CMD="timeout"
 else
     TIMEOUT_CMD=""
+    echo "WARNING: No timeout command available (gtimeout/timeout not found)." >&2
+    echo "Command will run without timeout protection. On macOS: brew install coreutils" >&2
 fi
 
 set +e  # Temporarily disable exit on error to capture exit code
