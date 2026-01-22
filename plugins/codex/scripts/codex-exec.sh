@@ -3,6 +3,7 @@
 # Usage: codex-exec.sh "prompt"
 
 set -e
+set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

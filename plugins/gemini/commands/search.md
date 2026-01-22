@@ -38,4 +38,3 @@ After receiving search results:
 - **Gemini not installed**: Provide installation instructions
 - **Authentication error**: Guide user to run `gemini` for OAuth
 - **Timeout**: Suggest retrying with a more specific query
-- **Empty results**: Try rephrasing the search query

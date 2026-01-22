@@ -2,6 +2,7 @@
 # check-codex.sh - Verify Codex CLI installation
 
 set -e
+set -o pipefail
 
 if ! command -v codex &> /dev/null; then
     echo "ERROR: Codex CLI is not installed."
@@ -16,8 +17,8 @@ fi
 
 # Verify API key is set
 if [ -z "$OPENAI_API_KEY" ]; then
-    echo "WARNING: OPENAI_API_KEY environment variable is not set."
-    echo "Codex CLI may not function correctly without it."
+    echo "ERROR: OPENAI_API_KEY environment variable is not set."
+    echo "Codex CLI requires this to function."
     echo ""
     echo "Set your API key:"
     echo "  export OPENAI_API_KEY=your-api-key"

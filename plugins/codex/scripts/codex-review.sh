@@ -3,6 +3,7 @@
 # Usage: codex-review.sh [--staged | file_or_directory]
 
 set -e
+set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -28,16 +29,18 @@ TARGET="$1"
 echo "Executing Codex Code Review..."
 echo "---"
 
+if [ "$TARGET" = "--staged" ]; then
+    # Verify we're in a git repository BEFORE disabling error handling
+    if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+        echo "ERROR: Not in a git repository or git is not functioning correctly."
+        echo "Run 'git status' to diagnose the issue."
+        exit 1
+    fi
+fi
+
 set +e  # Temporarily disable exit on error to capture exit code
 
 if [ "$TARGET" = "--staged" ]; then
-    # Verify we're in a git repository
-    if ! git rev-parse --is-inside-work-tree &> /dev/null; then
-        echo "ERROR: Not in a git repository."
-        echo "Navigate to a git repository to review staged changes."
-        exit 1
-    fi
-
     # Review staged changes
     STAGED_DIFF=$(git diff --cached 2>&1)
     DIFF_EXIT_CODE=$?

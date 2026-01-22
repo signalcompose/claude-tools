@@ -2,6 +2,7 @@
 # check-gemini.sh - Verify Gemini CLI installation and configuration
 
 set -e
+set -o pipefail
 
 # Check if gemini command exists
 if ! command -v gemini &> /dev/null; then
