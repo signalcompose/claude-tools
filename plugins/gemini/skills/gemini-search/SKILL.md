@@ -74,6 +74,7 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/gemini-search.sh "AI regulation updates January 20
 
 ## Notes
 
-- Uses `gemini-2.5-flash` model for fast responses
+- Uses `gemini-2.5-flash-lite` model by default (stable, good rate limits)
+- Override with `GEMINI_MODEL` environment variable
 - 60-second timeout to prevent hanging
 - Results are returned to the forked context to avoid main context pollution

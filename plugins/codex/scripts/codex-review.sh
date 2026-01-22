@@ -38,6 +38,17 @@ if [ "$TARGET" = "--staged" ]; then
     fi
 fi
 
+# Determine timeout command (gtimeout for macOS with coreutils, timeout for Linux)
+if command -v gtimeout &> /dev/null; then
+    TIMEOUT_CMD="gtimeout"
+elif command -v timeout &> /dev/null; then
+    TIMEOUT_CMD="timeout"
+else
+    TIMEOUT_CMD=""
+    echo "WARNING: No timeout command available (gtimeout/timeout not found)." >&2
+    echo "Command will run without timeout protection. On macOS: brew install coreutils" >&2
+fi
+
 set +e  # Temporarily disable exit on error to capture exit code
 
 if [ "$TARGET" = "--staged" ]; then
@@ -62,9 +73,15 @@ if [ "$TARGET" = "--staged" ]; then
     echo ""
 
     # Pass staged diff to codex for review
-    timeout 120 codex exec "Review the following git diff for potential issues, bugs, and improvements:
+    if [ -n "$TIMEOUT_CMD" ]; then
+        $TIMEOUT_CMD 120 codex exec "Review the following git diff for potential issues, bugs, and improvements:
 
 $STAGED_DIFF" 2>&1
+    else
+        codex exec "Review the following git diff for potential issues, bugs, and improvements:
+
+$STAGED_DIFF" 2>&1
+    fi
 else
     # Review file or directory
     if [ ! -e "$TARGET" ]; then
@@ -76,7 +93,11 @@ else
     echo ""
 
     # Execute codex review command
-    timeout 120 codex review "$TARGET" 2>&1
+    if [ -n "$TIMEOUT_CMD" ]; then
+        $TIMEOUT_CMD 120 codex review "$TARGET" 2>&1
+    else
+        codex review "$TARGET" 2>&1
+    fi
 fi
 
 EXIT_CODE=$?

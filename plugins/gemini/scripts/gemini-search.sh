@@ -26,31 +26,56 @@ fi
 "$SCRIPT_DIR/check-gemini.sh" || exit 1
 
 # Execute gemini with web search prompt
-# Using gemini-2.5-flash for fast responses
-# Timeout after 60 seconds
+# Default model: gemini-2.5-flash-lite (stable, good rate limits, cost-effective)
+# Override with GEMINI_MODEL environment variable if needed
+MODEL="${GEMINI_MODEL:-gemini-2.5-flash-lite}"
+
+# Determine timeout command (gtimeout for macOS with coreutils, timeout for Linux)
+if command -v gtimeout &> /dev/null; then
+    TIMEOUT_CMD="gtimeout"
+elif command -v timeout &> /dev/null; then
+    TIMEOUT_CMD="timeout"
+else
+    TIMEOUT_CMD=""
+    echo "WARNING: No timeout command available (gtimeout/timeout not found)." >&2
+    echo "Command will run without timeout protection. On macOS: brew install coreutils" >&2
+fi
+
+# Execute with timeout (60 seconds) or without if no timeout command available
 set +e  # Temporarily disable exit on error to capture exit code
-timeout 60 gemini -m gemini-2.5-flash --prompt "WebSearch: $QUERY
+if [ -n "$TIMEOUT_CMD" ]; then
+    $TIMEOUT_CMD 60 gemini -m "$MODEL" --prompt "WebSearch: $QUERY
 
 Please search the web and provide comprehensive, up-to-date information about the query above. Include:
 - Key findings and facts
 - Relevant sources (URLs when available)
 - Current/latest information
 - Summary of the most important points"
+else
+    # No timeout command available, run without timeout
+    gemini -m "$MODEL" --prompt "WebSearch: $QUERY
 
-exit_code=$?
+Please search the web and provide comprehensive, up-to-date information about the query above. Include:
+- Key findings and facts
+- Relevant sources (URLs when available)
+- Current/latest information
+- Summary of the most important points"
+fi
+
+EXIT_CODE=$?
 set -e  # Re-enable exit on error
 
-if [ $exit_code -eq 124 ]; then
+if [ $EXIT_CODE -eq 124 ]; then
     echo ""
     echo "ERROR: Search timed out after 60 seconds."
     echo "Try a more specific query or check your network connection."
     exit 124
-elif [ $exit_code -ne 0 ]; then
+elif [ $EXIT_CODE -ne 0 ]; then
     echo ""
-    echo "ERROR: Gemini CLI failed with exit code $exit_code"
+    echo "ERROR: Gemini CLI failed with exit code $EXIT_CODE"
     echo "Run 'gemini --help' directly for troubleshooting."
     echo "Common causes: authentication issues, network problems, rate limiting."
-    exit $exit_code
+    exit $EXIT_CODE
 fi
 
 exit 0
