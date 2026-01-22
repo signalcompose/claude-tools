@@ -15,6 +15,8 @@ This repository serves as a marketplace for Claude Code plugins developed by Sig
 | [chezmoi](./plugins/chezmoi) | Dotfiles management integration using chezmoi | Available |
 | [code](./plugins/code-review) | Code review workflow integration for git commits | Available |
 | [utils](./plugins/utils) | Utility commands for plugin management (cache clearing, etc.) | Available |
+| [codex](./plugins/codex) | OpenAI Codex CLI integration for research and code review | Available |
+| [gemini](./plugins/gemini) | Google Gemini CLI integration for web search | Available |
 
 ## Installation
 
@@ -36,6 +38,8 @@ Or use CLI commands:
 /plugin install chezmoi@claude-tools
 /plugin install code@claude-tools
 /plugin install utils@claude-tools
+/plugin install codex@claude-tools
+/plugin install gemini@claude-tools
 ```
 
 ### 3. Update Marketplace
