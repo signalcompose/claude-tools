@@ -7,6 +7,11 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Check Codex availability
+if [ ! -f "$SCRIPT_DIR/check-codex.sh" ]; then
+    echo "ERROR: check-codex.sh not found in $SCRIPT_DIR"
+    echo "Plugin installation may be corrupted. Try reinstalling."
+    exit 1
+fi
 "$SCRIPT_DIR/check-codex.sh" || exit 1
 
 if [ -z "$1" ]; then
@@ -35,6 +40,8 @@ if [ $EXIT_CODE -eq 124 ]; then
 elif [ $EXIT_CODE -ne 0 ]; then
     echo ""
     echo "ERROR: Codex CLI failed with exit code $EXIT_CODE"
+    echo "Run 'codex exec <prompt>' directly for detailed error output."
+    echo "Common causes: invalid API key, network issues, rate limiting."
     exit $EXIT_CODE
 fi
 
