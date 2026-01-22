@@ -41,6 +41,20 @@
       "source": "./plugins/utils",
       "category": "developer-tools",
       "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/utils"
+    },
+    {
+      "name": "codex",
+      "description": "OpenAI Codex CLI integration for research and code review",
+      "source": "./plugins/codex",
+      "category": "developer-tools",
+      "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/codex"
+    },
+    {
+      "name": "gemini",
+      "description": "Google Gemini CLI integration for web search",
+      "source": "./plugins/gemini",
+      "category": "productivity",
+      "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/gemini"
     }
   ]
 }

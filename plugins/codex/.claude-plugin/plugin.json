@@ -1,0 +1,11 @@
+{
+  "name": "codex",
+  "description": "OpenAI Codex CLI integration for research and code review",
+  "author": {
+    "name": "SignalCompose",
+    "email": "contact@signalcompose.com"
+  },
+  "repository": "https://github.com/signalcompose/claude-tools",
+  "license": "MIT",
+  "keywords": ["codex", "openai", "research", "code-review", "ai"]
+}
