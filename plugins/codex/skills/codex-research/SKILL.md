@@ -16,7 +16,9 @@ This skill provides integration with OpenAI Codex CLI for research and code revi
 ## Prerequisites
 
 - Codex CLI installed: `npm install -g @openai/codex`
-- `OPENAI_API_KEY` environment variable set
+- Authentication (one of):
+  - Run `codex` to complete OAuth authentication, OR
+  - Set `OPENAI_API_KEY` environment variable
 
 ## Available Scripts
 
@@ -75,7 +77,7 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/codex-review.sh ./lib
 
 - **Timeout**: Commands timeout after 120 seconds
 - **Not installed**: Provides installation instructions
-- **No API key**: Prompts to set OPENAI_API_KEY
+- **Not authenticated**: Prompts to complete OAuth or set OPENAI_API_KEY
 
 ## Notes
 

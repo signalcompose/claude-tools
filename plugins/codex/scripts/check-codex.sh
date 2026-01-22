@@ -15,15 +15,19 @@ if ! command -v codex &> /dev/null; then
     exit 1
 fi
 
-# Verify API key is set
-if [ -z "$OPENAI_API_KEY" ]; then
-    echo "ERROR: OPENAI_API_KEY environment variable is not set."
-    echo "Codex CLI requires this to function."
+# Check authentication: OPENAI_API_KEY or OAuth (auth.json)
+if [ -z "$OPENAI_API_KEY" ] && [ ! -f "$HOME/.codex/auth.json" ]; then
+    echo "ERROR: Codex CLI is not authenticated."
     echo ""
-    echo "Set your API key:"
-    echo "  export OPENAI_API_KEY=your-api-key"
+    echo "Option 1: Run 'codex' to complete OAuth authentication"
+    echo "Option 2: Set OPENAI_API_KEY environment variable"
     exit 1
 fi
 
-echo "Codex CLI is available."
+# Inform user which auth method is being used
+if [ -n "$OPENAI_API_KEY" ]; then
+    echo "OK: Codex CLI is available (using API key)."
+elif [ -f "$HOME/.codex/auth.json" ]; then
+    echo "OK: Codex CLI is available (using OAuth)."
+fi
 exit 0
