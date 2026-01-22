@@ -30,15 +30,35 @@ fi
 # Override with GEMINI_MODEL environment variable if needed
 MODEL="${GEMINI_MODEL:-gemini-2.5-flash-lite}"
 
-# Timeout after 60 seconds
+# Determine timeout command (gtimeout for macOS with coreutils, timeout for Linux)
+if command -v gtimeout &> /dev/null; then
+    TIMEOUT_CMD="gtimeout"
+elif command -v timeout &> /dev/null; then
+    TIMEOUT_CMD="timeout"
+else
+    TIMEOUT_CMD=""
+fi
+
+# Execute with timeout (60 seconds) or without if no timeout command available
 set +e  # Temporarily disable exit on error to capture exit code
-timeout 60 gemini -m "$MODEL" --prompt "WebSearch: $QUERY
+if [ -n "$TIMEOUT_CMD" ]; then
+    $TIMEOUT_CMD 60 gemini -m "$MODEL" --prompt "WebSearch: $QUERY
 
 Please search the web and provide comprehensive, up-to-date information about the query above. Include:
 - Key findings and facts
 - Relevant sources (URLs when available)
 - Current/latest information
 - Summary of the most important points"
+else
+    # No timeout command available, run without timeout
+    gemini -m "$MODEL" --prompt "WebSearch: $QUERY
+
+Please search the web and provide comprehensive, up-to-date information about the query above. Include:
+- Key findings and facts
+- Relevant sources (URLs when available)
+- Current/latest information
+- Summary of the most important points"
+fi
 
 exit_code=$?
 set -e  # Re-enable exit on error

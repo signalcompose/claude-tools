@@ -27,9 +27,22 @@ echo "Executing Codex CLI..."
 echo "Prompt: $PROMPT"
 echo "---"
 
-# Execute with timeout (120 seconds)
+# Determine timeout command (gtimeout for macOS with coreutils, timeout for Linux)
+if command -v gtimeout &> /dev/null; then
+    TIMEOUT_CMD="gtimeout"
+elif command -v timeout &> /dev/null; then
+    TIMEOUT_CMD="timeout"
+else
+    TIMEOUT_CMD=""
+fi
+
+# Execute with timeout (120 seconds) or without if no timeout command available
 set +e  # Temporarily disable exit on error to capture exit code
-timeout 120 codex exec "$PROMPT" 2>&1
+if [ -n "$TIMEOUT_CMD" ]; then
+    $TIMEOUT_CMD 120 codex exec "$PROMPT" 2>&1
+else
+    codex exec "$PROMPT" 2>&1
+fi
 
 EXIT_CODE=$?
 set -e  # Re-enable exit on error
