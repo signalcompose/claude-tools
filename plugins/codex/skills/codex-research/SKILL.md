@@ -77,7 +77,6 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/codex-review.sh ./lib
 - **Not installed**: Provides installation instructions
 - **No API key**: Prompts to set OPENAI_API_KEY
 
-## Security Notes
+## Notes
 
 This skill uses `context: fork` to isolate large outputs from the main conversation context.
-Tool access is restricted to `Bash(codex:*)` for security.

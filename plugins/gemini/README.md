@@ -13,9 +13,9 @@ Google Gemini CLI integration for web search in Claude Code.
 ### Install Gemini CLI
 
 ```bash
-npm install -g @anthropic-ai/gemini
-# or
-brew install gemini-cli
+npm install -g @google/gemini-cli
+# or use npx directly
+npx @google/gemini-cli
 ```
 
 ### Authenticate
@@ -66,7 +66,7 @@ No additional configuration required. The plugin uses your existing Gemini CLI a
 Install Gemini CLI using npm or brew:
 
 ```bash
-npm install -g @anthropic-ai/gemini
+npm install -g @google/gemini-cli
 ```
 
 ### Authentication failed

@@ -8,9 +8,9 @@ if ! command -v gemini &> /dev/null; then
     echo "ERROR: Gemini CLI is not installed."
     echo ""
     echo "To install Gemini CLI:"
-    echo "  npm install -g @anthropic-ai/gemini"
-    echo "  # or"
-    echo "  brew install gemini-cli"
+    echo "  npm install -g @google/gemini-cli"
+    echo "  # or use npx directly"
+    echo "  npx @google/gemini-cli"
     echo ""
     echo "After installation, run 'gemini' to authenticate."
     exit 1

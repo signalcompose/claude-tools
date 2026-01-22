@@ -25,7 +25,7 @@ If this fails, inform the user to install Codex CLI:
 Run the review with the provided arguments:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/codex-review.sh $ARGUMENTS
+${CLAUDE_PLUGIN_ROOT}/scripts/codex-review.sh "$ARGUMENTS"
 ```
 
 Supported targets:

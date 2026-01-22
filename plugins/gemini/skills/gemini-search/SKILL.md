@@ -68,7 +68,7 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/gemini-search.sh "AI regulation updates January 20
 
 | Error | Solution |
 |-------|----------|
-| Gemini CLI not found | Install via `npm install -g @anthropic-ai/gemini-cli` |
+| Gemini CLI not found | Install via `npm install -g @google/gemini-cli` |
 | Authentication failed | Run `gemini` to complete OAuth |
 | Timeout | Retry with more specific query |
 
