@@ -26,10 +26,13 @@ fi
 "$SCRIPT_DIR/check-gemini.sh" || exit 1
 
 # Execute gemini with web search prompt
-# Using gemini-2.5-flash for fast responses
+# Default model: gemini-2.5-flash-lite (stable, good rate limits, cost-effective)
+# Override with GEMINI_MODEL environment variable if needed
+MODEL="${GEMINI_MODEL:-gemini-2.5-flash-lite}"
+
 # Timeout after 60 seconds
 set +e  # Temporarily disable exit on error to capture exit code
-timeout 60 gemini -m gemini-2.5-flash --prompt "WebSearch: $QUERY
+timeout 60 gemini -m "$MODEL" --prompt "WebSearch: $QUERY
 
 Please search the web and provide comprehensive, up-to-date information about the query above. Include:
 - Key findings and facts

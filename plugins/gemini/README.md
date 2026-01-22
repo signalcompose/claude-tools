@@ -51,13 +51,28 @@ The `gemini-search` skill is automatically available for Claude to use when web 
 ## How It Works
 
 1. The plugin checks if Gemini CLI is installed and authenticated
-2. Executes the search query using `gemini-2.5-flash` model
+2. Executes the search query using `gemini-2.5-flash-lite` model (default)
 3. Returns comprehensive web search results
 4. Results are processed in a forked context to keep the main conversation clean
 
 ## Configuration
 
-No additional configuration required. The plugin uses your existing Gemini CLI authentication.
+### Default Model
+
+The plugin uses `gemini-2.5-flash-lite` by default, which offers:
+- Stable availability and good rate limits
+- Cost-effective pricing
+- Fast response times
+
+### Custom Model
+
+Override the default model with the `GEMINI_MODEL` environment variable:
+
+```bash
+export GEMINI_MODEL=gemini-2.5-flash
+```
+
+Available models: `gemini-2.5-flash-lite` (default), `gemini-2.5-flash`, `gemini-2.5-pro`
 
 ## Troubleshooting
 
