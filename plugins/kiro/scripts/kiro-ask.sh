@@ -7,8 +7,8 @@ set -o pipefail
 
 # Check for empty prompt first (fast fail)
 if [ -z "$1" ]; then
-    echo "ERROR: No prompt provided."
-    echo "Usage: kiro-ask.sh \"your prompt here\""
+    echo "ERROR: No prompt provided." >&2
+    echo "Usage: kiro-ask.sh \"your prompt here\"" >&2
     exit 1
 fi
 
@@ -16,8 +16,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Check Kiro CLI availability
 if [ ! -f "$SCRIPT_DIR/check-kiro.sh" ]; then
-    echo "ERROR: check-kiro.sh not found in $SCRIPT_DIR"
-    echo "Plugin installation may be corrupted. Try reinstalling."
+    echo "ERROR: check-kiro.sh not found in $SCRIPT_DIR" >&2
+    echo "Plugin installation may be corrupted. Try reinstalling." >&2
     exit 1
 fi
 "$SCRIPT_DIR/check-kiro.sh" || exit 1
@@ -54,14 +54,14 @@ EXIT_CODE=$?
 set -e  # Re-enable exit on error
 
 if [ $EXIT_CODE -eq 124 ]; then
-    echo ""
-    echo "ERROR: Kiro CLI timed out after 120 seconds."
+    echo "" >&2
+    echo "ERROR: Kiro CLI timed out after 120 seconds." >&2
     exit 124
 elif [ $EXIT_CODE -ne 0 ]; then
-    echo ""
-    echo "ERROR: Kiro CLI failed with exit code $EXIT_CODE"
-    echo "Run 'kiro-cli chat --no-interactive <prompt>' directly for detailed error output."
-    echo "Common causes: invalid credentials, network issues, rate limiting."
+    echo "" >&2
+    echo "ERROR: Kiro CLI failed with exit code $EXIT_CODE" >&2
+    echo "Run 'kiro-cli chat --no-interactive <prompt>' directly for detailed error output." >&2
+    echo "Common causes: invalid credentials, network issues, rate limiting." >&2
     exit $EXIT_CODE
 fi
 

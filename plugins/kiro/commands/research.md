@@ -44,6 +44,19 @@ After execution:
 /kiro:research Explain AWS VPC peering configuration
 ```
 
+## Input Sanitization
+
+For security, prompts are sanitized before execution:
+- Newlines and carriage returns are removed (multi-line prompts become single-line)
+- Backticks (`) and dollar signs ($) are stripped to prevent prompt injection
+
+## Exit Codes
+
+- `0`: Success
+- `1`: Empty prompt or Kiro CLI not installed
+- `124`: Timeout after 120 seconds
+- Other: Passed through from kiro-cli
+
 ## Notes
 
 - Research queries are executed via `kiro-cli chat --no-interactive`

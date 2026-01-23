@@ -61,14 +61,20 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/kiro-ask.sh "How do I configure VPC endpoints for 
 | `--no-interactive` | Run without user input (used by scripts) |
 | `--agent <AGENT>` | Specify agent to use |
 | `--model <MODEL>` | Specify model to use |
-| `--trust-all-tools` | Trust all tools |
-| `--trust-tools <TOOLS>` | Trust specific tools only |
+| `-a, --trust-all-tools` | Allows model to use any tool without confirmation |
+| `--trust-tools=<TOOL_NAMES>` | Trust only specific tools (e.g., `--trust-tools=fs_read,fs_write`) |
 
 ## Error Handling
 
 - **Timeout**: Commands timeout after 120 seconds
 - **Not installed**: Provides installation instructions
 - **Credentials**: Prompts to configure AWS credentials if needed
+
+## Input Sanitization
+
+For security, prompts are sanitized before execution:
+- Newlines and carriage returns are removed (multi-line prompts become single-line)
+- Backticks (`) and dollar signs ($) are stripped to prevent prompt injection
 
 ## Notes
 
