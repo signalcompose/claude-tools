@@ -21,4 +21,23 @@ if ! KIRO_VERSION=$(kiro-cli --version 2>&1 | head -1); then
     exit 1
 fi
 echo "OK: Kiro CLI is available ($KIRO_VERSION)."
+
+# Check ~/.kiro directory permissions
+KIRO_CONFIG_DIR="$HOME/.kiro"
+if [ -d "$KIRO_CONFIG_DIR" ] && [ ! -w "$KIRO_CONFIG_DIR" ]; then
+    echo "WARNING: ~/.kiro directory is not writable" >&2
+    echo "  This may cause 'readonly database' errors." >&2
+    echo "  Fix: chmod u+w ~/.kiro" >&2
+fi
+
+# Check Application Support directory (macOS)
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    KIRO_APP_SUPPORT="$HOME/Library/Application Support/kiro"
+    if [ -d "$KIRO_APP_SUPPORT" ] && [ ! -w "$KIRO_APP_SUPPORT" ]; then
+        echo "WARNING: Kiro Application Support directory is not writable" >&2
+        echo "  Path: $KIRO_APP_SUPPORT" >&2
+        echo "  This may cause 'readonly database' errors." >&2
+    fi
+fi
+
 exit 0

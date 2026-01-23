@@ -82,6 +82,27 @@ If you see a warning about missing timeout command:
 brew install coreutils
 ```
 
+### "readonly database" error
+
+If you see `error: attempt to write a readonly database`:
+
+1. **Reinstall shell integrations**:
+   ```bash
+   kiro-cli integrations install dotfiles
+   ```
+
+2. **Remove WAL files** (while kiro is not running):
+   ```bash
+   rm ~/Library/Application\ Support/kiro/User/globalStorage/kiro.kiroagent/index/index.sqlite-wal
+   rm ~/Library/Application\ Support/kiro/User/globalStorage/kiro.kiroagent/index/index.sqlite-shm
+   ```
+
+3. **Check directory permissions**:
+   ```bash
+   chmod u+w ~/.kiro
+   chmod -R u+w ~/Library/Application\ Support/kiro
+   ```
+
 ## License
 
 MIT

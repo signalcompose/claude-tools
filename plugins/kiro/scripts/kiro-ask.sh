@@ -39,6 +39,11 @@ echo "Executing Kiro CLI..."
 echo "Prompt: $PROMPT"
 echo "---"
 
+# Ensure TMPDIR is writable (prevents some SQLite issues)
+if [ -z "$TMPDIR" ] || [ ! -w "$TMPDIR" ]; then
+    export TMPDIR="/tmp"
+fi
+
 # Determine timeout command (gtimeout for macOS with coreutils, timeout for Linux)
 if command -v gtimeout &> /dev/null; then
     TIMEOUT_CMD="gtimeout"
@@ -53,19 +58,44 @@ fi
 # Execute with timeout (120 seconds) or without if no timeout command available
 set +e  # Temporarily disable exit on error to capture exit code
 if [ -n "$TIMEOUT_CMD" ]; then
-    $TIMEOUT_CMD 120 kiro-cli chat --no-interactive "$PROMPT" 2>&1
+    OUTPUT=$($TIMEOUT_CMD 120 kiro-cli chat --no-interactive "$PROMPT" 2>&1)
 else
-    kiro-cli chat --no-interactive "$PROMPT" 2>&1
+    OUTPUT=$(kiro-cli chat --no-interactive "$PROMPT" 2>&1)
 fi
 
 EXIT_CODE=$?
 set -e  # Re-enable exit on error
 
+# Check for timeout first
 if [ $EXIT_CODE -eq 124 ]; then
     echo "" >&2
     echo "ERROR: Kiro CLI timed out after 120 seconds." >&2
     exit 124
-elif [ $EXIT_CODE -ne 0 ]; then
+fi
+
+# Check for readonly database error (common SQLite issue)
+if echo "$OUTPUT" | grep -q "readonly database"; then
+    echo "$OUTPUT"
+    echo "" >&2
+    echo "ERROR: Database access error (readonly database)" >&2
+    echo "" >&2
+    echo "To fix this issue:" >&2
+    echo "  1. Run: kiro-cli integrations install dotfiles" >&2
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "  2. Remove WAL files (while kiro is not running):" >&2
+        echo "     rm ~/Library/Application\\ Support/kiro/User/globalStorage/kiro.kiroagent/index/index.sqlite-wal" >&2
+        echo "     rm ~/Library/Application\\ Support/kiro/User/globalStorage/kiro.kiroagent/index/index.sqlite-shm" >&2
+        echo "  3. Check ~/.kiro directory permissions: chmod u+w ~/.kiro" >&2
+    else
+        echo "  2. Check ~/.kiro directory permissions: chmod u+w ~/.kiro" >&2
+        echo "  3. Check kiro data directory permissions" >&2
+    fi
+    exit 1
+fi
+
+# Check for other errors
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "$OUTPUT"
     echo "" >&2
     echo "ERROR: Kiro CLI failed with exit code $EXIT_CODE" >&2
     echo "Run 'kiro-cli chat --no-interactive <prompt>' directly for detailed error output." >&2
@@ -73,4 +103,6 @@ elif [ $EXIT_CODE -ne 0 ]; then
     exit $EXIT_CODE
 fi
 
+# Success
+echo "$OUTPUT"
 exit 0
