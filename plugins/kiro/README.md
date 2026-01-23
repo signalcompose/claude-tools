@@ -82,6 +82,40 @@ If you see a warning about missing timeout command:
 brew install coreutils
 ```
 
+### "readonly database" error
+
+If you see `error: attempt to write a readonly database`:
+
+1. **Reinstall shell integrations**:
+   ```bash
+   kiro-cli integrations install dotfiles
+   ```
+
+2. **Remove WAL files** (while kiro is not running):
+   ```bash
+   rm ~/Library/Application\ Support/kiro/User/globalStorage/kiro.kiroagent/index/index.sqlite-wal
+   rm ~/Library/Application\ Support/kiro/User/globalStorage/kiro.kiroagent/index/index.sqlite-shm
+   ```
+
+3. **Check directory permissions**:
+   ```bash
+   chmod u+w ~/.kiro
+   chmod -R u+w ~/Library/Application\ Support/kiro
+   ```
+
+4. **Check zsh theme compatibility** (if using powerlevel10k or similar):
+
+   Complex zsh themes may interfere with kiro-cli. Add conditional switching in `~/.zshrc`:
+   ```zsh
+   if [[ "$TERM_PROGRAM" != "kiro" ]]; then
+       ZSH_THEME="powerlevel10k/powerlevel10k"
+   else
+       ZSH_THEME="robbyrussell"
+   fi
+   ```
+
+**Reference**: [Debugging Kiro's zsh CLI Session Issues](https://www.ernestchiang.com/en/posts/2025/debugging-kiro-zsh-cli-session-issues/)
+
 ## License
 
 MIT
