@@ -35,8 +35,14 @@ if [ -z "$PROMPT" ]; then
     exit 1
 fi
 
-echo "Executing Kiro CLI..."
-echo "Prompt: $PROMPT"
+# Readonly mode: Instruct Kiro to use only its training knowledge (no web search)
+# This avoids tool approval issues in non-interactive mode
+READONLY_PREFIX="Without using web search or any external tools, answer from your training knowledge as an AWS expert:"
+FULL_PROMPT="$READONLY_PREFIX $PROMPT"
+
+echo "Executing Kiro CLI (using training knowledge only)..."
+echo "Query: $PROMPT"
+echo "(readonly mode: web search disabled via prompt instruction)"
 echo "---"
 
 # Ensure TMPDIR is writable (prevents some SQLite issues)
@@ -58,9 +64,9 @@ fi
 # Execute with timeout (120 seconds) or without if no timeout command available
 set +e  # Temporarily disable exit on error to capture exit code
 if [ -n "$TIMEOUT_CMD" ]; then
-    OUTPUT=$($TIMEOUT_CMD 120 kiro-cli chat --no-interactive "$PROMPT" 2>&1)
+    OUTPUT=$($TIMEOUT_CMD 120 kiro-cli chat --no-interactive "$FULL_PROMPT" 2>&1)
 else
-    OUTPUT=$(kiro-cli chat --no-interactive "$PROMPT" 2>&1)
+    OUTPUT=$(kiro-cli chat --no-interactive "$FULL_PROMPT" 2>&1)
 fi
 
 EXIT_CODE=$?
