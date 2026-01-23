@@ -55,6 +55,13 @@
       "source": "./plugins/gemini",
       "category": "productivity",
       "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/gemini"
+    },
+    {
+      "name": "kiro",
+      "description": "AWS Kiro CLI integration for research and troubleshooting",
+      "source": "./plugins/kiro",
+      "category": "developer-tools",
+      "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/kiro"
     }
   ]
 }
