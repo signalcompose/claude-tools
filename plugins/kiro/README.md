@@ -103,19 +103,6 @@ If you see `error: attempt to write a readonly database`:
    chmod -R u+w ~/Library/Application\ Support/kiro
    ```
 
-4. **Check zsh theme compatibility** (if using powerlevel10k or similar):
-
-   Complex zsh themes may interfere with kiro-cli. Add conditional switching in `~/.zshrc`:
-   ```zsh
-   if [[ "$TERM_PROGRAM" != "kiro" ]]; then
-       ZSH_THEME="powerlevel10k/powerlevel10k"
-   else
-       ZSH_THEME="robbyrussell"
-   fi
-   ```
-
-**Reference**: [Debugging Kiro's zsh CLI Session Issues](https://www.ernestchiang.com/en/posts/2025/debugging-kiro-zsh-cli-session-issues/)
-
 ## License
 
 MIT
