@@ -1,9 +1,10 @@
 ---
 name: kiro-research
 description: |
-  Research AWS topics or troubleshoot errors using Kiro CLI.
+  Research AWS topics using Kiro CLI as an AWS expert (readonly mode).
   Use for: AWS documentation, error investigation,
   CloudFormation/CDK questions, AWS best practices.
+  Note: Uses Kiro's training knowledge only (no web search).
 context: fork
 agent: Explore
 allowed-tools: Bash
@@ -12,6 +13,7 @@ allowed-tools: Bash
 # Kiro Research Skill
 
 This skill provides integration with Kiro CLI for AWS research and troubleshooting tasks.
+Kiro runs in **readonly mode** - answering from its trained AWS expertise without web search.
 
 ## Prerequisites
 
@@ -78,4 +80,6 @@ For security, prompts are sanitized before execution:
 
 ## Notes
 
-This skill uses `context: fork` to isolate large outputs from the main conversation context.
+- This skill uses `context: fork` to isolate large outputs from the main conversation context.
+- **Readonly mode**: Kiro answers from its training knowledge only (no web search or external tools).
+- For web search needs, use Claude's built-in WebSearch or Gemini instead.

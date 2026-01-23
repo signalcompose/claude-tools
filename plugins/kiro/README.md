@@ -1,12 +1,13 @@
 # Kiro Plugin
 
-AWS Kiro CLI integration for Claude Code.
+AWS Kiro CLI integration for Claude Code - your AWS expert assistant.
 
 ## Features
 
-- **AWS Research**: Query AWS topics and documentation using Kiro CLI
+- **AWS Expert Knowledge**: Get answers from Kiro's trained AWS expertise
 - **Troubleshooting**: Investigate AWS errors and issues
 - **Best Practices**: Get AWS architecture recommendations
+- **Readonly Mode**: Uses Kiro's training knowledge only (no web search)
 
 ## Prerequisites
 
@@ -51,6 +52,18 @@ No additional configuration required. The plugin uses:
 - 120-second timeout for all operations
 
 ## Technical Details
+
+### Readonly Mode (No Web Search)
+
+This plugin runs Kiro in **readonly mode** by default:
+- Kiro answers using its trained AWS knowledge only
+- Web search and external tools are disabled
+- This ensures reliable operation in non-interactive mode
+
+**Why readonly mode?**
+- `kiro-cli --no-interactive` cannot approve tool usage
+- Web search would fail without `--trust-all-tools` flag
+- For web search, use Claude's built-in WebSearch or Gemini instead
 
 ### Context Isolation
 
