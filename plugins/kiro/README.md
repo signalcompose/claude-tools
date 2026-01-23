@@ -56,6 +56,10 @@ No additional configuration required. The plugin uses:
 
 This plugin uses `context: fork` to isolate large outputs from the main conversation context, preventing context pollution from verbose Kiro responses.
 
+### Output Handling
+
+All output from `kiro-cli` (both stdout and stderr) is merged into stdout for easier capture and display. This means error messages from `kiro-cli` will appear in the normal output stream rather than stderr.
+
 ## Troubleshooting
 
 ### "Kiro CLI is not installed"

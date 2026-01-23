@@ -27,6 +27,14 @@ RAW_PROMPT="$1"
 # Remove newlines and control characters that could manipulate prompt structure
 PROMPT=$(echo "$RAW_PROMPT" | tr -d '\n\r' | sed 's/[`$]//g')
 
+# Check if sanitization left an empty prompt
+if [ -z "$PROMPT" ]; then
+    echo "ERROR: Prompt is empty after sanitization." >&2
+    echo "Note: Special characters (\`, \$) are removed for security." >&2
+    echo "Please provide a prompt with actual text content." >&2
+    exit 1
+fi
+
 echo "Executing Kiro CLI..."
 echo "Prompt: $PROMPT"
 echo "---"
