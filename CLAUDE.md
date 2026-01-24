@@ -20,11 +20,10 @@ YPM is an **English-first international open-source project** that provides mult
 git branch --show-current
 ```
 
-**Critical Git Flow Rule**:
-- ✅ Work on `develop` or `feature/*` branches
+**Critical GitHub Flow Rule**:
+- ✅ Work on `feature/*`, `fix/*`, `docs/*`, `chore/*` branches
 - ❌ **NEVER commit directly to `main` branch** (project policy)
-- ❌ **NEVER commit directly to `develop` branch** (project policy)
-- ✅ Always create feature branch from `develop`
+- ✅ Always create feature branch from `main`
 - ✅ Merge via Pull Request only
 
 **Branch Naming Convention**:
@@ -72,28 +71,26 @@ YPM implements a three-level language configuration system. These are **independ
 - This combination is **recommended** by the Japanese Claude Code community
 - Avoids UTF-8/CJK character crashes and leverages Claude's better English training
 
-## Git Flow Workflow
+## GitHub Flow Workflow
 
 ### Branch Strategy
 
+**GitHub Flow** (simple OSS workflow)
+
 ```
-main (production)
-  ↑
-  └── Pull Request (after testing)
-       ↑
-develop (integration)
-  ↑
-  └── Pull Request (code review)
-       ↑
-feature/* (work here)
+main              ← Production branch (default)
+  └── feature/xxx ← Feature branches
+  └── fix/xxx     ← Bug fix branches
+  └── docs/xxx    ← Documentation branches
+  └── chore/xxx   ← Maintenance branches
 ```
 
 ### Creating a Feature Branch
 
 ```bash
-# Ensure you're on develop
-git checkout develop
-git pull origin develop
+# Ensure you're on main
+git checkout main
+git pull origin main
 
 # Create feature branch
 git checkout -b feature/your-feature-name
@@ -104,7 +101,7 @@ git commit -m "feat: your feature description"
 
 # Push and create PR
 git push -u origin feature/your-feature-name
-gh pr create --base develop --title "feat: your feature description"
+gh pr create --base main --title "feat: your feature description"
 ```
 
 ### Commit Message Convention
@@ -294,5 +291,5 @@ See README.md for contribution guidelines and support channels.
 
 ---
 
-**Last Updated**: 2026-01-10
+**Last Updated**: 2026-01-24
 **Claude Code Version**: 2.1.0+
