@@ -58,6 +58,17 @@ cat ~/.claude/settings.json
           }
         ]
       }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/notify-input.sh"
+          }
+        ]
+      }
     ]
   }
 }
@@ -76,6 +87,12 @@ cat ~/.claude/settings.json
 - **タイミング**: Claude Codeがタスクを完了した時
 - **動作**: macOS通知、Glass音、音声読み上げ
 - **スクリプト**: `notify-end.sh`
+
+#### Notification
+
+- **タイミング**: Claude Codeがユーザーの入力を待っている時
+- **動作**: Glass音、「確認をお願いします」の音声読み上げ
+- **スクリプト**: `notify-input.sh`
 
 ---
 

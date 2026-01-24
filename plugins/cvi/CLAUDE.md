@@ -33,7 +33,14 @@ Claude Codeがタスクを完了した時に：
 - 一時ファイルをクリーンアップ
 - 無限ループを防止
 
-### 3. [VOICE]タグサポート
+### 3. 入力確認通知（Notification Hook）
+
+Claude Codeがユーザーの入力を待っている時に：
+- Glass音を再生
+- 「確認をお願いします」と読み上げ
+- 別の音声再生中はスキップ（重複防止）
+
+### 4. [VOICE]タグサポート
 
 メッセージ内に`[VOICE]...[/VOICE]`タグを含めることで、読み上げ内容をカスタマイズ：
 ```
@@ -48,14 +55,27 @@ Claude Codeがタスクを完了した時に：
 
 ## セットアップ手順
 
-### STEP 1: スクリプトの配置
+### プラグインとしてインストール（推奨）
+
+Claude Codeのプラグインシステムを使用：
+
+```bash
+/plugin add signalcompose/cvi
+```
+
+これだけで完了。hooks、コマンド、スキルが自動的に設定されます。
+
+### 手動インストール
+
+#### STEP 1: スクリプトの配置
 
 以下のスクリプトを`~/.claude/scripts/`に配置：
 
 1. **notify-end.sh** - タスク完了時の通知スクリプト
-2. **kill-voice.sh** - 読み上げ中断スクリプト
+2. **notify-input.sh** - 入力確認時の通知スクリプト
+3. **kill-voice.sh** - 読み上げ中断スクリプト
 
-### STEP 2: hooksの設定
+#### STEP 2: hooksの設定
 
 `~/.claude/settings.json`にhooksを追加：
 
@@ -83,15 +103,27 @@ Claude Codeがタスクを完了した時に：
           }
         ]
       }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/notify-input.sh"
+          }
+        ]
+      }
     ]
   }
 }
 ```
 
-### STEP 3: スクリプトに実行権限を付与
+#### STEP 3: スクリプトに実行権限を付与
 
 ```bash
 chmod +x ~/.claude/scripts/notify-end.sh
+chmod +x ~/.claude/scripts/notify-input.sh
 chmod +x ~/.claude/scripts/kill-voice.sh
 ```
 
@@ -100,17 +132,48 @@ chmod +x ~/.claude/scripts/kill-voice.sh
 ## ディレクトリ構造
 
 ```
-~/Src/pro_CVI/CVI/
-├── .git/                    # Gitリポジトリ
-├── .claude/                 # Claude Code設定
-│   └── scripts/             # スクリプト（開発用）
-├── scripts/                 # インストール用スクリプト
-│   ├── notify-end.sh        # タスク完了通知
-│   └── kill-voice.sh        # 読み上げ中断
+CVI/
+├── .claude/                 # Claude Code設定（開発用）
+│   └── settings.json
+├── .claude-plugin/          # プラグイン設定
+│   └── plugin.json          # プラグインメタデータ
+├── commands/                # スラッシュコマンド定義
+│   ├── auto.md              # /cvi:auto - 言語自動検出
+│   ├── check.md             # /cvi:check - セットアップ診断
+│   ├── lang.md              # /cvi:lang - 言語切り替え
+│   ├── practice.md          # /cvi:practice - 英語練習モード
+│   ├── setup.md             # /cvi:setup - セットアップ
+│   ├── speed.md             # /cvi:speed - 読み上げ速度
+│   ├── state.md             # /cvi:state - 有効/無効切り替え
+│   └── voice.md             # /cvi:voice - 音声選択
 ├── docs/                    # ドキュメント
-│   └── INDEX.md             # ドキュメント索引
+│   ├── INDEX.md             # ドキュメント索引
+│   ├── voice-features.md    # 音声機能ガイド
+│   ├── voice-mapping.md     # 音声マッピング機能
+│   └── research/            # 調査・研究資料
+├── examples/                # 設定例
+│   ├── settings.json        # hooks設定テンプレート
+│   └── README.md            # 設定例の説明
+├── hooks/                   # hooks定義
+│   └── hooks.json           # プラグイン用hooks設定
+├── scripts/                 # スクリプト
+│   ├── notify-end.sh        # タスク完了通知
+│   ├── notify-input.sh      # 入力確認通知
+│   ├── kill-voice.sh        # 読み上げ中断
+│   ├── cvi                  # 有効/無効制御
+│   ├── cvi-auto             # 言語自動検出
+│   ├── cvi-check            # セットアップ診断
+│   ├── cvi-lang             # 言語切り替え
+│   ├── cvi-practice         # 英語練習モード
+│   ├── cvi-setup            # セットアップスクリプト
+│   ├── cvi-speed            # 読み上げ速度
+│   └── cvi-voice            # 音声選択
+├── skills/                  # スキル定義
+│   └── voice-integration/
+│       └── SKILL.md         # 音声統合スキル
 ├── CLAUDE.md                # このファイル
-└── README.md                # ユーザー向け説明
+├── README.md                # ユーザー向け説明
+└── LICENSE                  # MITライセンス
 ```
 
 ---
@@ -169,6 +232,7 @@ cat ~/.claude/settings.json
 
 - **UserPromptSubmit**: ユーザーがプロンプトを送信する前に実行
 - **Stop**: Claude Codeがタスクを完了した時に実行
+- **Notification**: Claude Codeがユーザーの入力を待っている時に実行
 - **Exit Code**: 0=成功、2=ブロッキングエラー
 
 ---
@@ -197,15 +261,18 @@ cat ~/.claude/settings.json
 
 ## 今後の拡張予定
 
-### Phase 1（現在）
+### Phase 1（完了）
 - [x] 基本的な音声通知機能
 - [x] 読み上げ中断機能
 - [x] [VOICE]タグサポート
 
-### Phase 2（次期）
-- [ ] 音量調整機能
-- [ ] 音声選択機能（複数の音声から選択）
-- [ ] 通知のカスタマイズ（音・音声のON/OFF）
+### Phase 2（完了）
+- [x] 音量調整機能
+- [x] 音声選択機能（言語別音声設定）
+- [x] 通知のカスタマイズ（音・音声のON/OFF）
+- [x] 言語自動検出機能
+- [x] 入力確認通知（Notification Hook）
+- [x] プラグインシステム対応
 
 ### Phase 3（将来）
 - [ ] GUI設定ツール
@@ -218,48 +285,30 @@ cat ~/.claude/settings.json
 
 ### ブランチ戦略
 
-**Git Flow**を採用
+**GitHub Flow**を採用（シンプルなOSS向けワークフロー）
 
 ```
-main          ← リリースブランチ（本番環境）
-  └── develop ← 開発ブランチ（デフォルト）
-       └── feature/xxx  ← 機能ブランチ
-       └── bugfix/xxx   ← バグ修正ブランチ
-       └── docs/xxx     ← ドキュメント更新ブランチ
+main              ← 本番ブランチ（デフォルト）
+  └── feature/xxx ← 機能ブランチ
+  └── fix/xxx     ← バグ修正ブランチ
+  └── docs/xxx    ← ドキュメント更新ブランチ
+  └── chore/xxx   ← メンテナンスブランチ
 ```
 
-**デフォルトブランチ**: `develop`
+**デフォルトブランチ**: `main`
 
 ### ブランチ保護
 
-- **main/develop への直接プッシュ禁止**
-- **PR必須**（レビュー推奨: 1、管理者バイパス可能）
-- **マージコミット必須**（Squash禁止）
-
-### 🚨 絶対禁止事項
-
-- ❌ **main → develop への逆流**（これが最も重要）
-- ❌ **main・developブランチへの直接コミット**
-- ❌ Squashマージ（Git Flow履歴が破壊される）
-- ❌ ISSUE番号のないブランチ名
-
-### リリースフロー
-
-**STEP 1**: GitHubでISSUE作成（例: `Release v1.0.1`）
-**STEP 2**: developブランチで最終調整・バージョン更新（必要に応じて）
-**STEP 3**: PR作成（`develop` → `main`）  ← **直接PRでOK**
-**STEP 4**: マージ（**マージコミット使用**）
-**STEP 5**: タグ付け（`git tag v1.0.1`）
-
-**重要**: developからmainへの直接PRは**リリース時のみ許可**。
-逆方向（main → develop）は**絶対禁止**。
+- **main への直接プッシュ禁止**（管理者バイパス可能）
+- **PR必須**
+- **マージコミット推奨**
 
 ### 開発フロー
 
 ```bash
-# 1. developブランチから最新を取得
-git checkout develop
-git pull origin develop
+# 1. mainブランチから最新を取得
+git checkout main
+git pull origin main
 
 # 2. 作業ブランチを作成
 git checkout -b feature/your-feature-name
@@ -272,8 +321,16 @@ git commit -m "feat: implement your feature"
 git push -u origin feature/your-feature-name
 
 # 5. Pull Request作成
-gh pr create --base develop --head feature/your-feature-name
+gh pr create --base main --head feature/your-feature-name
+
+# 6. レビュー後マージ → 自動的にmainに反映
 ```
+
+### リリースフロー
+
+1. mainブランチが常に最新のリリース可能な状態
+2. 必要に応じてタグ付け（`git tag v1.0.1`）
+3. claude-toolsへの同期
 
 ---
 
