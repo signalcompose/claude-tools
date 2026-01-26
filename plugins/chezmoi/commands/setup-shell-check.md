@@ -21,12 +21,14 @@ First, detect the current environment:
 echo "🔍 Detecting environment..."
 echo ""
 
+SETUP_READY=true
+
 # Check if zsh
 if [[ -n "$ZSH_VERSION" ]]; then
   echo "✅ Shell: zsh $ZSH_VERSION"
 else
   echo "❌ Shell: Not zsh (this setup requires zsh)"
-  exit 1
+  SETUP_READY=false
 fi
 
 # Check chezmoi
@@ -35,7 +37,7 @@ if command -v chezmoi &>/dev/null; then
 else
   echo "❌ chezmoi: Not installed"
   echo "   Install with: brew install chezmoi"
-  exit 1
+  SETUP_READY=false
 fi
 
 # Detect zshrc location
@@ -48,7 +50,7 @@ elif [[ -f ~/.zshrc ]]; then
   echo "⚠️ zshrc source: ~/.zshrc (not chezmoi managed)"
 else
   echo "❌ No zshrc found"
-  exit 1
+  SETUP_READY=false
 fi
 
 # Detect prompt environment
@@ -64,13 +66,12 @@ else
 fi
 
 # Check if already installed
-if grep -q "_chezmoi_check_sync" "$ZSHRC_SOURCE" 2>/dev/null; then
+ALREADY_INSTALLED=false
+if [[ -n "$ZSHRC_SOURCE" ]] && grep -q "_chezmoi_check_sync" "$ZSHRC_SOURCE" 2>/dev/null; then
   echo ""
   echo "⚠️ Shell sync checker already installed in $ZSHRC_SOURCE"
   echo "   To reinstall, first remove the existing code."
   ALREADY_INSTALLED=true
-else
-  ALREADY_INSTALLED=false
 fi
 
 echo ""
@@ -78,8 +79,10 @@ echo "📋 Summary:"
 echo "   Source file: $ZSHRC_SOURCE"
 echo "   Prompt env:  $PROMPT_ENV"
 echo "   Installed:   $ALREADY_INSTALLED"
+echo "   Ready:       $SETUP_READY"
 ```
 
+If `SETUP_READY=false`, inform user of missing requirements and stop.
 If already installed, ask user if they want to view current configuration or exit.
 
 ## Phase 2: User Confirmation
@@ -89,7 +92,7 @@ If not already installed, show what will be added:
 ```
 The following code will be added to your zshrc:
 
-- Shell startup sync checker (~70 lines)
+- Shell startup sync checker (~80 lines)
 - Checks for remote updates on GitHub
 - Detects local uncommitted changes
 - Shows status only when pressing empty Enter
@@ -109,8 +112,10 @@ After user confirms, use the Edit tool to add the following code block to the us
 ### Code to Insert
 
 ```zsh
+# >>> chezmoi shell sync checker start >>>
 # chezmoi dotfiles update checker (interactive, empty-Enter triggered)
 # Compatible with: plain zsh, oh-my-zsh, Powerlevel10k
+# To uninstall: Remove everything between the >>> and <<< markers
 typeset -g _chezmoi_stage=0
 typeset -g _chezmoi_cmd_run=0
 
@@ -127,15 +132,19 @@ function _chezmoi_check_sync() {
   # Check if command was run
   if (( _chezmoi_cmd_run )); then
     # Command was entered, skip check and cleanup
-    add-zsh-hook -d precmd _chezmoi_check_sync
-    add-zsh-hook -d preexec _chezmoi_preexec
+    (( $+functions[add-zsh-hook] )) && {
+      add-zsh-hook -d precmd _chezmoi_check_sync
+      add-zsh-hook -d preexec _chezmoi_preexec
+    }
     unset _chezmoi_stage _chezmoi_cmd_run
     return 0
   fi
 
   # Empty Enter: run chezmoi check and cleanup
-  add-zsh-hook -d precmd _chezmoi_check_sync
-  add-zsh-hook -d preexec _chezmoi_preexec
+  (( $+functions[add-zsh-hook] )) && {
+    add-zsh-hook -d precmd _chezmoi_check_sync
+    add-zsh-hook -d preexec _chezmoi_preexec
+  }
   unset _chezmoi_stage _chezmoi_cmd_run
 
   local CHEZMOI_DIR="$HOME/.local/share/chezmoi"
@@ -143,23 +152,62 @@ function _chezmoi_check_sync() {
 
   local has_remote_updates=false
   local has_local_changes=false
+  local fetch_failed=false
 
-  # Quick network check (2 sec timeout)
-  if timeout 2 host github.com &>/dev/null; then
-    git -C "$CHEZMOI_DIR" fetch origin main --quiet 2>/dev/null
-    local LOCAL=$(git -C "$CHEZMOI_DIR" rev-parse @ 2>/dev/null)
-    local REMOTE=$(git -C "$CHEZMOI_DIR" rev-parse @{u} 2>/dev/null)
-    [[ -n "$REMOTE" && "$LOCAL" != "$REMOTE" ]] && has_remote_updates=true
+  # Network check and git fetch with timeout (portable: uses curl)
+  if curl -s --connect-timeout 2 --max-time 3 https://github.com >/dev/null 2>&1; then
+    # Git fetch with timeout (use gtimeout on macOS if available)
+    local timeout_cmd=""
+    if command -v timeout &>/dev/null; then
+      timeout_cmd="timeout 10"
+    elif command -v gtimeout &>/dev/null; then
+      timeout_cmd="gtimeout 10"
+    fi
+
+    if [[ -n "$timeout_cmd" ]]; then
+      $timeout_cmd git -C "$CHEZMOI_DIR" fetch origin main --quiet 2>&1 || fetch_failed=true
+    else
+      # No timeout available, run with risk of hanging (but curl check passed)
+      git -C "$CHEZMOI_DIR" fetch origin main --quiet 2>&1 || fetch_failed=true
+    fi
+
+    if ! $fetch_failed; then
+      local LOCAL=$(git -C "$CHEZMOI_DIR" rev-parse @ 2>/dev/null)
+      local REMOTE=$(git -C "$CHEZMOI_DIR" rev-parse @{u} 2>/dev/null)
+
+      if [[ -z "$LOCAL" ]]; then
+        print -P "%F{yellow}⚠%f Could not determine local HEAD"
+      elif [[ -z "$REMOTE" ]]; then
+        # No upstream configured - not an error, just skip remote check
+        :
+      elif [[ "$LOCAL" != "$REMOTE" ]]; then
+        has_remote_updates=true
+      fi
+    fi
   fi
 
-  # Check local changes
-  local LOCAL_STATUS=$(chezmoi status 2>/dev/null)
-  [[ -n "$LOCAL_STATUS" ]] && has_local_changes=true
+  # Check local changes with timeout
+  local chezmoi_output
+  local chezmoi_status_cmd="chezmoi status"
+  if command -v timeout &>/dev/null; then
+    chezmoi_status_cmd="timeout 5 chezmoi status"
+  elif command -v gtimeout &>/dev/null; then
+    chezmoi_status_cmd="gtimeout 5 chezmoi status"
+  fi
+
+  if chezmoi_output=$($chezmoi_status_cmd 2>&1); then
+    [[ -n "$chezmoi_output" ]] && has_local_changes=true
+  else
+    print -P "%F{yellow}⚠%f chezmoi status check skipped (timed out or failed)"
+  fi
 
   # Display status
-  if $has_remote_updates || $has_local_changes; then
+  if $has_remote_updates || $has_local_changes || $fetch_failed; then
     print ""
     print -P "%F{yellow}━━━ [chezmoi] Dotfiles Status ━━━%f"
+    $fetch_failed && {
+      print -P "  %F{yellow}⚠%f Remote check failed (git fetch error)"
+    }
     $has_remote_updates && {
       print -P "  %F{cyan}↓%f Remote updates available"
       print -P "    → Run: %F{green}chezmoi update%f"
@@ -178,6 +226,7 @@ function _chezmoi_check_sync() {
 autoload -U add-zsh-hook
 add-zsh-hook precmd _chezmoi_check_sync
 add-zsh-hook preexec _chezmoi_preexec
+# <<< chezmoi shell sync checker end <<<
 ```
 
 ### Insertion Point
@@ -192,7 +241,17 @@ Use the Read tool to find the correct insertion point, then Edit tool to insert.
 If the zshrc is managed by chezmoi (source is `dot_zshrc`), apply changes:
 
 ```bash
-chezmoi apply ~/.zshrc
+echo "📦 Applying changes via chezmoi..."
+
+local apply_output
+if apply_output=$(chezmoi apply ~/.zshrc 2>&1); then
+  echo "✅ Changes applied to ~/.zshrc"
+else
+  echo "❌ chezmoi apply failed"
+  [[ -n "$apply_output" ]] && echo "   Output: $apply_output"
+  echo "   Your source file was modified but ~/.zshrc may not be updated"
+  echo "   Run 'chezmoi doctor' and 'chezmoi verify' to diagnose"
+fi
 ```
 
 ## Phase 5: Verification
@@ -202,10 +261,25 @@ Verify the installation:
 ```bash
 echo "🔍 Verifying installation..."
 
-if grep -q "_chezmoi_check_sync" "$ZSHRC_SOURCE"; then
+if grep -q "_chezmoi_check_sync" "$ZSHRC_SOURCE" 2>/dev/null; then
   echo "✅ Code successfully installed"
 else
   echo "❌ Installation failed"
+  echo ""
+  echo "   Diagnostics:"
+  if [[ -f "$ZSHRC_SOURCE" ]]; then
+    echo "   - File exists: yes"
+    if [[ -w "$ZSHRC_SOURCE" ]]; then
+      echo "   - File writable: yes"
+    else
+      echo "   - File writable: NO (permission issue)"
+    fi
+    echo "   - File size: $(wc -c < "$ZSHRC_SOURCE" 2>/dev/null || echo 'cannot read') bytes"
+  else
+    echo "   - File exists: NO"
+  fi
+  echo ""
+  echo "   Try manually checking $ZSHRC_SOURCE for the code block"
 fi
 ```
 
@@ -217,7 +291,10 @@ Report results to user with next steps:
    2. Wait for prompt, then press Enter (empty)
    3. You should see dotfiles sync status
 
-   To disable: Remove the chezmoi checker code block from your zshrc
+   To uninstall: Remove code between the markers:
+   >>> chezmoi shell sync checker start >>>
+   ...
+   <<< chezmoi shell sync checker end <<<
 ```
 
 ## How It Works
@@ -255,3 +332,17 @@ echo $preexec_functions
 ```
 
 Should include `_chezmoi_check_sync` and `_chezmoi_preexec`.
+
+### Network check skipped
+
+If you see "Remote check failed", it could be:
+- Network offline
+- GitHub unreachable
+- Git authentication issue (check SSH keys or tokens)
+
+### chezmoi status failed
+
+If you see "chezmoi status check skipped":
+- Check `chezmoi doctor` for configuration issues
+- Verify encryption keys are accessible
+- Check file permissions on source/target directories
