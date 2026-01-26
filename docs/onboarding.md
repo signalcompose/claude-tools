@@ -19,10 +19,10 @@ claude-tools/
 ├── .claude-plugin/
 │   └── marketplace.json  # プラグインカタログ
 ├── plugins/              # プラグイン格納
-│   ├── cvi/             # 音声通知 (submodule)
-│   ├── ypm/             # プロジェクト管理 (submodule)
+│   ├── cvi/             # 音声通知 (subtree)
+│   ├── ypm/             # プロジェクト管理 (subtree)
 │   ├── chezmoi/         # dotfiles管理
-│   ├── code-review/     # コードレビュー (subtree)
+│   ├── code-review/     # コードレビュー
 │   ├── utils/           # ユーティリティ
 │   ├── codex/           # Codex統合
 │   ├── gemini/          # Gemini統合
@@ -50,14 +50,8 @@ claude-tools/
 ### クローン
 
 ```bash
-git clone --recursive https://github.com/signalcompose/claude-tools.git
+git clone https://github.com/signalcompose/claude-tools.git
 cd claude-tools
-```
-
-### サブモジュール初期化（クローン済みの場合）
-
-```bash
-git submodule update --init --recursive
 ```
 
 ## 作業フロー
@@ -117,21 +111,20 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 
 ## よくある操作
 
-### プラグイン追加（サブモジュール）
+### プラグイン追加（Subtree）
 
 ```bash
-git submodule add https://github.com/signalcompose/<plugin>.git plugins/<plugin>
+git subtree add --prefix=plugins/<plugin> https://github.com/signalcompose/<plugin>.git main --squash
 # marketplace.json と README.md を更新
 git add .
 git commit -m "feat(plugins): add <plugin>"
 ```
 
-### プラグイン更新（サブモジュール）
+### プラグイン更新（Subtree）
 
 ```bash
-git submodule update --remote plugins/<plugin>
-git add plugins/<plugin>
-git commit -m "chore(plugins): update <plugin> to latest"
+git subtree pull --prefix=plugins/<plugin> https://github.com/signalcompose/<plugin>.git main --squash
+git commit -m "chore(plugins): update <plugin> from upstream"
 ```
 
 ### マーケットプレイス検証

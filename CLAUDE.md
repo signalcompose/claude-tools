@@ -12,7 +12,7 @@ SignalComposeが提供するClaude Codeプラグインのマーケットプレ�
 
 ## 技術スタック
 
-- Git Submodules（プラグイン管理）
+- Git Subtrees（プラグイン管理）
 - JSON（marketplace.json）
 - Markdown（ドキュメント）
 
@@ -105,11 +105,11 @@ git subtree push --prefix=plugins/ypm https://github.com/signalcompose/ypm.git m
 
 ## よくある操作
 
-### プラグイン追加
+### プラグイン追加（Subtree）
 
 ```bash
-# 1. サブモジュール追加
-git submodule add https://github.com/signalcompose/<plugin>.git plugins/<plugin>
+# 1. Subtree追加
+git subtree add --prefix=plugins/<plugin> https://github.com/signalcompose/<plugin>.git main --squash
 
 # 2. .claude-plugin/marketplace.json更新
 # plugins配列に新しいプラグイン情報を追加
@@ -122,12 +122,11 @@ git add .
 git commit -m "feat(plugins): add <plugin>"
 ```
 
-### プラグイン更新
+### プラグイン更新（Subtree）
 
 ```bash
-git submodule update --remote plugins/<plugin>
-git add plugins/<plugin>
-git commit -m "chore(plugins): update <plugin> to latest"
+git subtree pull --prefix=plugins/<plugin> https://github.com/signalcompose/<plugin>.git main --squash
+git commit -m "chore(plugins): update <plugin> from upstream"
 ```
 
 ## ディレクトリ構成
@@ -136,9 +135,15 @@ git commit -m "chore(plugins): update <plugin> to latest"
 claude-tools/
 ├── .claude-plugin/
 │   └── marketplace.json    # プラグインカタログ
-├── plugins/            # サブモジュール
-│   ├── cvi/           # CVI plugin
-│   └── ypm/           # YPM plugin
+├── plugins/            # Subtree/Direct
+│   ├── cvi/           # CVI plugin (subtree)
+│   ├── ypm/           # YPM plugin (subtree)
+│   ├── chezmoi/       # chezmoi plugin
+│   ├── code-review/   # code plugin
+│   ├── utils/         # utils plugin
+│   ├── codex/         # codex plugin
+│   ├── gemini/        # gemini plugin
+│   └── kiro/          # kiro plugin
 ├── docs/              # ドキュメント
 │   ├── INDEX.md
 │   ├── specifications.md

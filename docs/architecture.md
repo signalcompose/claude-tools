@@ -7,10 +7,10 @@ claude-tools/
 ├── .claude-plugin/
 │   └── marketplace.json    # プラグインカタログ（必須）
 ├── plugins/
-│   ├── cvi/               # Git submodule → signalcompose/cvi
-│   ├── ypm/               # Git submodule → signalcompose/ypm
+│   ├── cvi/               # Git subtree → signalcompose/cvi
+│   ├── ypm/               # Git subtree → signalcompose/ypm
 │   ├── chezmoi/           # Direct（マーケットプレイス内配置）
-│   ├── code-review/       # Subtree → signalcompose/cvi
+│   ├── code-review/       # Direct（マーケットプレイス内配置）
 │   ├── utils/             # Direct
 │   ├── codex/             # Direct
 │   ├── gemini/            # Direct
@@ -32,33 +32,16 @@ claude-tools/
 
 | プラグイン | 管理方式 | リポジトリ/配置 | 説明 |
 |-----------|---------|----------------|------|
-| cvi | Submodule | signalcompose/cvi | 音声通知 |
-| ypm | Submodule | signalcompose/ypm | プロジェクト管理 |
+| cvi | Subtree | signalcompose/cvi | 音声通知 |
+| ypm | Subtree | signalcompose/ypm | プロジェクト管理 |
 | chezmoi | Direct | plugins/chezmoi | dotfiles管理 |
-| code | Subtree | plugins/code-review | コードレビュー |
+| code | Direct | plugins/code-review | コードレビュー |
 | utils | Direct | plugins/utils | ユーティリティ |
 | codex | Direct | plugins/codex | Codex統合 |
 | gemini | Direct | plugins/gemini | Gemini統合 |
 | kiro | Direct | plugins/kiro | Kiro統合 |
 
 ## プラグイン管理方式
-
-### Git Submodule
-
-独立したリポジトリを参照。外部開発者との共同開発に適している。
-
-```bash
-# 追加
-git submodule add https://github.com/signalcompose/<plugin>.git plugins/<plugin>
-
-# 更新
-git submodule update --remote plugins/<plugin>
-
-# クローン時
-git clone --recursive https://github.com/signalcompose/claude-tools.git
-```
-
-**使用プラグイン**: cvi, ypm
 
 ### Git Subtree
 
@@ -72,13 +55,13 @@ git subtree pull --prefix=plugins/<plugin> https://github.com/signalcompose/<plu
 git subtree push --prefix=plugins/<plugin> https://github.com/signalcompose/<plugin>.git main
 ```
 
-**使用プラグイン**: code-review
+**使用プラグイン**: cvi, ypm
 
 ### Direct（直接配置）
 
 マーケットプレイス内に直接配置。シンプルだが独立管理はできない。
 
-**使用プラグイン**: chezmoi, utils, codex, gemini, kiro
+**使用プラグイン**: chezmoi, code-review, utils, codex, gemini, kiro
 
 ## データフロー
 
