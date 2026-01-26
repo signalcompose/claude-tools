@@ -181,14 +181,21 @@ function _chezmoi_check_sync() {
 
     if ! $fetch_failed; then
       local LOCAL=$(git -C "$CHEZMOI_DIR" rev-parse @ 2>/dev/null)
-      local REMOTE=$(git -C "$CHEZMOI_DIR" rev-parse @{u} 2>/dev/null)
+      local REMOTE_OUTPUT REMOTE_EXIT
+      REMOTE_OUTPUT=$(git -C "$CHEZMOI_DIR" rev-parse @{u} 2>&1)
+      REMOTE_EXIT=$?
 
       if [[ -z "$LOCAL" ]]; then
         print -P "%F{yellow}⚠%f Could not determine local HEAD"
-      elif [[ -z "$REMOTE" ]]; then
-        # No upstream configured - not an error, just skip remote check
-        :
-      elif [[ "$LOCAL" != "$REMOTE" ]]; then
+      elif [[ $REMOTE_EXIT -ne 0 ]]; then
+        # Check if it's "no upstream" (expected) or actual error
+        if [[ "$REMOTE_OUTPUT" =~ "no upstream" ]]; then
+          # No upstream configured - normal for some setups, skip quietly
+          :
+        else
+          print -P "%F{yellow}⚠%f Could not check upstream: ${REMOTE_OUTPUT:0:50}"
+        fi
+      elif [[ "$LOCAL" != "$REMOTE_OUTPUT" ]]; then
         has_remote_updates=true
       fi
     fi
@@ -197,7 +204,7 @@ function _chezmoi_check_sync() {
   fi
 
   # Check local changes with timeout
-  local chezmoi_output
+  local chezmoi_output chezmoi_exit
   local chezmoi_status_cmd="chezmoi status"
   if command -v timeout &>/dev/null; then
     chezmoi_status_cmd="timeout 5 chezmoi status"
@@ -205,10 +212,16 @@ function _chezmoi_check_sync() {
     chezmoi_status_cmd="gtimeout 5 chezmoi status"
   fi
 
-  if chezmoi_output=$($chezmoi_status_cmd 2>&1); then
+  chezmoi_output=$($chezmoi_status_cmd 2>&1)
+  chezmoi_exit=$?
+
+  if [[ $chezmoi_exit -eq 0 ]]; then
     [[ -n "$chezmoi_output" ]] && has_local_changes=true
+  elif [[ $chezmoi_exit -eq 124 ]]; then
+    print -P "%F{yellow}⚠%f chezmoi status timed out (>5s)"
   else
-    print -P "%F{yellow}⚠%f chezmoi status check skipped (timed out or failed)"
+    print -P "%F{yellow}⚠%f chezmoi status failed (exit $chezmoi_exit)"
+    [[ -n "$chezmoi_output" ]] && print "   ${chezmoi_output:0:80}"
   fi
 
   # Display status
