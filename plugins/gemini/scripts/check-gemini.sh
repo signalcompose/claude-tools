@@ -17,11 +17,11 @@ if ! command -v gemini &> /dev/null; then
     exit 1
 fi
 
-# Note: GOOGLE_API_KEY is optional - Gemini CLI can use OAuth authentication
-# We cannot reliably verify OAuth status without making an API call
-# Authentication errors will be reported at search time if OAuth is not configured
-if [ -z "$GOOGLE_API_KEY" ]; then
-    echo "INFO: GOOGLE_API_KEY not set. Gemini CLI will use OAuth authentication."
+# Note: GEMINI_API_KEY is the correct variable for Gemini CLI (not GOOGLE_API_KEY)
+# GOOGLE_API_KEY works with Gemini API libraries but NOT with Gemini CLI (known bug)
+# See: https://github.com/google-gemini/gemini-cli/issues/7557
+if [ -z "$GEMINI_API_KEY" ]; then
+    echo "INFO: GEMINI_API_KEY not set. Gemini CLI will use OAuth authentication."
     echo "If not authenticated, run 'gemini' to complete OAuth setup."
 fi
 
