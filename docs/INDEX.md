@@ -8,10 +8,10 @@ SignalComposeが提供するClaude Codeプラグインのマーケットプレ�
 
 | Document | Description |
 |----------|-------------|
-| [specifications.md](./specifications.md) | マーケットプレイス仕様 |
-| [architecture.md](./architecture.md) | アーキテクチャ（サブモジュール構成） |
-| [development-guide.md](./development-guide.md) | プラグイン追加・更新ガイド |
-| [onboarding.md](./onboarding.md) | オンボーディングガイド |
+| [specifications.md](./specifications.md) | マーケットプレイス・プラグイン仕様 |
+| [architecture.md](./architecture.md) | リポジトリ構成・プラグイン管理方式 |
+| [development-guide.md](./development-guide.md) | プラグイン開発ガイド |
+| [onboarding.md](./onboarding.md) | 新規コントリビューター向けガイド |
 
 ## Research
 
@@ -19,5 +19,12 @@ SignalComposeが提供するClaude Codeプラグインのマーケットプレ�
 
 ## Quick Links
 
-- [README.md](../README.md) - プロジェクト概要
-- [marketplace.json](../marketplace.json) - プラグインカタログ
+- [README.md](../README.md) - プロジェクト概要・Quick Start
+- [marketplace.json](../.claude-plugin/marketplace.json) - プラグインカタログ
+- [CLAUDE.md](../CLAUDE.md) - Claude Code用プロジェクト設定
+
+## Official Documentation
+
+- [Claude Code Plugins](https://code.claude.com/docs/en/plugins) - プラグイン作成ガイド
+- [Plugins Reference](https://code.claude.com/docs/en/plugins-reference) - 技術リファレンス
+- [Plugin Marketplaces](https://code.claude.com/docs/en/plugin-marketplaces) - マーケットプレイス作成
