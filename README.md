@@ -17,6 +17,7 @@ This repository serves as a marketplace for Claude Code plugins developed by Sig
 | [utils](./plugins/utils) | Utility commands for plugin management (cache clearing, etc.) | Available |
 | [codex](./plugins/codex) | OpenAI Codex CLI integration for research and code review | Available |
 | [gemini](./plugins/gemini) | Google Gemini CLI integration for web search | Available |
+| [kiro](./plugins/kiro) | AWS Kiro CLI integration for AWS expert assistance | Available |
 
 ## Installation
 
@@ -40,6 +41,7 @@ Or use CLI commands:
 /plugin install utils@claude-tools
 /plugin install codex@claude-tools
 /plugin install gemini@claude-tools
+/plugin install kiro@claude-tools
 ```
 
 ### 3. Update Marketplace
