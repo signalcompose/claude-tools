@@ -148,11 +148,15 @@ function _chezmoi_check_sync() {
   unset _chezmoi_stage _chezmoi_cmd_run
 
   local CHEZMOI_DIR="$HOME/.local/share/chezmoi"
-  [[ -d "$CHEZMOI_DIR/.git" ]] || return 0
+  if [[ ! -d "$CHEZMOI_DIR/.git" ]]; then
+    print -P "%F{yellow}⚠%f chezmoi directory is not a git repository"
+    return 0
+  fi
 
   local has_remote_updates=false
   local has_local_changes=false
   local fetch_failed=false
+  local network_offline=false
 
   # Network check and git fetch with timeout (portable: uses curl)
   if curl -s --connect-timeout 2 --max-time 3 https://github.com >/dev/null 2>&1; then
@@ -164,11 +168,15 @@ function _chezmoi_check_sync() {
       timeout_cmd="gtimeout 10"
     fi
 
+    # Detect default branch (fallback to main)
+    local default_branch=$(git -C "$CHEZMOI_DIR" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+    [[ -z "$default_branch" ]] && default_branch="main"
+
     if [[ -n "$timeout_cmd" ]]; then
-      $timeout_cmd git -C "$CHEZMOI_DIR" fetch origin main --quiet 2>&1 || fetch_failed=true
+      $timeout_cmd git -C "$CHEZMOI_DIR" fetch origin "$default_branch" --quiet 2>&1 || fetch_failed=true
     else
       # No timeout available, run with risk of hanging (but curl check passed)
-      git -C "$CHEZMOI_DIR" fetch origin main --quiet 2>&1 || fetch_failed=true
+      git -C "$CHEZMOI_DIR" fetch origin "$default_branch" --quiet 2>&1 || fetch_failed=true
     fi
 
     if ! $fetch_failed; then
@@ -184,6 +192,8 @@ function _chezmoi_check_sync() {
         has_remote_updates=true
       fi
     fi
+  else
+    network_offline=true
   fi
 
   # Check local changes with timeout
@@ -202,9 +212,12 @@ function _chezmoi_check_sync() {
   fi
 
   # Display status
-  if $has_remote_updates || $has_local_changes || $fetch_failed; then
+  if $has_remote_updates || $has_local_changes || $fetch_failed || $network_offline; then
     print ""
     print -P "%F{yellow}━━━ [chezmoi] Dotfiles Status ━━━%f"
+    $network_offline && {
+      print -P "  %F{yellow}⚠%f Network offline - remote check skipped"
+    }
     $fetch_failed && {
       print -P "  %F{yellow}⚠%f Remote check failed (git fetch error)"
     }
