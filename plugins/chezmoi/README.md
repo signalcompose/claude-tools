@@ -32,6 +32,7 @@ Claude Code integration for [chezmoi](https://www.chezmoi.io/) dotfiles manageme
 | `/chezmoi:sync` | Sync from remote repository |
 | `/chezmoi:commit` | Commit and push dotfile changes |
 | `/chezmoi:setup` | Interactive setup wizard |
+| `/chezmoi:setup-shell-check` | Setup shell startup sync checker |
 
 ## Usage
 
