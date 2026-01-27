@@ -177,8 +177,7 @@ my-plugin/
 2. **MIT License**（推奨）
 
 **配置方法**:
-- **Submodule**: 独立したGitHubリポジトリをサブモジュールとして配置
-- **Subtree**: Git subtreeとして管理
+- **Subtree**: Git subtreeとして管理（外部リポジトリと双方向同期）
 - **Direct**: マーケットプレイス内に直接配置
 
 ---

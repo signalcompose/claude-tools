@@ -4,7 +4,7 @@ Claude Code plugins by SignalCompose
 
 ## Overview
 
-This repository serves as a marketplace for Claude Code plugins developed by SignalCompose. Plugins are managed as Git submodules or directly within the repository.
+This repository serves as a marketplace for Claude Code plugins developed by SignalCompose. Plugins are managed as Git subtrees or directly within the repository.
 
 > **Official Documentation**: See [Claude Code Plugins Documentation](https://code.claude.com/docs/en/plugins) for details on the plugin system.
 

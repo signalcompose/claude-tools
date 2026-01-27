@@ -68,7 +68,7 @@ git subtree push --prefix=plugins/<plugin> https://github.com/signalcompose/<plu
 ```
 User → /plugin marketplace add signalcompose/claude-tools
          ↓
-Claude Code → Clone repository (with submodules)
+Claude Code → Clone repository
          ↓
 .claude-plugin/marketplace.json → Discover available plugins
          ↓
