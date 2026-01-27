@@ -205,14 +205,14 @@ function _chezmoi_check_sync() {
 
   # Check local changes with timeout
   local chezmoi_output chezmoi_exit
-  local chezmoi_status_cmd="chezmoi status"
+  local -a chezmoi_status_cmd=(chezmoi status)
   if command -v timeout &>/dev/null; then
-    chezmoi_status_cmd="timeout 5 chezmoi status"
+    chezmoi_status_cmd=(timeout 5 chezmoi status)
   elif command -v gtimeout &>/dev/null; then
-    chezmoi_status_cmd="gtimeout 5 chezmoi status"
+    chezmoi_status_cmd=(gtimeout 5 chezmoi status)
   fi
 
-  chezmoi_output=$($chezmoi_status_cmd 2>&1)
+  chezmoi_output=$("${chezmoi_status_cmd[@]}" 2>&1)
   chezmoi_exit=$?
 
   if [[ $chezmoi_exit -eq 0 ]]; then
