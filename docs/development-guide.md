@@ -50,9 +50,9 @@ my-plugin/
 
 ## プラグイン追加手順
 
-### 方式1: サブモジュールとして追加（推奨）
+### 方式1: Subtreeとして追加（推奨）
 
-独立したリポジトリを持つプラグインに適している。
+独立したリポジトリを持つプラグインに適している。双方向の同期が可能。
 
 #### 1. プラグインリポジトリの準備
 
@@ -61,10 +61,10 @@ my-plugin/
 # リポジトリにはplugin.jsonとcommandsを含める
 ```
 
-#### 2. サブモジュールとして追加
+#### 2. Subtreeとして追加
 
 ```bash
-git submodule add https://github.com/signalcompose/<plugin>.git plugins/<plugin>
+git subtree add --prefix=plugins/<plugin> https://github.com/signalcompose/<plugin>.git main --squash
 ```
 
 #### 3. marketplace.json を更新
@@ -147,18 +147,6 @@ EOF
 ---
 
 ## プラグイン更新手順
-
-### サブモジュールの更新
-
-```bash
-# 特定プラグインを最新に更新
-git submodule update --remote plugins/<plugin>
-
-# コミット
-git add plugins/<plugin>
-git commit -m "chore(plugins): update <plugin> to latest"
-git push
-```
 
 ### Subtreeの更新
 
