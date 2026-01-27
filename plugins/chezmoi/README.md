@@ -34,6 +34,25 @@ Claude Code integration for [chezmoi](https://www.chezmoi.io/) dotfiles manageme
 | `/chezmoi:setup` | Interactive setup wizard |
 | `/chezmoi:setup-shell-check` | Setup shell startup sync checker |
 
+### Shell Startup Sync Checker
+
+The `/chezmoi:setup-shell-check` command installs a shell sync checker that runs at startup.
+
+**Architecture**: Uses a minimal loader approach (6 lines in zshrc) that sources an external script:
+
+```
+~/.zshrc (loader)
+    ↓ source
+~/.claude/plugins/.../shell-check.zsh (auto-updated via /plugin update)
+```
+
+**Benefits**:
+- Keeps zshrc clean (6 lines vs 140+ embedded)
+- Auto-updates when you run `/plugin update`
+- Silently skips if plugin not installed
+
+**Migration**: If you have the old embedded code (~140 lines), running the setup will offer to migrate to the new loader style.
+
 ## Usage
 
 ### Check Status

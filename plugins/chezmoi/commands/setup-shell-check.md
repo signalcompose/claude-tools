@@ -11,7 +11,25 @@ Installs an interactive dotfiles sync checker that runs on shell startup.
 - Checks for remote updates and local changes at shell startup
 - Compatible with all zsh environments (plain zsh, oh-my-zsh, Powerlevel10k)
 - Non-intrusive: Only shows status on empty Enter press
-- Automatic cleanup after first command
+- Auto-updates via `/plugin update` (external script approach)
+
+## Architecture
+
+This setup uses a **minimal loader** approach:
+
+```
+zshrc (6 lines)          External script (~140 lines)
+┌─────────────────┐      ┌────────────────────────────────────────────┐
+│ Loader snippet  │ ───► │ ~/.claude/plugins/.../shell-check.zsh     │
+│ (source if      │      │ (auto-updated via /plugin update)         │
+│  file exists)   │      └────────────────────────────────────────────┘
+└─────────────────┘
+```
+
+**Benefits**:
+- zshrc stays clean (only 6 lines)
+- Script auto-updates when you run `/plugin update`
+- No manual updates needed after plugin improvements
 
 ## Phase 1: Environment Detection
 
@@ -53,216 +71,133 @@ else
   SETUP_READY=false
 fi
 
-# Detect prompt environment
-if [[ -n "$POWERLEVEL9K_VERSION" ]] || [[ -f ~/.p10k.zsh ]]; then
-  echo "✅ Prompt: Powerlevel10k detected"
-  PROMPT_ENV="p10k"
-elif [[ -n "$ZSH" ]] && [[ -d "$ZSH" ]]; then
-  echo "✅ Prompt: Oh My Zsh detected"
-  PROMPT_ENV="omz"
+# Check external script availability
+SCRIPT_PATH="$HOME/.claude/plugins/marketplaces/claude-tools/plugins/chezmoi/scripts/shell-check.zsh"
+if [[ -f "$SCRIPT_PATH" ]]; then
+  echo "✅ External script: Found"
 else
-  echo "✅ Prompt: Plain zsh"
-  PROMPT_ENV="plain"
-fi
-
-# Check if already installed
-ALREADY_INSTALLED=false
-if [[ -n "$ZSHRC_SOURCE" ]] && grep -q "_chezmoi_check_sync" "$ZSHRC_SOURCE" 2>/dev/null; then
-  echo ""
-  echo "⚠️ Shell sync checker already installed in $ZSHRC_SOURCE"
-  echo "   To reinstall, first remove the existing code."
-  ALREADY_INSTALLED=true
+  echo "⚠️ External script: Not found at expected path"
+  echo "   Make sure chezmoi plugin is installed from claude-tools marketplace"
 fi
 
 echo ""
 echo "📋 Summary:"
 echo "   Source file: $ZSHRC_SOURCE"
-echo "   Prompt env:  $PROMPT_ENV"
-echo "   Installed:   $ALREADY_INSTALLED"
 echo "   Ready:       $SETUP_READY"
 ```
 
 If `SETUP_READY=false`, inform user of missing requirements and stop.
-If already installed, ask user if they want to view current configuration or exit.
 
-## Phase 2: User Confirmation
+## Phase 2: Migration Check
 
-If not already installed, show what will be added:
+Check for existing installations and determine installation type:
+
+```bash
+echo ""
+echo "🔍 Checking existing installation..."
+
+INSTALL_TYPE="new"  # new, migrate, skip
+
+if [[ -n "$ZSHRC_SOURCE" ]]; then
+  # Check for new loader style
+  if grep -q "shell-check.zsh" "$ZSHRC_SOURCE" 2>/dev/null; then
+    echo "✅ Loader already installed (external script style)"
+    INSTALL_TYPE="skip"
+  # Check for old embedded style
+  elif grep -q "_chezmoi_check_sync" "$ZSHRC_SOURCE" 2>/dev/null; then
+    echo "⚠️ Found OLD embedded code (~140 lines in zshrc)"
+    echo "   Recommend migrating to new loader style (6 lines)"
+    INSTALL_TYPE="migrate"
+  else
+    echo "ℹ️  No existing installation found"
+    INSTALL_TYPE="new"
+  fi
+fi
+
+echo ""
+echo "   Install type: $INSTALL_TYPE"
+```
+
+## Phase 3: User Confirmation
+
+### For New Installation
 
 ```
-The following code will be added to your zshrc:
+The following loader will be added to your zshrc (6 lines):
 
-- Shell startup sync checker (~80 lines)
+┌─────────────────────────────────────────────────────────────────┐
+│ # >>> chezmoi shell sync checker start >>>                      │
+│ # Loader for chezmoi shell sync checker                         │
+│ # Source: https://github.com/signalcompose/claude-tools         │
+│ if [[ -f ~/.claude/plugins/.../shell-check.zsh ]]; then         │
+│   source ~/.claude/plugins/.../shell-check.zsh                  │
+│ fi                                                              │
+│ # <<< chezmoi shell sync checker end <<<                        │
+└─────────────────────────────────────────────────────────────────┘
+
+Features:
 - Checks for remote updates on GitHub
 - Detects local uncommitted changes
 - Shows status only when pressing empty Enter
-- Compatible with Powerlevel10k instant prompt
-
-This uses only zsh standard features (add-zsh-hook).
+- Auto-updates via /plugin update
 
 Proceed with installation?
 1. Yes, install
 2. No, cancel
 ```
 
-## Phase 3: Code Installation
+### For Migration
 
-After user confirms, use the Edit tool to add the following code block to the user's zshrc.
+```
+Found old embedded code in your zshrc (~140 lines).
+Recommend migrating to new loader style (6 lines).
 
-### Code to Insert
+Benefits of migration:
+- zshrc stays clean (6 lines vs 140 lines)
+- Auto-updates via /plugin update
+- Same functionality
+
+Migration will:
+1. Remove old embedded code
+2. Add new loader (6 lines)
+
+Proceed with migration?
+1. Yes, migrate to new style
+2. No, keep old style
+```
+
+## Phase 4: Code Installation
+
+### Loader Code to Insert
 
 ```zsh
 # >>> chezmoi shell sync checker start >>>
-# chezmoi dotfiles update checker (interactive, empty-Enter triggered)
-# Compatible with: plain zsh, oh-my-zsh, Powerlevel10k
-# To uninstall: Remove everything between the >>> and <<< markers
-typeset -g _chezmoi_stage=0
-typeset -g _chezmoi_cmd_run=0
-
-function _chezmoi_preexec() {
-  _chezmoi_cmd_run=1
-}
-
-function _chezmoi_check_sync() {
-  (( ++_chezmoi_stage ))
-
-  # Stage 1: Skip (during instant prompt or initial load)
-  (( _chezmoi_stage == 1 )) && return 0
-
-  # Check if command was run
-  if (( _chezmoi_cmd_run )); then
-    # Command was entered, skip check and cleanup
-    (( $+functions[add-zsh-hook] )) && {
-      add-zsh-hook -d precmd _chezmoi_check_sync
-      add-zsh-hook -d preexec _chezmoi_preexec
-    }
-    unset _chezmoi_stage _chezmoi_cmd_run
-    return 0
-  fi
-
-  # Empty Enter: run chezmoi check and cleanup
-  (( $+functions[add-zsh-hook] )) && {
-    add-zsh-hook -d precmd _chezmoi_check_sync
-    add-zsh-hook -d preexec _chezmoi_preexec
-  }
-  unset _chezmoi_stage _chezmoi_cmd_run
-
-  local CHEZMOI_DIR="$HOME/.local/share/chezmoi"
-  if [[ ! -d "$CHEZMOI_DIR/.git" ]]; then
-    print -P "%F{yellow}⚠%f chezmoi directory is not a git repository"
-    return 0
-  fi
-
-  local has_remote_updates=false
-  local has_local_changes=false
-  local fetch_failed=false
-  local network_offline=false
-
-  # Network check and git fetch with timeout (portable: uses curl)
-  if curl -s --connect-timeout 2 --max-time 3 https://github.com >/dev/null 2>&1; then
-    # Git fetch with timeout (use gtimeout on macOS if available)
-    local timeout_cmd=""
-    if command -v timeout &>/dev/null; then
-      timeout_cmd="timeout 10"
-    elif command -v gtimeout &>/dev/null; then
-      timeout_cmd="gtimeout 10"
-    fi
-
-    # Detect default branch (fallback to main)
-    local default_branch=$(git -C "$CHEZMOI_DIR" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
-    [[ -z "$default_branch" ]] && default_branch="main"
-
-    if [[ -n "$timeout_cmd" ]]; then
-      $timeout_cmd git -C "$CHEZMOI_DIR" fetch origin "$default_branch" --quiet 2>&1 || fetch_failed=true
-    else
-      # No timeout available, run with risk of hanging (but curl check passed)
-      git -C "$CHEZMOI_DIR" fetch origin "$default_branch" --quiet 2>&1 || fetch_failed=true
-    fi
-
-    if ! $fetch_failed; then
-      local LOCAL=$(git -C "$CHEZMOI_DIR" rev-parse @ 2>/dev/null)
-      local REMOTE_OUTPUT REMOTE_EXIT
-      REMOTE_OUTPUT=$(git -C "$CHEZMOI_DIR" rev-parse @{u} 2>&1)
-      REMOTE_EXIT=$?
-
-      if [[ -z "$LOCAL" ]]; then
-        print -P "%F{yellow}⚠%f Could not determine local HEAD"
-      elif [[ $REMOTE_EXIT -ne 0 ]]; then
-        # Check if it's "no upstream" (expected) or actual error
-        if [[ "$REMOTE_OUTPUT" =~ "no upstream" ]]; then
-          # No upstream configured - normal for some setups, skip quietly
-          :
-        else
-          print -P "%F{yellow}⚠%f Could not check upstream: ${REMOTE_OUTPUT:0:50}"
-        fi
-      elif [[ "$LOCAL" != "$REMOTE_OUTPUT" ]]; then
-        has_remote_updates=true
-      fi
-    fi
-  else
-    network_offline=true
-  fi
-
-  # Check local changes with timeout
-  local chezmoi_output chezmoi_exit
-  local -a chezmoi_status_cmd=(chezmoi status)
-  if command -v timeout &>/dev/null; then
-    chezmoi_status_cmd=(timeout 5 chezmoi status)
-  elif command -v gtimeout &>/dev/null; then
-    chezmoi_status_cmd=(gtimeout 5 chezmoi status)
-  fi
-
-  chezmoi_output=$("${chezmoi_status_cmd[@]}" 2>&1)
-  chezmoi_exit=$?
-
-  if [[ $chezmoi_exit -eq 0 ]]; then
-    [[ -n "$chezmoi_output" ]] && has_local_changes=true
-  elif [[ $chezmoi_exit -eq 124 ]]; then
-    print -P "%F{yellow}⚠%f chezmoi status timed out (>5s)"
-  else
-    print -P "%F{yellow}⚠%f chezmoi status failed (exit $chezmoi_exit)"
-    [[ -n "$chezmoi_output" ]] && print "   ${chezmoi_output:0:80}"
-  fi
-
-  # Display status
-  if $has_remote_updates || $has_local_changes || $fetch_failed || $network_offline; then
-    print ""
-    print -P "%F{yellow}━━━ [chezmoi] Dotfiles Status ━━━%f"
-    $network_offline && {
-      print -P "  %F{yellow}⚠%f Network offline - remote check skipped"
-    }
-    $fetch_failed && {
-      print -P "  %F{yellow}⚠%f Remote check failed (git fetch error)"
-    }
-    $has_remote_updates && {
-      print -P "  %F{cyan}↓%f Remote updates available"
-      print -P "    → Run: %F{green}chezmoi update%f"
-    }
-    $has_local_changes && {
-      print -P "  %F{magenta}●%f Local changes detected"
-      print -P "    → Run: %F{green}chezmoi add <file>%f then %F{green}git commit%f"
-    }
-    print -P "%F{yellow}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%f"
-  else
-    print -P "%F{green}✓%f Dotfiles synced"
-  fi
-}
-
-# Register hooks (both needed from start to detect first command)
-autoload -U add-zsh-hook
-add-zsh-hook precmd _chezmoi_check_sync
-add-zsh-hook preexec _chezmoi_preexec
+# Loader for chezmoi shell sync checker
+# Source: https://github.com/signalcompose/claude-tools
+if [[ -f ~/.claude/plugins/marketplaces/claude-tools/plugins/chezmoi/scripts/shell-check.zsh ]]; then
+  source ~/.claude/plugins/marketplaces/claude-tools/plugins/chezmoi/scripts/shell-check.zsh
+fi
 # <<< chezmoi shell sync checker end <<<
 ```
 
-### Insertion Point
+### Migration Steps
 
-- **Powerlevel10k users**: Insert BEFORE the `source ~/.p10k.zsh` line
-- **Others**: Append to end of zshrc
+If migrating from old embedded code:
 
-Use the Read tool to find the correct insertion point, then Edit tool to insert.
+1. Use Read tool to find the old code block between markers:
+   - Start: `# >>> chezmoi shell sync checker start >>>`
+   - End: `# <<< chezmoi shell sync checker end <<<`
 
-## Phase 4: Chezmoi Management
+2. Use Edit tool to replace the entire old block with the new loader (above)
+
+### New Installation Steps
+
+1. Use Read tool to examine the zshrc and find insertion point
+2. **Powerlevel10k users**: Insert BEFORE the `source ~/.p10k.zsh` line
+3. **Others**: Append to end of zshrc
+4. Use Edit tool to insert the loader code
+
+## Phase 5: Chezmoi Management
 
 If the zshrc is managed by chezmoi (source is `dot_zshrc`), apply changes:
 
@@ -280,32 +215,26 @@ else
 fi
 ```
 
-## Phase 5: Verification
+## Phase 6: Verification
 
 Verify the installation:
 
 ```bash
 echo "🔍 Verifying installation..."
 
-if grep -q "_chezmoi_check_sync" "$ZSHRC_SOURCE" 2>/dev/null; then
-  echo "✅ Code successfully installed"
+if grep -q "shell-check.zsh" "$ZSHRC_SOURCE" 2>/dev/null; then
+  echo "✅ Loader successfully installed"
+
+  # Verify external script exists
+  SCRIPT_PATH="$HOME/.claude/plugins/marketplaces/claude-tools/plugins/chezmoi/scripts/shell-check.zsh"
+  if [[ -f "$SCRIPT_PATH" ]]; then
+    echo "✅ External script found"
+  else
+    echo "⚠️ External script not found"
+    echo "   The loader will silently skip until plugin is installed"
+  fi
 else
   echo "❌ Installation failed"
-  echo ""
-  echo "   Diagnostics:"
-  if [[ -f "$ZSHRC_SOURCE" ]]; then
-    echo "   - File exists: yes"
-    if [[ -w "$ZSHRC_SOURCE" ]]; then
-      echo "   - File writable: yes"
-    else
-      echo "   - File writable: NO (permission issue)"
-    fi
-    echo "   - File size: $(wc -c < "$ZSHRC_SOURCE" 2>/dev/null || echo 'cannot read') bytes"
-  else
-    echo "   - File exists: NO"
-  fi
-  echo ""
-  echo "   Try manually checking $ZSHRC_SOURCE for the code block"
 fi
 ```
 
@@ -321,6 +250,8 @@ Report results to user with next steps:
    >>> chezmoi shell sync checker start >>>
    ...
    <<< chezmoi shell sync checker end <<<
+
+   To update: Run `/plugin update` - script updates automatically!
 ```
 
 ## How It Works
@@ -344,7 +275,7 @@ This pattern is compatible with:
 
 This indicates code is running during instant prompt. The stage-1 skip should prevent this. If you see this warning:
 
-1. Ensure the checker code is placed BEFORE the p10k source line
+1. Ensure the loader code is placed BEFORE the p10k source line
 2. Or disable instant prompt in ~/.p10k.zsh
 
 ### Check not running
@@ -358,6 +289,14 @@ echo $preexec_functions
 ```
 
 Should include `_chezmoi_check_sync` and `_chezmoi_preexec`.
+
+### Script not found
+
+If the external script is not found:
+
+1. Ensure chezmoi plugin is installed: `/plugin install chezmoi`
+2. Check marketplace is added: `/plugin marketplace add signalcompose/claude-tools`
+3. The loader will silently skip until plugin is properly installed
 
 ### Network check skipped
 
