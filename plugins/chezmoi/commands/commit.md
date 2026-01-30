@@ -6,11 +6,15 @@ description: "Commit and push changed dotfiles"
 
 Detect changed dotfiles, commit and push to remote.
 
+## Prerequisites
+
+**Before interpreting any `chezmoi diff` output, read `references/diff-interpretation.md`.**
+
+Key point: In `chezmoi diff`, `-` means "LOCAL has this" (not "deleted").
+
 ## Execution Steps
 
 ### Step 1: Detect Changes
-
-First, check which files have been modified:
 
 ```bash
 chezmoi status
@@ -18,67 +22,43 @@ chezmoi status
 
 **If no changes**: Report "No changes to commit" and exit.
 
-### Understanding chezmoi diff
+### Step 2: Interpret Diff Output
 
-`chezmoi diff` shows what `chezmoi apply` would change (target state vs current local files):
+Run `chezmoi diff` and interpret according to `references/diff-interpretation.md`.
 
-| Symbol | Represents | `apply` would... |
-|--------|------------|------------------|
-| `-` | Current **local** state | Remove this |
-| `+` | Current **source** state | Add this |
+**Quick Reference**:
+| Symbol | Meaning | Commit will... |
+|--------|---------|----------------|
+| `-` only | Local has, source lacks | **ADD** to source |
+| `+` only | Source has, local lacks | **REMOVE** from source |
+| `-`/`+` pair | Content differs | **UPDATE** source |
 
-**For `/chezmoi:commit`**: We do the **opposite** of apply—copy local → source.
+**Report to user using correct expressions**:
+- ✅ "ローカルの `X` をソースに追加します"
+- ❌ ~~"`X` が削除されました"~~ (WRONG - `-` ≠ deleted)
 
-- `-` lines = Local content to **preserve** (will be added to source)
-- `+` lines = Source content to **update** (will be replaced by local)
-
-**Example**: You added a plugin locally that source doesn't have:
-```diff
--    "claude-md-management": true,  ← Local has this
-+                                   ← Source doesn't
-```
-→ Commit will add `claude-md-management` to source.
-
-### Step 2: Confirm with User
-
-Show the user which files will be committed:
+### Step 3: Confirm with User
 
 ```
 🔍 Detected changes:
-  - .zshrc (new alias added)
-  - .gitconfig (updated)
+  - .zshrc (local content will be added to source)
+  - .gitconfig (source will be updated with local version)
 
-Do you want to commit these files? [Y/n]:
+Commit these changes? [Y/n]:
 ```
 
-Proceed only if user approves.
-
-### Step 3: Add Files to Chezmoi
-
-Add modified files to chezmoi source directory:
+### Step 4: Add Files to Chezmoi
 
 ```bash
-# For each detected file:
 chezmoi add ~/.zshrc
 chezmoi add ~/.gitconfig
-# etc.
-```
-
-### Step 4: Git Staging
-
-Stage changes in chezmoi source directory:
-
-```bash
-cd ~/.local/share/chezmoi
-git add .
 ```
 
 ### Step 5: Commit and Push
 
-After staging, commit and push:
-
 ```bash
 cd ~/.local/share/chezmoi
+git add .
 git commit -m "chore: update dotfiles
 
 [Description of changes]
@@ -87,43 +67,30 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 git push
 ```
 
-**Commit Message Format**:
-- **type**: `chore` (dotfiles update)
-- **summary**: English (e.g., "update dotfiles")
-- **body**: Description of changes
-
 ## Flow Diagram
 
 ```
-Detect changes → User confirm → chezmoi add → git add → commit → push
-      ↓              ↓              ↓            ↓          ↓        ↓
-   status        [Y/n]         each file      all       message   GitHub
+status → diff → confirm → chezmoi add → git add → commit → push
 ```
 
 ## Error Handling
 
+### Push Error (non-fast-forward)
+
+```
+❌ Failed to push: rejected (non-fast-forward)
+
+Run /chezmoi:sync first to pull remote changes.
+```
+
 ### Chezmoi Add Error
 
 ```
-❌ Failed to add .zshrc to chezmoi
+❌ Failed to add file
 
-Error: file contains binary data
-
-Please check the file and try again.
+Check if file contains binary data or is in .chezmoiignore.
 ```
 
-### Push Error
+## Reference
 
-```
-❌ Failed to push to remote
-
-Error: rejected (non-fast-forward)
-
-Please run /chezmoi:sync first to pull remote changes.
-```
-
-## Notes
-
-- Always shows diff before committing
-- Commit messages are auto-generated but can be customized
-- Run local tests before pushing if applicable
+For detailed diff interpretation guide, see `references/diff-interpretation.md`.
