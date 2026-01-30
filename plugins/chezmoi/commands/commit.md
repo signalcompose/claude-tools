@@ -18,16 +18,26 @@ chezmoi status
 
 **If no changes**: Report "No changes to commit" and exit.
 
-### Understanding chezmoi status/diff
+### Understanding chezmoi diff
 
-**Important**: When interpreting changes, remember:
+`chezmoi diff` shows what `chezmoi apply` would change (target state vs current local files):
 
-- `chezmoi status` shows files that differ between local and source
-- `chezmoi diff` shows what `chezmoi apply` would do:
-  - `-` lines = Current **local** content
-  - `+` lines = **Chezmoi source** content
+| Symbol | Represents | `apply` would... |
+|--------|------------|------------------|
+| `-` | Current **local** state | Remove this |
+| `+` | Current **source** state | Add this |
 
-If local has changes not in source, `/chezmoi:commit` adds them to source.
+**For `/chezmoi:commit`**: We do the **opposite** of apply—copy local → source.
+
+- `-` lines = Local content to **preserve** (will be added to source)
+- `+` lines = Source content to **update** (will be replaced by local)
+
+**Example**: You added a plugin locally that source doesn't have:
+```diff
+-    "claude-md-management": true,  ← Local has this
++                                   ← Source doesn't
+```
+→ Commit will add `claude-md-management` to source.
 
 ### Step 2: Confirm with User
 
