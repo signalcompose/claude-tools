@@ -18,6 +18,17 @@ chezmoi status
 
 **If no changes**: Report "No changes to commit" and exit.
 
+### Understanding chezmoi status/diff
+
+**Important**: When interpreting changes, remember:
+
+- `chezmoi status` shows files that differ between local and source
+- `chezmoi diff` shows what `chezmoi apply` would do:
+  - `-` lines = Current **local** content
+  - `+` lines = **Chezmoi source** content
+
+If local has changes not in source, `/chezmoi:commit` adds them to source.
+
 ### Step 2: Confirm with User
 
 Show the user which files will be committed:
