@@ -31,7 +31,7 @@ opencode と oh-my-opencode の分析に基づき、claude-tools の各プラグ
 
 ---
 
-## 提案1: orchestrator プラグイン（新規）
+## 提案1: conductor プラグイン（新規）
 
 ### 概要
 
@@ -41,18 +41,18 @@ LLM間のタスク委譲とワークフロー管理を行う中央オーケス�
 
 | コマンド | 説明 |
 |----------|------|
-| `/orch:plan <task>` | タスクを分解し、適切なLLM/エージェントに割り当て |
-| `/orch:decompose <feature>` | フィーチャーをタスクに分解 |
-| `/orch:assign <task> <agent>` | タスクを特定エージェントに割り当て |
-| `/orch:team` | 利用可能なエージェント一覧と現在のステータス |
-| `/orch:delegate <agent> <task>` | 特定エージェントにタスクを委譲 |
-| `/orch:parallel <task1> <task2> ...` | 複数タスクを並列実行 |
-| `/orch:status` | 実行中タスクのステータス確認 |
+| `/cond:plan <task>` | タスクを分解し、適切なLLM/エージェントに割り当て |
+| `/cond:decompose <feature>` | フィーチャーをタスクに分解 |
+| `/cond:assign <task> <agent>` | タスクを特定エージェントに割り当て |
+| `/cond:team` | 利用可能なエージェント一覧と現在のステータス |
+| `/cond:delegate <agent> <task>` | 特定エージェントにタスクを委譲 |
+| `/cond:parallel <task1> <task2> ...` | 複数タスクを並列実行 |
+| `/cond:status` | 実行中タスクのステータス確認 |
 
 ### アーキテクチャ
 
 ```
-orchestrator
+conductor
 ├── agents/
 │   ├── planner.md      # タスク分解・計画（Claude Sonnet）
 │   ├── researcher.md   # 調査・情報収集（Gemini/Kiro/Codex連携）
@@ -69,7 +69,7 @@ orchestrator
 ### 設定例
 
 ```yaml
-# ~/.claude/orchestrator/config.yml
+# ~/.claude/conductor/config.yml
 agents:
   planner:
     model: claude-sonnet
@@ -190,7 +190,7 @@ Gemini 2.5 ProにUI/フロントエンドタスクを委譲
 
 ### 追加機能
 
-YPMはプロジェクト状態の**可視化と管理**に特化。オーケストレーション機能は orchestrator に委譲。
+YPMはプロジェクト状態の**可視化と管理**に特化。オーケストレーション機能は conductor に委譲。
 
 | コマンド | 説明 |
 |----------|------|
@@ -198,17 +198,17 @@ YPMはプロジェクト状態の**可視化と管理**に特化。オーケス�
 | `/ypm:retrospective` | 完了タスクの振り返り生成 |
 | `/ypm:metrics` | プロジェクトメトリクス（コミット頻度、変更量など） |
 
-### orchestrator との連携
+### conductor との連携
 
 ```yaml
-# orchestrator が ypm のデータを参照
+# conductor が ypm のデータを参照
 integrations:
   ypm:
     project_status: ~/.ypm/PROJECT_STATUS.md
     active_projects: auto  # アクティブプロジェクトを自動検出
 ```
 
-orchestrator がタスクを分解・割り当て → ypm がプロジェクト状態を追跡・可視化
+conductor がタスクを分解・割り当て → ypm がプロジェクト状態を追跡・可視化
 
 ---
 
@@ -258,7 +258,7 @@ background:
 ### 7.2 コンテキスト共有
 
 ```yaml
-# ~/.claude/orchestrator/context.yml
+# ~/.claude/conductor/context.yml
 shared_context:
   - project_structure  # ディレクトリ構造
   - recent_changes     # 最近のgit変更
@@ -291,11 +291,11 @@ model_strategy:
 ### Phase 2: 統合機能（中コスト）
 
 1. **code-review**: `/code:multi-review`
-2. **ypm**: `/ypm:sprint`, `/ypm:metrics`（orchestrator連携準備）
+2. **ypm**: `/ypm:sprint`, `/ypm:metrics`（conductor連携準備）
 
 ### Phase 3: オーケストレーター（高コスト・高価値）
 
-1. **orchestrator**: 新規プラグイン作成
+1. **conductor**: 新規プラグイン作成
 2. バックグラウンドタスク実行基盤
 3. 自動タスク委譲ワークフロー
 
@@ -335,7 +335,7 @@ oh-my-opencode の「チームベースエージェント」アプローチを�
 - 各LLMの強みを活かしたタスク委譲
 - 既存プラグイン（gemini, codex, kiro）の連携強化
 - バックグラウンド並列実行による効率化
-- ypmとの連携によるプロジェクト状態の可視化（orchestratorがタスク管理、ypmが状態追跡）
+- ypmとの連携によるプロジェクト状態の可視化（conductorがタスク管理、ypmが状態追跡）
 
 ---
 
