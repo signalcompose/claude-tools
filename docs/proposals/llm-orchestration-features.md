@@ -42,6 +42,8 @@ LLM間のタスク委譲とワークフロー管理を行う中央オーケス�
 | コマンド | 説明 |
 |----------|------|
 | `/orch:plan <task>` | タスクを分解し、適切なLLM/エージェントに割り当て |
+| `/orch:decompose <feature>` | フィーチャーをタスクに分解 |
+| `/orch:assign <task> <agent>` | タスクを特定エージェントに割り当て |
 | `/orch:team` | 利用可能なエージェント一覧と現在のステータス |
 | `/orch:delegate <agent> <task>` | 特定エージェントにタスクを委譲 |
 | `/orch:parallel <task1> <task2> ...` | 複数タスクを並列実行 |
@@ -186,46 +188,27 @@ Gemini 2.5 ProにUI/フロントエンドタスクを委譲
 - プロジェクト状態管理
 - タスク管理（next tasks）
 
-### 追加機能（oh-my-opencodeのPrometheusに相当）
+### 追加機能
+
+YPMはプロジェクト状態の**可視化と管理**に特化。オーケストレーション機能は orchestrator に委譲。
 
 | コマンド | 説明 |
 |----------|------|
-| `/ypm:decompose <feature>` | フィーチャーをタスクに分解 |
-| `/ypm:assign <task> <agent>` | タスクをエージェントに割り当て |
 | `/ypm:sprint` | 現在のスプリント概要とタスク進捗 |
 | `/ypm:retrospective` | 完了タスクの振り返り生成 |
+| `/ypm:metrics` | プロジェクトメトリクス（コミット頻度、変更量など） |
 
-### タスク分解例
+### orchestrator との連携
 
 ```yaml
-# /ypm:decompose "ユーザー認証機能の追加"
-feature: ユーザー認証機能
-tasks:
-  - id: auth-1
-    name: 認証アーキテクチャ設計
-    agent: codex  # Oracle役
-    status: pending
-
-  - id: auth-2
-    name: API設計・仕様書作成
-    agent: claude
-    depends_on: [auth-1]
-
-  - id: auth-3
-    name: バックエンド実装
-    agent: claude
-    depends_on: [auth-2]
-
-  - id: auth-4
-    name: フロントエンドUI実装
-    agent: gemini  # Frontend Engineer役
-    depends_on: [auth-2]
-
-  - id: auth-5
-    name: テスト・レビュー
-    agent: code-review
-    depends_on: [auth-3, auth-4]
+# orchestrator が ypm のデータを参照
+integrations:
+  ypm:
+    project_status: ~/.ypm/PROJECT_STATUS.md
+    active_projects: auto  # アクティブプロジェクトを自動検出
 ```
+
+orchestrator がタスクを分解・割り当て → ypm がプロジェクト状態を追跡・可視化
 
 ---
 
@@ -308,7 +291,7 @@ model_strategy:
 ### Phase 2: 統合機能（中コスト）
 
 1. **code-review**: `/code:multi-review`
-2. **ypm**: `/ypm:decompose`, `/ypm:assign`
+2. **ypm**: `/ypm:sprint`, `/ypm:metrics`（orchestrator連携準備）
 
 ### Phase 3: オーケストレーター（高コスト・高価値）
 
@@ -352,7 +335,7 @@ oh-my-opencode の「チームベースエージェント」アプローチを�
 - 各LLMの強みを活かしたタスク委譲
 - 既存プラグイン（gemini, codex, kiro）の連携強化
 - バックグラウンド並列実行による効率化
-- ypmとの統合によるプロジェクト全体の可視化
+- ypmとの連携によるプロジェクト状態の可視化（orchestratorがタスク管理、ypmが状態追跡）
 
 ---
 
