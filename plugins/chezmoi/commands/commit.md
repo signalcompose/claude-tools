@@ -20,11 +20,20 @@ chezmoi status
 
 ### Step 2: Show Diff and Confirm with User
 
-**Important: Understanding diff direction**
+**Important: Understanding chezmoi status output**
 
-The `chezmoi status` output shows files where your local home directory differs from the chezmoi repository:
-- `RA` (Re-Add) = Local file has changes not in chezmoi repo
-- `MM` (Modified) = Both local and repo have different changes
+The `chezmoi status` output uses two columns (each single character):
+- **1st column**: Changes since last `chezmoi apply` (your local modifications)
+- **2nd column**: What `chezmoi apply` would change
+
+Common patterns:
+- ` M` = No local changes, but chezmoi has updates to apply
+- `M ` = You modified the file locally (this is what we want to commit)
+- `MM` = Local modifications AND chezmoi has different changes (potential conflict)
+
+Characters: (space)=unchanged, A=added, D=deleted, M=modified, R=run (scripts)
+
+**Understanding diff direction**
 
 To show what will be committed, use:
 
