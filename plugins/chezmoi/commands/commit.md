@@ -6,11 +6,21 @@ description: "Commit and push changed dotfiles"
 
 Detect changed dotfiles, commit and push to remote.
 
-## Prerequisites
+## Diff Interpretation
 
-**Before interpreting any `chezmoi diff` output, read `references/diff-interpretation.md`.**
+Use `--reverse` flag to get **git-like diff output**:
 
-Key point: In `chezmoi diff`, `-` means "LOCAL has this" (not "deleted").
+```bash
+chezmoi diff --reverse
+```
+
+This shows what **commit will do** to the source repository:
+- `-` lines will be **removed** from source
+- `+` lines will be **added** to source
+
+Read the diff exactly like a normal `git diff`.
+
+---
 
 ## Execution Steps
 
@@ -22,20 +32,22 @@ chezmoi status
 
 **If no changes**: Report "No changes to commit" and exit.
 
-### Step 2: Interpret Diff Output
+### Step 2: Show Diff
 
-Run `chezmoi diff` and interpret according to `references/diff-interpretation.md`.
+```bash
+chezmoi diff --reverse
+```
 
-**Quick Reference**:
-| Symbol | Meaning | Commit will... |
-|--------|---------|----------------|
-| `-` only | Local has, source lacks | **ADD** to source |
-| `+` only | Source has, local lacks | **REMOVE** from source |
-| `-`/`+` pair | Content differs | **UPDATE** source |
+Report changes using standard git diff language:
+- `-` lines: "Will **remove** X from source"
+- `+` lines: "Will **add** X to source"
 
-**Report to user using correct expressions**:
-- ✅ "ローカルの `X` をソースに追加します"
-- ❌ ~~"`X` が削除されました"~~ (WRONG - `-` ≠ deleted)
+**Example:**
+```diff
+-    "sigcomintra@sigcomintra": true,
++    "hookify@claude-plugins-official": true,
+```
+→ `sigcomintra` will be removed, `hookify` will be added to source
 
 ### Step 3: Confirm with User
 
@@ -93,4 +105,4 @@ Check if file contains binary data or is in .chezmoiignore.
 
 ## Reference
 
-For detailed diff interpretation guide, see `references/diff-interpretation.md`.
+For detailed examples and troubleshooting, see `references/diff-interpretation.md`.

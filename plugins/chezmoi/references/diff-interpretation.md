@@ -1,111 +1,70 @@
 # Chezmoi Diff Interpretation Guide
 
-<!--
-🚨 CRITICAL FOR CLAUDE - THIS IS THE AUTHORITATIVE REFERENCE 🚨
+## Recommended: Use `--reverse` Flag
 
-Read this file completely before interpreting any `chezmoi diff` output.
-The `-` symbol does NOT mean "deleted" in chezmoi context!
--->
+For `/chezmoi:commit`, always use:
 
-## Core Concept: State Comparison, Not Change Log
-
-`chezmoi diff` shows a **state comparison** between two locations:
-- **Local** = The actual dotfiles on your system (e.g., `~/.zshrc`)
-- **Source** = The chezmoi repository (e.g., `~/.local/share/chezmoi/`)
-
-This is fundamentally different from `git diff` which shows changes over time.
-
-## Symbol Meanings
-
-| Symbol | What it represents | Mental model |
-|--------|-------------------|--------------|
-| `-` | Content in **LOCAL** file | "LOCAL HAS THIS" |
-| `+` | Content in **SOURCE** repo | "SOURCE HAS THIS" |
-
-### Critical Warning
-
-The `-` symbol triggers an intuitive association with "deleted" or "removed".
-
-**THIS IS WRONG for chezmoi diff!**
-
-- `-` does NOT mean "was deleted"
-- `-` means "exists in LOCAL"
-
-## Direction of Operations
-
-### `chezmoi apply` (Source → Local)
-- Copies SOURCE content to LOCAL
-- `-` lines would be removed from local
-- `+` lines would be added to local
-
-### `chezmoi commit` / `chezmoi add` (Local → Source)
-- Copies LOCAL content to SOURCE
-- `-` lines will be added to source
-- `+` lines will be removed from source (replaced by local)
-
-## Interpretation Table
-
-| Diff Pattern | Meaning | For `/chezmoi:commit` |
-|--------------|---------|----------------------|
-| `-` only (no `+`) | Local has content that source lacks | Content will be **ADDED** to source |
-| `+` only (no `-`) | Source has content that local lacks | Content will be **REMOVED** from source |
-| `-` and `+` pair | Content differs | Source will be **UPDATED** with local version |
-
-## Reporting to User
-
-### Correct Expressions
-
-When reporting changes detected by `chezmoi diff`:
-
-**For `-` only lines (local has, source lacks):**
-- "ローカルに `X` があり、ソースにはありません → コミットでソースに追加されます"
-- "Local has `X`, source doesn't → commit will add to source"
-
-**For `+` only lines (source has, local lacks):**
-- "ソースに `X` がありますが、ローカルにはありません → コミットでソースから削除されます"
-- "Source has `X`, local doesn't → commit will remove from source"
-
-**For `-` and `+` pairs (content differs):**
-- "ローカルの変更でソースを更新します"
-- "Local changes will update source"
-
-### Wrong Expressions (DO NOT USE)
-
-- ❌ "`X` が削除されました" — WRONG: `-` does not mean deleted
-- ❌ "プラグインの削除をコミット" — WRONG: implies removal when it's addition
-- ❌ "ローカルで削除された" — WRONG: confuses direction
-
-## Worked Example
-
-Given this `chezmoi diff` output:
-
-```diff
--    "plugin-a": true,
--    "plugin-b": true
-+    "plugin-a": true
+```bash
+chezmoi diff --reverse
 ```
 
-### Step-by-Step Analysis
+This produces **git-like output** that shows what commit will do:
+- `-` lines will be **removed** from source
+- `+` lines will be **added** to source
 
-1. **Identify `-` lines**: `plugin-a` and `plugin-b` — these exist in LOCAL
-2. **Identify `+` lines**: `plugin-a` only — this exists in SOURCE
-3. **Compare**: `plugin-b` appears only in `-` (local), not in `+` (source)
-4. **Conclusion**: Local has `plugin-b` that source doesn't have
+**No special interpretation rules needed.** Read it like a normal `git diff`.
 
-### Correct Report
+---
 
-> "`plugin-b` がローカルに存在し、ソースにはありません。コミットするとソースに追加されます。"
+## Why `--reverse`?
 
-### Wrong Report
+### Normal `chezmoi diff` (without flag)
 
-> ❌ "`plugin-b` が削除されました" — This is backwards!
+Shows what `chezmoi apply` would do (making local match source):
+- `-` = current content in LOCAL (destination)
+- `+` = desired content from SOURCE (target state)
 
-## Pre-Report Checklist
+This is counterintuitive when committing (local → source).
 
-Before reporting `chezmoi diff` results to user:
+### `chezmoi diff --reverse`
 
-1. [ ] Read the `-` lines as "LOCAL has this"
-2. [ ] Read the `+` lines as "SOURCE has this"
-3. [ ] For content only in `-`: Report as "will be ADDED to source"
-4. [ ] For content only in `+`: Report as "will be REMOVED from source"
-5. [ ] Never use "deleted" or "removed" for `-` lines
+Shows what commit will do (local → source):
+- `-` = will be **removed** from source
+- `+` = will be **added** to source
+
+This matches git diff semantics exactly.
+
+---
+
+## Example Comparison
+
+Local has `hookify`, source has `sigcomintra`:
+
+### Without `--reverse`:
+```diff
+-    "hookify@...": true,      ← Local has this
++    "sigcomintra@...": true,  ← Source has this
+```
+Confusing: `-` means "will be added to source" (counterintuitive)
+
+### With `--reverse`:
+```diff
+-    "sigcomintra@...": true,  ← Will be removed from source
++    "hookify@...": true,      ← Will be added to source
+```
+Clear: Standard git diff semantics
+
+---
+
+## Reference: Normal Diff (Legacy)
+
+**Warning:** This section is for reference only. Always use `--reverse` for the commit workflow.
+
+If you must use `chezmoi diff` without `--reverse`:
+
+| Symbol | Meaning | For commit |
+|--------|---------|------------|
+| `-` | Content in LOCAL | Will be **ADDED** to source |
+| `+` | Content in SOURCE | Will be **REMOVED** from source |
+
+**Note:** This is the opposite of git diff conventions.
