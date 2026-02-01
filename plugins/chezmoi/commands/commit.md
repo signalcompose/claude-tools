@@ -18,16 +18,41 @@ chezmoi status
 
 **If no changes**: Report "No changes to commit" and exit.
 
-### Step 2: Confirm with User
+### Step 2: Show Diff and Confirm with User
 
-Show the user which files will be committed:
+**Important: Understanding diff direction**
+
+The `chezmoi status` output shows files where your local home directory differs from the chezmoi repository:
+- `RA` (Re-Add) = Local file has changes not in chezmoi repo
+- `MM` (Modified) = Both local and repo have different changes
+
+To show what will be committed, use:
+
+```bash
+# Show diff for each changed file
+# Note: chezmoi diff shows "repo → local" direction
+# For commit, we need to show "local → repo" (what user changed locally)
+chezmoi diff --reverse
+```
+
+**Diff interpretation for commit**:
+- `+` lines = Content YOU ADDED locally (will be added to repo)
+- `-` lines = Content YOU REMOVED locally (will be removed from repo)
+
+Show the user:
 
 ```
-🔍 Detected changes:
-  - .zshrc (new alias added)
-  - .gitconfig (updated)
+🔍 Your local changes to commit:
 
-Do you want to commit these files? [Y/n]:
+📄 .zshrc:
+  + alias ll='ls -la'    # You added this line
+  - alias l='ls'         # You removed this line
+
+📄 .gitconfig:
+  + [user]
+  +   name = Your Name   # You added this section
+
+Do you want to commit these changes? [Y/n]:
 ```
 
 Proceed only if user approves.
