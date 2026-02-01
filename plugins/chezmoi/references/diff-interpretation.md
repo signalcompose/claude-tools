@@ -20,9 +20,9 @@ This produces **git-like output** that shows what commit will do:
 
 ### Normal `chezmoi diff` (without flag)
 
-Shows what `chezmoi apply` would do (source → local):
-- `-` = content in LOCAL
-- `+` = content in SOURCE
+Shows what `chezmoi apply` would do (making local match source):
+- `-` = current content in LOCAL (destination)
+- `+` = desired content from SOURCE (target state)
 
 This is counterintuitive when committing (local → source).
 
@@ -57,6 +57,8 @@ Clear: Standard git diff semantics
 ---
 
 ## Reference: Normal Diff (Legacy)
+
+**Warning:** This section is for reference only. Always use `--reverse` for the commit workflow.
 
 If you must use `chezmoi diff` without `--reverse`:
 

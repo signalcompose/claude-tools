@@ -39,8 +39,8 @@ chezmoi diff --reverse
 ```
 
 Report changes using standard git diff language:
-- "Will **add** X to source" (for `+` lines)
-- "Will **remove** X from source" (for `-` lines)
+- `-` lines: "Will **remove** X from source"
+- `+` lines: "Will **add** X to source"
 
 **Example:**
 ```diff
