@@ -23,7 +23,7 @@ chezmoi status
 **Important: Understanding chezmoi status output**
 
 The `chezmoi status` output uses two columns (each single character):
-- **1st column**: Difference between chezmoi's recorded state and actual file (your local modifications)
+- **1st column**: Difference between chezmoi's recorded state and actual file (changes since last `chezmoi apply`)
 - **2nd column**: What `chezmoi apply` would change
 
 Common patterns:
