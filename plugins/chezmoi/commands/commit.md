@@ -23,15 +23,15 @@ chezmoi status
 **Important: Understanding chezmoi status output**
 
 The `chezmoi status` output uses two columns (each single character):
-- **1st column**: Changes since last `chezmoi apply` (your local modifications)
+- **1st column**: Difference between chezmoi's recorded state and actual file (your local modifications)
 - **2nd column**: What `chezmoi apply` would change
 
 Common patterns:
 - ` M` = No local changes, but chezmoi has updates to apply
 - `M ` = You modified the file locally (this is what we want to commit)
-- `MM` = Local modifications AND chezmoi has different changes (potential conflict)
+- `MM` = Local modifications AND chezmoi has different changes (potential conflict - run `chezmoi diff` first to review both directions)
 
-Characters: (space)=unchanged, A=added, D=deleted, M=modified, R=run (scripts)
+Characters: (space)=unchanged, A=added, D=deleted, M=modified, R=run (scripts, 2nd column only)
 
 **Understanding diff direction**
 
@@ -44,9 +44,11 @@ To show what will be committed, use:
 chezmoi diff --reverse
 ```
 
-**Diff interpretation for commit**:
+**Diff interpretation for commit** (requires `--reverse` flag):
 - `+` lines = Content YOU ADDED locally (will be added to repo)
 - `-` lines = Content YOU REMOVED locally (will be removed from repo)
+
+**Warning**: Without `--reverse`, the signs are inverted (shows what chezmoi would change, not what you changed).
 
 Show the user:
 
