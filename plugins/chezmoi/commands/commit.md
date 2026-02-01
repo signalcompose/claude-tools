@@ -6,43 +6,19 @@ description: "Commit and push changed dotfiles"
 
 Detect changed dotfiles, commit and push to remote.
 
-## 🚨 CRITICAL: Diff Interpretation Rules (MUST READ FIRST)
+## Diff Interpretation
 
-**chezmoi diff symbols have OPPOSITE meaning from git diff.**
+Use `--reverse` flag to get **git-like diff output**:
 
-### Symbol Definition (Memorize This)
+```bash
+chezmoi diff --reverse
+```
 
-| Symbol | Meaning | Mental Model |
-|--------|---------|--------------|
-| `-` | **LOCAL (home directory)** has this | "LOCAL HAS THIS" |
-| `+` | **SOURCE (chezmoi repo)** has this | "SOURCE HAS THIS" |
+This shows what **commit will do** to the source repository:
+- `-` lines will be **removed** from source
+- `+` lines will be **added** to source
 
-### What Commit Will Do
-
-| Diff Pattern | Meaning | Commit Result |
-|--------------|---------|---------------|
-| `-` only | Local has, source lacks | **ADD** to source |
-| `+` only | Source has, local lacks | **REMOVE** from source |
-| `-`/`+` pair | Content differs | **UPDATE** source with local |
-
-### 🚫 FORBIDDEN Expressions (NEVER USE)
-
-- ❌ Describing `-` lines as "deleted" or "removed"
-- ❌ Saying "commit will delete" for `-` only lines
-- ❌ Following git diff conventions
-
-### ✅ CORRECT Expressions (USE THESE)
-
-- ✅ "Local has `X`, source lacks it → Will be **added** to source"
-- ✅ "Source has `X`, local lacks it → Will be **removed** from source"
-- ✅ "Content differs → Source will be **updated** with local version"
-
-### Pre-Interpretation Checklist
-
-Before reporting diff results, verify:
-1. Am I treating `-` as "LOCAL HAS THIS"?
-2. Am I treating `+` as "SOURCE HAS THIS"?
-3. Am I NOT using git diff mental model?
+Read the diff exactly like a normal `git diff`.
 
 ---
 
@@ -56,24 +32,22 @@ chezmoi status
 
 **If no changes**: Report "No changes to commit" and exit.
 
-### Step 2: Interpret Diff Output
+### Step 2: Show Diff
 
 ```bash
-chezmoi diff
+chezmoi diff --reverse
 ```
 
-Apply the rules above. Report changes using CORRECT expressions only.
+Report changes using standard git diff language:
+- "Will **add** X to source" (for `+` lines)
+- "Will **remove** X from source" (for `-` lines)
 
-**Example interpretation:**
+**Example:**
 ```diff
--    "hookify@claude-plugins-official": true,
+-    "sigcomintra@sigcomintra": true,
++    "hookify@claude-plugins-official": true,
 ```
-→ Local has this, source lacks it → Commit will **ADD** to source
-
-```diff
-+    "sigcomintra@sigcomintra": true,
-```
-→ Source has this, local lacks it → Commit will **REMOVE** from source
+→ `sigcomintra` will be removed, `hookify` will be added to source
 
 ### Step 3: Confirm with User
 
