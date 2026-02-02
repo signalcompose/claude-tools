@@ -48,60 +48,25 @@ Wait for the agent to complete and return results.
 
 ### Step 4: Approve for Commit
 
-**MANDATORY**: If review passes, you MUST save the approval hash. Do NOT skip this step.
+**MANDATORY**: If review passes, you MUST run the approval script. Do NOT skip this step.
 
-Run the following commands to save the approval:
+Run the approval script:
 
 ```bash
-# Determine approval file location
-# Prefer project-local .claude/ for project-specific tracking
-# Fall back to /tmp/claude/ for projects without .claude directory (ephemeral but functional)
-if [[ -d ".claude" ]]; then
-    if [[ ! -w ".claude" ]]; then
-        echo "Error: .claude directory exists but is not writable" >&2
-        exit 1
-    fi
-    REVIEW_FILE=".claude/review-approved"
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/approve-review.sh
+```
+
+**Fallback** (if environment variable doesn't expand):
+
+```bash
+# Find and run the script from the plugin directory
+SCRIPT=$(find ~/.claude -path "*/code-review/scripts/approve-review.sh" 2>/dev/null | head -1)
+if [[ -n "$SCRIPT" ]]; then
+    bash "$SCRIPT"
 else
-    if ! mkdir -p /tmp/claude; then
-        echo "Failed to create /tmp/claude directory" >&2
-        exit 1
-    fi
-    REVIEW_FILE="/tmp/claude/review-approved"
-fi
-
-# Get staged changes hash (capture stderr for error reporting)
-GIT_OUTPUT=$(git diff --cached --raw 2>&1)
-GIT_STATUS=$?
-if [[ $GIT_STATUS -ne 0 ]]; then
-    echo "Git error: $GIT_OUTPUT" >&2
+    echo "Error: approve-review.sh not found. Ensure code-review plugin is installed." >&2
     exit 1
 fi
-
-# Calculate hash with explicit error checking
-HASH_OUTPUT=$(echo "$GIT_OUTPUT" | shasum -a 256 2>&1)
-HASH_STATUS=$?
-if [[ $HASH_STATUS -ne 0 ]]; then
-    echo "Hash calculation failed: $HASH_OUTPUT" >&2
-    exit 1
-fi
-HASH=$(echo "$HASH_OUTPUT" | cut -d' ' -f1)
-
-# Validate hash (reject empty or no-changes hash)
-# e3b0c44... is SHA-256 of empty string - when git diff --cached --raw outputs nothing, this hash is produced
-if [[ -z "$HASH" || "$HASH" == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" ]]; then
-    echo "No staged changes found." >&2
-    exit 1
-fi
-
-# Save approved hash
-if ! echo "$HASH" > "$REVIEW_FILE"; then
-    echo "Failed to save approval hash to $REVIEW_FILE" >&2
-    exit 1
-fi
-# Display truncated hash for readability (full hash saved to file)
-echo "Review approved. Hash: ${HASH:0:16}..."
-echo "You can now commit the staged changes."
 ```
 
 This saves a hash of the staged changes that the pre-commit hook can verify.

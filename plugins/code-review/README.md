@@ -125,8 +125,10 @@ plugins/code-review/
 │   └── review-commit/
 │       └── SKILL.md        # Review skill definition
 ├── scripts/
-│   ├── approve-review.sh     # Saves approval hash
-│   └── check-code-review.sh  # Pre-commit hook script
+│   ├── approve-review.sh           # Saves approval hash
+│   ├── check-code-review.sh        # PreToolUse hook (blocks commit without review)
+│   ├── check-pr-created.sh         # PostToolUse hook (tracks PR creation)
+│   └── enforce-code-review-rules.sh # UserPromptSubmit hook (enforces review policy)
 ├── hooks/
 │   └── hooks.json            # Optional hook configuration
 ├── .claude/
