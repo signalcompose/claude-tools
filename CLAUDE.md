@@ -129,6 +129,49 @@ git subtree pull --prefix=plugins/<plugin> https://github.com/signalcompose/<plu
 git commit -m "chore(plugins): update <plugin> from upstream"
 ```
 
+### Subtree差分確認（上流との比較）
+
+**⚠️ 重要: FETCH_HEAD上書きに注意**
+
+複数リポジトリを連続でfetchすると、FETCH_HEADが上書きされる。
+**必ず各fetchの直後に比較を行うこと。**
+
+```bash
+# ✅ 正しい手順: 各プラグインを個別に確認
+# 変数を使用（Subtree管理プラグイン一覧を参照）
+PLUGIN=<plugin-name>
+REPO=signalcompose/<plugin-name>
+
+git fetch https://github.com/${REPO}.git main
+git diff HEAD:plugins/${PLUGIN} FETCH_HEAD --stat  # ← 即座に比較
+```
+
+```bash
+# ❌ 間違った手順: 連続fetchでFETCH_HEADが上書きされる
+git fetch https://github.com/signalcompose/plugin-a.git main
+git fetch https://github.com/signalcompose/plugin-b.git main  # FETCH_HEAD上書き!
+git diff HEAD:plugins/plugin-a FETCH_HEAD  # AとBを比較してしまう（誤報の原因）
+```
+
+**代替手段: GitHub APIで確認（推奨）**
+
+```bash
+# README.mdの内容を直接確認（FETCH_HEAD問題を回避）
+REPO=signalcompose/<plugin-name>
+gh api repos/${REPO}/contents/README.md --jq '.content' | base64 -d | head -5
+```
+
+**全Subtreeプラグインの一括確認スクリプト例**
+
+```bash
+# Subtree管理プラグイン一覧からループ処理
+for plugin in cvi ypm; do
+  echo "=== Checking ${plugin} ==="
+  git fetch https://github.com/signalcompose/${plugin}.git main 2>/dev/null
+  git diff HEAD:plugins/${plugin} FETCH_HEAD --stat 2>/dev/null || echo "No diff"
+done
+```
+
 ## ディレクトリ構成
 
 ```
@@ -156,6 +199,47 @@ claude-tools/
 │   └── pull_request_template.md
 └── CLAUDE.md          # このファイル
 ```
+
+## スキル開発ガイダンス
+
+### 参考情報
+
+| 情報源 | URL/場所 | 用途 |
+|--------|----------|------|
+| Anthropic公式ガイド | [The Complete Guide to Building Skills for Claude](https://resources.anthropic.com/hubfs/The-Complete-Guide-to-Building-Skill-for-Claude.pdf) | 設計原則・ベストプラクティス |
+| 既存スキル実装 | `plugins/*/skills/*/SKILL.md` | 実装パターンの参考 |
+
+### コマンド vs スキル の使い分け
+
+| 用途 | 使うべきもの | 理由 |
+|------|-------------|------|
+| スクリプト実行 | **コマンド** | `!`で即時実行、`${CLAUDE_PLUGIN_ROOT}`展開 |
+| 専門知識提供 | **スキル** | Claudeへのガイドライン |
+| 両方必要 | **コマンド + スキル参照** | コマンドからスキルを参照 |
+
+### `${CLAUDE_PLUGIN_ROOT}` 環境変数
+
+**確認済み動作（2026-02-02）**:
+- コマンド内の `!` 構文で `${CLAUDE_PLUGIN_ROOT}` が正しく展開される
+- 展開先: `~/.claude/plugins/cache/<marketplace>/<plugin>/<commit-hash>/`
+- 例: `/Users/yamato/.claude/plugins/cache/claude-tools/code/7d9cd8ee6154`
+
+**使用例**:
+```markdown
+# コマンド内で使用
+Check: !`echo "CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}"`
+Script: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/my-script.sh`
+```
+
+**注意**: コードブロック形式（```bash）では展開されない。`!` 構文が必須。
+
+### 主要ベストプラクティス
+
+1. **Progressive Disclosure**: frontmatter（常時読込）→ 本文（必要時）→ references/（詳細）
+2. **決定論的検証**: クリティカルなチェックはスクリプトで実装（言語指示より確実）
+3. **スクリプトバンドル**: 重要な処理は外部スクリプト化し、SKILL.mdから呼び出す
+4. **エージェント委譲**: MANDATORYと明記し、正確なagent名とパラメータを指定
+5. **コマンドで`!`実行**: `` !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/xxx.sh` ``
 
 ## 参考リソース
 
