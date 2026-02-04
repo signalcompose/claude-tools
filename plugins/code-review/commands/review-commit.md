@@ -28,6 +28,8 @@ Prompt: "Review the staged changes (git diff --cached) for this commit. Check fo
 
 **MANDATORY**: Run the approval script.
 
-Approve: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/approve-review.sh`
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/approve-review.sh
+```
 
 This saves a hash of the staged changes that the pre-commit hook verifies.
