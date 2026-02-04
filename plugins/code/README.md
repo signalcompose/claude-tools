@@ -1,4 +1,4 @@
-# code-review - Claude Code Plugin
+# code - Claude Code Plugin
 
 Claude Code integration for code review workflow before commits.
 
@@ -18,7 +18,7 @@ Claude Code integration for code review workflow before commits.
 
 ```
 /plugin marketplace add signalcompose/claude-tools
-/plugin install code-review
+/plugin install code@claude-tools
 ```
 
 ## Commands & Skills
@@ -116,7 +116,7 @@ The code review checks for:
 ## Files
 
 ```
-plugins/code-review/
+plugins/code/
 ├── .claude-plugin/
 │   └── plugin.json           # Plugin metadata
 ├── commands/

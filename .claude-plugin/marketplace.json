@@ -31,9 +31,9 @@
     {
       "name": "code",
       "description": "Code review workflow integration for git commits",
-      "source": "./plugins/code-review",
+      "source": "./plugins/code",
       "category": "developer-tools",
-      "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/code-review"
+      "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/code"
     },
     {
       "name": "utils",
