@@ -5,6 +5,15 @@
 set -e
 set -o pipefail
 
+# Temp file cleanup management
+TEMP_FILES=()
+cleanup() {
+    for f in "${TEMP_FILES[@]}"; do
+        rm -f "$f"
+    done
+}
+trap cleanup EXIT
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Check Codex availability
@@ -81,23 +90,91 @@ else
     echo "Reviewing: $TARGET"
     echo ""
 
+    # Maximum content size limit (500KB) to avoid API token limits
+    MAX_CONTENT_SIZE=512000
+
+    # Supported file extensions for code review (quoted to prevent glob expansion)
+    # Includes: shell, python, javascript/typescript, go, rust, java, c/c++,
+    # ruby, php, swift, kotlin, vue, css/scss, sql, xml, toml, markdown, json, yaml
+    FILE_EXTENSIONS='-name "*.sh" -o -name "*.py" -o -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" -o -name "*.go" -o -name "*.rs" -o -name "*.java" -o -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" -o -name "*.rb" -o -name "*.php" -o -name "*.swift" -o -name "*.kt" -o -name "*.vue" -o -name "*.css" -o -name "*.scss" -o -name "*.sql" -o -name "*.xml" -o -name "*.toml" -o -name "*.md" -o -name "*.json" -o -name "*.yaml" -o -name "*.yml"'
+
     # Build file content for review via stdin
     # For directories, concatenate all text files; for single file, use directly
     if [ -d "$TARGET" ]; then
-        # Directory: find and concatenate text files
-        FILE_CONTENT=$(find "$TARGET" -type f \( -name "*.sh" -o -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.go" -o -name "*.rs" -o -name "*.java" -o -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.md" -o -name "*.json" -o -name "*.yaml" -o -name "*.yml" \) -print0 2>/dev/null | while IFS= read -r -d '' file; do
-            echo "=== FILE: $file ==="
-            cat "$file" 2>/dev/null || true
-            echo ""
-        done)
+        # Create temp file for find errors
+        FIND_ERRORS=$(mktemp)
+        TEMP_FILES+=("$FIND_ERRORS")
+
+        # First, check if directory has any matching files
+        # shellcheck disable=SC2086
+        FILE_COUNT=$(eval "find \"$TARGET\" -type f \( $FILE_EXTENSIONS \)" 2>"$FIND_ERRORS" | wc -l | tr -d ' ')
+
+        # Report find errors if any occurred
+        if [ -s "$FIND_ERRORS" ]; then
+            echo "WARNING: Some files/directories could not be accessed:" >&2
+            cat "$FIND_ERRORS" >&2
+            echo "" >&2
+        fi
+
+        if [ "$FILE_COUNT" -eq 0 ]; then
+            echo "ERROR: No supported source files found in: $TARGET"
+            echo "Supported extensions: .sh, .py, .js, .jsx, .ts, .tsx, .go, .rs, .java, .c, .cpp, .h, .hpp,"
+            echo "                      .rb, .php, .swift, .kt, .vue, .css, .scss, .sql, .xml, .toml,"
+            echo "                      .md, .json, .yaml, .yml"
+            exit 1
+        fi
+
+        echo "Found $FILE_COUNT file(s) to review..."
+
+        # Collect content with error reporting using process substitution
+        FILE_CONTENT=""
+        READ_ERRORS=0
+        # shellcheck disable=SC2086
+        while IFS= read -r -d '' file; do
+            FILE_HEADER="=== FILE: $file ==="
+            if file_content=$(cat "$file" 2>&1); then
+                FILE_CONTENT+="$FILE_HEADER"$'\n'"$file_content"$'\n\n'
+            else
+                echo "WARNING: Could not read file: $file - $file_content" >&2
+                READ_ERRORS=$((READ_ERRORS + 1))
+            fi
+        done < <(eval "find \"$TARGET\" -type f \( $FILE_EXTENSIONS \) -print0" 2>>"$FIND_ERRORS")
+
+        if [ $READ_ERRORS -gt 0 ]; then
+            echo "WARNING: $READ_ERRORS file(s) could not be read (see above)" >&2
+            echo "" >&2
+        fi
     else
-        # Single file: read directly
-        FILE_CONTENT=$(cat "$TARGET" 2>/dev/null)
+        # Single file: read directly with error capture
+        if [ ! -r "$TARGET" ]; then
+            echo "ERROR: Cannot read file (permission denied): $TARGET"
+            exit 1
+        fi
+
+        CAT_ERROR=$(mktemp)
+        TEMP_FILES+=("$CAT_ERROR")
+
+        if ! FILE_CONTENT=$(cat "$TARGET" 2>"$CAT_ERROR"); then
+            echo "ERROR: Failed to read file: $TARGET"
+            if [ -s "$CAT_ERROR" ]; then
+                cat "$CAT_ERROR" >&2
+            fi
+            exit 1
+        fi
     fi
 
     if [ -z "$FILE_CONTENT" ]; then
         echo "ERROR: No readable content found in: $TARGET"
         exit 1
+    fi
+
+    # Check content size limit
+    CONTENT_SIZE=${#FILE_CONTENT}
+    if [ "$CONTENT_SIZE" -gt "$MAX_CONTENT_SIZE" ]; then
+        echo "WARNING: Content size (${CONTENT_SIZE} bytes) exceeds limit (${MAX_CONTENT_SIZE} bytes)." >&2
+        echo "         Truncating to first ${MAX_CONTENT_SIZE} bytes. Consider reviewing smaller scope." >&2
+        FILE_CONTENT="${FILE_CONTENT:0:$MAX_CONTENT_SIZE}"
+        echo "" >&2
     fi
 
     # Execute codex exec with review prompt via stdin
