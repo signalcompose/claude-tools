@@ -9,7 +9,7 @@ Review staged changes and approve them for commit.
 
 ## Step 1: Check Staged Changes
 
-Staged files: !`git diff --cached --stat`
+Staged files: !`git diff --staged --stat`
 
 If no staged changes, report "No staged changes to review" and exit.
 
@@ -17,7 +17,7 @@ If no staged changes, report "No staged changes to review" and exit.
 
 **MANDATORY**: Use Task tool with `pr-review-toolkit:code-reviewer` agent.
 
-Prompt: "Review the staged changes (git diff --cached) for this commit. Check for CLAUDE.md compliance, bugs, and code quality issues. Report only issues with confidence >= 80."
+Prompt: "Review the staged changes (git diff --staged) for this commit. Check for CLAUDE.md compliance, bugs, and code quality issues. Report only issues with confidence >= 80."
 
 ## Step 3: Handle Review Results
 
