@@ -52,14 +52,16 @@ fi
 set +e  # Temporarily disable exit on error to capture exit code
 
 if [ "$TARGET" = "--staged" ]; then
-    # Review staged changes using official Codex review subcommand
-    # Check if there are staged changes first
-    if ! git diff --cached --quiet 2>/dev/null; then
-        echo "Reviewing staged changes..."
+    # Review uncommitted changes using official Codex review subcommand
+    # Requires at least some staged changes to proceed
+    # Note: git diff --quiet returns 0 if no diff, 1 if there is a diff
+    if ! git diff --cached --quiet; then
+        echo "Reviewing uncommitted changes..."
         echo ""
 
         # Use official Codex review subcommand for uncommitted changes
-        # This provides structured review with prioritized suggestions
+        # This reviews ALL uncommitted changes (staged + unstaged), providing
+        # structured review with prioritized suggestions
         if [ -n "$TIMEOUT_CMD" ]; then
             $TIMEOUT_CMD 120 codex exec review uncommitted 2>&1
         else
