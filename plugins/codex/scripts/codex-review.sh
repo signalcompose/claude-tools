@@ -18,7 +18,7 @@ fi
 if [ -z "$1" ]; then
     echo "ERROR: No target specified."
     echo "Usage:"
-    echo "  codex-review.sh --staged     # Review staged changes"
+    echo "  codex-review.sh --staged     # Review all uncommitted changes (staged + unstaged)"
     echo "  codex-review.sh <file>       # Review specific file"
     echo "  codex-review.sh <directory>  # Review directory"
     exit 1
@@ -52,24 +52,23 @@ fi
 set +e  # Temporarily disable exit on error to capture exit code
 
 if [ "$TARGET" = "--staged" ]; then
-    # Review uncommitted changes using official Codex review subcommand
-    # Requires at least some staged changes to proceed
-    # Note: git diff --quiet returns 0 if no diff, 1 if there is a diff
-    if ! git diff --cached --quiet; then
-        echo "Reviewing uncommitted changes..."
+    # Review ALL uncommitted changes (staged + unstaged) using official Codex CLI
+    # Note: git diff --quiet (without --cached) checks both staged AND unstaged changes
+    # Returns 0 if no diff exists, 1 if there are changes
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+        echo "Reviewing all uncommitted changes (staged + unstaged)..."
         echo ""
 
         # Use official Codex review subcommand for uncommitted changes
-        # This reviews ALL uncommitted changes (staged + unstaged), providing
-        # structured review with prioritized suggestions
+        # This provides structured review with prioritized suggestions
         if [ -n "$TIMEOUT_CMD" ]; then
             $TIMEOUT_CMD 120 codex exec review uncommitted 2>&1
         else
             codex exec review uncommitted 2>&1
         fi
     else
-        echo "No staged changes to review."
-        echo "Stage changes with: git add <files>"
+        echo "No uncommitted changes to review."
+        echo "Make changes or stage files with: git add <files>"
         exit 0
     fi
 else
@@ -100,7 +99,11 @@ if [ $EXIT_CODE -eq 124 ]; then
 elif [ $EXIT_CODE -ne 0 ]; then
     echo ""
     echo "ERROR: Codex CLI failed with exit code $EXIT_CODE"
-    echo "Run 'codex review <target>' directly for detailed error output."
+    if [ "$TARGET" = "--staged" ]; then
+        echo "Run 'codex exec review uncommitted' directly for detailed error output."
+    else
+        echo "Run 'codex review <target>' directly for detailed error output."
+    fi
     echo "Common causes: invalid API key, network issues, rate limiting."
     exit $EXIT_CODE
 fi
