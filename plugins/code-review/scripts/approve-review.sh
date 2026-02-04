@@ -4,6 +4,41 @@
 
 set -e
 
+# Self-resolve plugin root (supports multiple invocation contexts)
+resolve_plugin_root() {
+    # Priority 1: Environment variable (set by hooks/code blocks)
+    if [[ -n "$CLAUDE_PLUGIN_ROOT" ]]; then
+        echo "$CLAUDE_PLUGIN_ROOT"
+        return 0
+    fi
+
+    # Priority 2: Derive from script location (BASH_SOURCE)
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local plugin_root="${script_dir%/scripts}"
+    if [[ -d "$plugin_root/.claude-plugin" ]]; then
+        echo "$plugin_root"
+        return 0
+    fi
+
+    # Priority 3: Search plugin cache
+    local cache_base="$HOME/.claude/plugins/cache/claude-tools/code"
+    if [[ -d "$cache_base" ]]; then
+        local latest_version
+        latest_version=$(ls -1t "$cache_base" 2>/dev/null | head -1)
+        if [[ -n "$latest_version" && -d "$cache_base/$latest_version" ]]; then
+            echo "$cache_base/$latest_version"
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+PLUGIN_ROOT=$(resolve_plugin_root) || {
+    echo "Warning: Cannot determine plugin root (continuing anyway)" >&2
+}
+
 # Determine approval file location
 if [[ -d ".claude" ]]; then
     if [[ ! -w ".claude" ]]; then
