@@ -22,7 +22,7 @@ claude-tools/
 │   ├── cvi/             # 音声通知 (subtree)
 │   ├── ypm/             # プロジェクト管理 (subtree)
 │   ├── chezmoi/         # dotfiles管理
-│   ├── code-review/     # コードレビュー
+│   ├── code/            # コードレビュー
 │   ├── utils/           # ユーティリティ
 │   ├── codex/           # Codex統合
 │   ├── gemini/          # Gemini統合

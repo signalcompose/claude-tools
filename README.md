@@ -15,7 +15,7 @@ This repository serves as a marketplace for Claude Code plugins developed by Sig
 | [CVI](./plugins/cvi) | Claude Voice Integration - Voice notifications for Claude Code on macOS | productivity | Available |
 | [YPM](./plugins/ypm) | Your Project Manager - Project management for Claude Code | productivity | Available |
 | [chezmoi](./plugins/chezmoi) | Dotfiles management integration using chezmoi | productivity | Available |
-| [code](./plugins/code-review) | Code review workflow integration for git commits | developer-tools | Available |
+| [code](./plugins/code) | Code review workflow integration for git commits | developer-tools | Available |
 | [utils](./plugins/utils) | Utility commands for plugin management (cache clearing, etc.) | developer-tools | Available |
 | [codex](./plugins/codex) | OpenAI Codex CLI integration for research and code review | developer-tools | Available |
 | [gemini](./plugins/gemini) | Google Gemini CLI integration for web search | productivity | Available |

@@ -10,7 +10,7 @@ claude-tools/
 │   ├── cvi/               # Git subtree → signalcompose/cvi
 │   ├── ypm/               # Git subtree → signalcompose/ypm
 │   ├── chezmoi/           # Direct（マーケットプレイス内配置）
-│   ├── code-review/       # Direct（マーケットプレイス内配置）
+│   ├── code/              # Direct（マーケットプレイス内配置）
 │   ├── utils/             # Direct
 │   ├── codex/             # Direct
 │   ├── gemini/            # Direct
@@ -35,7 +35,7 @@ claude-tools/
 | cvi | Subtree | signalcompose/cvi | 音声通知 |
 | ypm | Subtree | signalcompose/ypm | プロジェクト管理 |
 | chezmoi | Direct | plugins/chezmoi | dotfiles管理 |
-| code | Direct | plugins/code-review | コードレビュー |
+| code | Direct | plugins/code | コードレビュー |
 | utils | Direct | plugins/utils | ユーティリティ |
 | codex | Direct | plugins/codex | Codex統合 |
 | gemini | Direct | plugins/gemini | Gemini統合 |
@@ -61,7 +61,7 @@ git subtree push --prefix=plugins/<plugin> https://github.com/signalcompose/<plu
 
 マーケットプレイス内に直接配置。シンプルだが独立管理はできない。
 
-**使用プラグイン**: chezmoi, code-review, utils, codex, gemini, kiro
+**使用プラグイン**: chezmoi, code, utils, codex, gemini, kiro
 
 ## データフロー
 

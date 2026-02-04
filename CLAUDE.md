@@ -182,7 +182,7 @@ claude-tools/
 │   ├── cvi/           # CVI plugin (subtree)
 │   ├── ypm/           # YPM plugin (subtree)
 │   ├── chezmoi/       # chezmoi plugin
-│   ├── code-review/   # code plugin
+│   ├── code/          # code plugin
 │   ├── utils/         # utils plugin
 │   ├── codex/         # codex plugin
 │   ├── gemini/        # gemini plugin
