@@ -81,11 +81,32 @@ else
     echo "Reviewing: $TARGET"
     echo ""
 
-    # Execute codex review command
-    if [ -n "$TIMEOUT_CMD" ]; then
-        "$TIMEOUT_CMD" 120 codex review "$TARGET" 2>&1
+    # Build file content for review via stdin
+    # For directories, concatenate all text files; for single file, use directly
+    if [ -d "$TARGET" ]; then
+        # Directory: find and concatenate text files
+        FILE_CONTENT=$(find "$TARGET" -type f \( -name "*.sh" -o -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.go" -o -name "*.rs" -o -name "*.java" -o -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.md" -o -name "*.json" -o -name "*.yaml" -o -name "*.yml" \) -print0 2>/dev/null | while IFS= read -r -d '' file; do
+            echo "=== FILE: $file ==="
+            cat "$file" 2>/dev/null || true
+            echo ""
+        done)
     else
-        codex review "$TARGET" 2>&1
+        # Single file: read directly
+        FILE_CONTENT=$(cat "$TARGET" 2>/dev/null)
+    fi
+
+    if [ -z "$FILE_CONTENT" ]; then
+        echo "ERROR: No readable content found in: $TARGET"
+        exit 1
+    fi
+
+    # Execute codex exec with review prompt via stdin
+    REVIEW_PROMPT="Review this code for bugs, security issues, and best practices. Focus on critical issues first. Provide actionable suggestions."
+
+    if [ -n "$TIMEOUT_CMD" ]; then
+        echo "$FILE_CONTENT" | "$TIMEOUT_CMD" 120 codex exec --sandbox read-only "$REVIEW_PROMPT" 2>&1
+    else
+        echo "$FILE_CONTENT" | codex exec --sandbox read-only "$REVIEW_PROMPT" 2>&1
     fi
 fi
 
@@ -102,7 +123,7 @@ elif [ $EXIT_CODE -ne 0 ]; then
     if [ "$TARGET" = "--staged" ]; then
         echo "Run 'codex exec review uncommitted' directly for detailed error output."
     else
-        echo "Run 'codex review <target>' directly for detailed error output."
+        echo "Run 'codex exec --sandbox read-only \"<prompt>\" < <file>' directly for detailed error output."
     fi
     echo "Common causes: invalid API key, network issues, rate limiting."
     exit $EXIT_CODE
