@@ -71,7 +71,10 @@ if [ "$TARGET" = "--staged" ]; then
         # Use official Codex review subcommand for uncommitted changes
         # This provides structured review with prioritized suggestions
         # Capture stderr separately (consistent with file/directory review)
-        CODEX_STDERR=$(mktemp)
+        if ! CODEX_STDERR=$(mktemp); then
+            echo "ERROR: Failed to create temporary file. Check disk space and /tmp permissions." >&2
+            exit 1
+        fi
         TEMP_FILES+=("$CODEX_STDERR")
 
         if [ -n "$TIMEOUT_CMD" ]; then
@@ -108,21 +111,23 @@ else
     # For directories, concatenate all text files; for single file, use directly
     if [ -d "$TARGET" ]; then
         # Create temp file for find errors
-        FIND_ERRORS=$(mktemp)
+        if ! FIND_ERRORS=$(mktemp); then
+            echo "ERROR: Failed to create temporary file. Check disk space and /tmp permissions." >&2
+            exit 1
+        fi
         TEMP_FILES+=("$FIND_ERRORS")
 
         # First, check if directory has any matching files
         # shellcheck disable=SC2086 -- Intentional: FILE_EXTENSIONS must expand to separate -name arguments
         FILE_COUNT=$(eval "find \"$TARGET\" -type f \( $FILE_EXTENSIONS \)" 2>"$FIND_ERRORS" | wc -l | tr -d ' ')
 
-        # Report find errors if any occurred
-        if [ -s "$FIND_ERRORS" ]; then
-            echo "WARNING: Some files/directories could not be accessed:" >&2
-            cat "$FIND_ERRORS" >&2
-            echo "" >&2
-        fi
-
         if [ "$FILE_COUNT" -eq 0 ]; then
+            # Report find errors before exiting if any occurred
+            if [ -s "$FIND_ERRORS" ]; then
+                echo "WARNING: Some files/directories could not be accessed:" >&2
+                cat "$FIND_ERRORS" >&2
+                echo "" >&2
+            fi
             echo "ERROR: No supported source files found in: $TARGET"
             echo "Supported extensions: .sh, .py, .js, .jsx, .ts, .tsx, .go, .rs, .java, .c, .cpp, .h, .hpp,"
             echo "                      .rb, .php, .swift, .kt, .vue, .css, .scss, .sql, .xml, .toml,"
@@ -149,6 +154,13 @@ else
             fi
         done < <(eval "find \"$TARGET\" -type f \( $FILE_EXTENSIONS \) -print0" 2>>"$FIND_ERRORS")
 
+        # Report find errors from both find commands (count phase and collection phase)
+        if [ -s "$FIND_ERRORS" ]; then
+            echo "WARNING: Some files/directories could not be accessed:" >&2
+            cat "$FIND_ERRORS" >&2
+            echo "" >&2
+        fi
+
         if [ $READ_ERRORS -gt 0 ]; then
             echo "WARNING: $READ_ERRORS file(s) could not be read (see above)" >&2
             echo "" >&2
@@ -169,7 +181,10 @@ else
             exit 1
         fi
 
-        CAT_ERROR=$(mktemp)
+        if ! CAT_ERROR=$(mktemp); then
+            echo "ERROR: Failed to create temporary file. Check disk space and /tmp permissions." >&2
+            exit 1
+        fi
         TEMP_FILES+=("$CAT_ERROR")
 
         if ! FILE_CONTENT=$(cat "$TARGET" 2>"$CAT_ERROR"); then
@@ -215,7 +230,10 @@ else
     # Execute codex exec with review prompt via stdin
     # Capture stderr separately to distinguish API errors from review output
     REVIEW_PROMPT="Review this code for bugs, security issues, and best practices. Focus on critical issues first. Provide actionable suggestions."
-    CODEX_STDERR=$(mktemp)
+    if ! CODEX_STDERR=$(mktemp); then
+        echo "ERROR: Failed to create temporary file. Check disk space and /tmp permissions." >&2
+        exit 1
+    fi
     TEMP_FILES+=("$CODEX_STDERR")
 
     if [ -n "$TIMEOUT_CMD" ]; then
