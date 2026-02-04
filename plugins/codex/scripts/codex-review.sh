@@ -70,10 +70,14 @@ if [ "$TARGET" = "--staged" ]; then
 
         # Use official Codex review subcommand for uncommitted changes
         # This provides structured review with prioritized suggestions
+        # Capture stderr separately (consistent with file/directory review)
+        CODEX_STDERR=$(mktemp)
+        TEMP_FILES+=("$CODEX_STDERR")
+
         if [ -n "$TIMEOUT_CMD" ]; then
-            "$TIMEOUT_CMD" 120 codex exec review uncommitted 2>&1
+            "$TIMEOUT_CMD" 120 codex exec review uncommitted 2>"$CODEX_STDERR"
         else
-            codex exec review uncommitted 2>&1
+            codex exec review uncommitted 2>"$CODEX_STDERR"
         fi
     else
         echo "No uncommitted changes to review."
@@ -200,7 +204,11 @@ else
         echo "         Consider reviewing a smaller scope or specific files." >&2
         FILE_CONTENT="${FILE_CONTENT:0:$MAX_CONTENT_SIZE}"
         # Fix potential UTF-8 truncation by removing incomplete trailing bytes
-        FILE_CONTENT=$(printf '%s' "$FILE_CONTENT" | iconv -c -f UTF-8 -t UTF-8 2>/dev/null || printf '%s' "$FILE_CONTENT")
+        if ICONV_RESULT=$(printf '%s' "$FILE_CONTENT" | iconv -c -f UTF-8 -t UTF-8 2>/dev/null); then
+            FILE_CONTENT="$ICONV_RESULT"
+        else
+            echo "WARNING: iconv not available or failed; UTF-8 sanitization skipped." >&2
+        fi
         echo "" >&2
     fi
 
