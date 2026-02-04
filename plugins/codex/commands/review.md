@@ -29,9 +29,11 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/codex-review.sh "$ARGUMENTS"
 ```
 
 Supported targets:
-- `--staged` - Review staged git changes
+- `--staged` - Review uncommitted changes including staged (uses official `codex exec review uncommitted`)
 - `<file>` - Review specific file
 - `<directory>` - Review directory
+
+Note: `--staged` requires at least some staged changes to proceed, but reviews all uncommitted changes.
 
 3. **Present Results**
 

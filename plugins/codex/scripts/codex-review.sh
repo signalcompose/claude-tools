@@ -52,35 +52,23 @@ fi
 set +e  # Temporarily disable exit on error to capture exit code
 
 if [ "$TARGET" = "--staged" ]; then
-    # Review staged changes
-    STAGED_DIFF=$(git diff --cached 2>&1)
-    DIFF_EXIT_CODE=$?
+    # Review staged changes using official Codex review subcommand
+    # Check if there are staged changes first
+    if ! git diff --cached --quiet 2>/dev/null; then
+        echo "Reviewing staged changes..."
+        echo ""
 
-    if [ $DIFF_EXIT_CODE -ne 0 ]; then
-        echo "ERROR: Failed to get staged changes."
-        echo "Git output: $STAGED_DIFF"
-        echo "Try running 'git status' to diagnose the issue."
-        exit 1
-    fi
-
-    if [ -z "$STAGED_DIFF" ]; then
+        # Use official Codex review subcommand for uncommitted changes
+        # This provides structured review with prioritized suggestions
+        if [ -n "$TIMEOUT_CMD" ]; then
+            $TIMEOUT_CMD 120 codex exec review uncommitted 2>&1
+        else
+            codex exec review uncommitted 2>&1
+        fi
+    else
         echo "No staged changes to review."
         echo "Stage changes with: git add <files>"
         exit 0
-    fi
-
-    echo "Reviewing staged changes..."
-    echo ""
-
-    # Pass staged diff to codex for review
-    if [ -n "$TIMEOUT_CMD" ]; then
-        $TIMEOUT_CMD 120 codex exec "Review the following git diff for potential issues, bugs, and improvements:
-
-$STAGED_DIFF" 2>&1
-    else
-        codex exec "Review the following git diff for potential issues, bugs, and improvements:
-
-$STAGED_DIFF" 2>&1
     fi
 else
     # Review file or directory
