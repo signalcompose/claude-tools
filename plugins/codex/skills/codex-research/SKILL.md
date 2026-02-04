@@ -56,9 +56,11 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/codex-review.sh <target>
 ```
 
 Options:
-- `--staged` - Review staged git changes
-- `<file>` - Review specific file
-- `<directory>` - Review directory
+- `--staged` - Review all uncommitted changes (staged + unstaged)
+- `<file>` - Review specific file (uses `codex review <file>`)
+- `<directory>` - Review directory (uses `codex review <dir>`)
+
+**Important**: `--staged` uses `codex exec review uncommitted` which reviews **all uncommitted changes**, not just staged files. To review only specific files, use the file/directory target.
 
 Examples:
 ```bash

@@ -18,7 +18,7 @@ fi
 if [ -z "$1" ]; then
     echo "ERROR: No target specified."
     echo "Usage:"
-    echo "  codex-review.sh --staged     # Review staged changes"
+    echo "  codex-review.sh --staged     # Review all uncommitted changes (staged + unstaged)"
     echo "  codex-review.sh <file>       # Review specific file"
     echo "  codex-review.sh <directory>  # Review directory"
     exit 1
@@ -52,35 +52,24 @@ fi
 set +e  # Temporarily disable exit on error to capture exit code
 
 if [ "$TARGET" = "--staged" ]; then
-    # Review staged changes
-    STAGED_DIFF=$(git diff --cached 2>&1)
-    DIFF_EXIT_CODE=$?
+    # Review ALL uncommitted changes (staged + unstaged) using official Codex CLI
+    # Check: git diff --quiet (unstaged) OR git diff --cached --quiet (staged)
+    # Each returns 0 if no diff, 1 if changes exist; ! inverts to trigger if ANY changes found
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+        echo "Reviewing all uncommitted changes (staged + unstaged)..."
+        echo ""
 
-    if [ $DIFF_EXIT_CODE -ne 0 ]; then
-        echo "ERROR: Failed to get staged changes."
-        echo "Git output: $STAGED_DIFF"
-        echo "Try running 'git status' to diagnose the issue."
-        exit 1
-    fi
-
-    if [ -z "$STAGED_DIFF" ]; then
-        echo "No staged changes to review."
-        echo "Stage changes with: git add <files>"
-        exit 0
-    fi
-
-    echo "Reviewing staged changes..."
-    echo ""
-
-    # Pass staged diff to codex for review
-    if [ -n "$TIMEOUT_CMD" ]; then
-        $TIMEOUT_CMD 120 codex exec "Review the following git diff for potential issues, bugs, and improvements:
-
-$STAGED_DIFF" 2>&1
+        # Use official Codex review subcommand for uncommitted changes
+        # This provides structured review with prioritized suggestions
+        if [ -n "$TIMEOUT_CMD" ]; then
+            "$TIMEOUT_CMD" 120 codex exec review uncommitted 2>&1
+        else
+            codex exec review uncommitted 2>&1
+        fi
     else
-        codex exec "Review the following git diff for potential issues, bugs, and improvements:
-
-$STAGED_DIFF" 2>&1
+        echo "No uncommitted changes to review."
+        echo "Make changes or stage files with: git add <files>"
+        exit 0
     fi
 else
     # Review file or directory
@@ -94,7 +83,7 @@ else
 
     # Execute codex review command
     if [ -n "$TIMEOUT_CMD" ]; then
-        $TIMEOUT_CMD 120 codex review "$TARGET" 2>&1
+        "$TIMEOUT_CMD" 120 codex review "$TARGET" 2>&1
     else
         codex review "$TARGET" 2>&1
     fi
@@ -110,7 +99,11 @@ if [ $EXIT_CODE -eq 124 ]; then
 elif [ $EXIT_CODE -ne 0 ]; then
     echo ""
     echo "ERROR: Codex CLI failed with exit code $EXIT_CODE"
-    echo "Run 'codex review <target>' directly for detailed error output."
+    if [ "$TARGET" = "--staged" ]; then
+        echo "Run 'codex exec review uncommitted' directly for detailed error output."
+    else
+        echo "Run 'codex review <target>' directly for detailed error output."
+    fi
     echo "Common causes: invalid API key, network issues, rate limiting."
     exit $EXIT_CODE
 fi
