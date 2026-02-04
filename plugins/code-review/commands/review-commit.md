@@ -9,7 +9,7 @@ Review staged changes and approve them for commit.
 
 ## Step 1: Check Staged Changes
 
-Staged files: !`git diff --cached --stat`
+Staged files: !`git diff --staged --stat`
 
 If no staged changes, report "No staged changes to review" and exit.
 
