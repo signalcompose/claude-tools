@@ -29,8 +29,8 @@ if [ -f "$TRANSCRIPT_PATH" ]; then
 
     # Check for [VOICE]...[/VOICE] tag
     if echo "$FULL_MSG" | grep -q '\[VOICE\]'; then
-        # Extract text between [VOICE] tags
-        MSG=$(echo "$FULL_MSG" | sed -n 's/.*\[VOICE\]\(.*\)\[\/VOICE\].*/\1/p' | head -1)
+        # Extract text between [VOICE] tags (convert to single line first for multiline support)
+        MSG=$(echo "$FULL_MSG" | tr '\n' ' ' | sed -n 's/.*\[VOICE\]\(.*\)\[\/VOICE\].*/\1/p' | head -1)
     else
         # Fallback to first 200 characters
         MSG=$(echo "$FULL_MSG" | tr '\n' ' ' | cut -c1-200)
