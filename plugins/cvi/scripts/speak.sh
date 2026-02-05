@@ -80,7 +80,16 @@ else
     say -v "$SELECTED_VOICE" -r "$SPEECH_RATE" -o "$TEMP_AUDIO" "$MSG"
 fi
 
-# Play audio in background and clean up
+# Get current session directory name for notification
+SESSION_DIR=$(basename "$(pwd)")
+
+# Display macOS notification
+osascript -e "display notification \"$MSG\" with title \"ClaudeCode ($SESSION_DIR) Task Done\"" &
+
+# Play Glass sound to indicate completion
+afplay -v 1.0 /System/Library/Sounds/Glass.aiff &
+
+# Play voice audio in background and clean up
 (afplay -v 0.6 "$TEMP_AUDIO" && rm -f "$TEMP_AUDIO") &
 
 echo "Speaking: $MSG"

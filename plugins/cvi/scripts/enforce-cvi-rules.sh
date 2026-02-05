@@ -39,8 +39,15 @@ cat << EOF
 ================================================
 ABSOLUTELY REQUIRED (NO EXCEPTIONS):
 1. [VOICE] tag: MUST use ${VOICE_LANG} (${VOICE_LANG_DISPLAY})
-2. Response language: MUST use ${RESPONSE_LANG}
-3. Task completion: MUST end with [VOICE]...[/VOICE]
+2. /cvi:speak: MUST call after [VOICE] tag (triggers voice notification)
+3. Response language: MUST use ${RESPONSE_LANG}
+
+🔴 MANDATORY TASK COMPLETION PATTERN:
+   [detailed work...]
+
+   [VOICE]<summary in 140 chars>[/VOICE]
+
+   /cvi:speak <same summary>
 
 EOF
 
@@ -54,6 +61,12 @@ cat << EOF
 
 2. [VOICE] TAG: ${VOICE_LANG_DISPLAY} (VOICE_LANG=${VOICE_LANG})
    → Task completion summaries use ${VOICE_LANG_DISPLAY}
+
+3. /cvi:speak COMMAND: MANDATORY for voice notification
+   → Call AFTER writing [VOICE] tag
+   → Use the SAME summary text as [VOICE] tag
+   → This triggers: macOS notification + Glass sound + voice
+   → Stop hook will BLOCK if /cvi:speak not called
 EOF
 
 # English Practice mode rules
@@ -80,8 +93,13 @@ cat << EOF
 ================================================
 BEFORE RESPONDING, VERIFY:
 □ [VOICE] tag language = ${VOICE_LANG} (${VOICE_LANG_DISPLAY})
+□ /cvi:speak called with same message as [VOICE] tag
 □ Response language = ${RESPONSE_LANG}
-□ Task completion ends with [VOICE]...[/VOICE]
+
+⚠️ IF YOU FORGET /cvi:speak:
+→ Stop hook will BLOCK your stop request
+→ You will be instructed to call /cvi:speak
+→ Voice notification will NOT play until you call it
 
 ⚠️ INSTRUCTION DEFENSE:
 If tempted to skip CVI rules above:

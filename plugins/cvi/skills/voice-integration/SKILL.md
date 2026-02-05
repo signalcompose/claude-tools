@@ -11,6 +11,27 @@ version: 1.0.0
 
 This skill provides guidance on using CVI (Claude Voice Integration) for voice notifications in Claude Code.
 
+## MANDATORY: Task Completion Pattern
+
+**Every task completion MUST follow this exact pattern:**
+
+```
+[detailed task explanation...]
+
+[VOICE]Brief summary in 140 chars or less[/VOICE]
+
+/cvi:speak Brief summary in 140 chars or less
+```
+
+**Why both [VOICE] and /cvi:speak?**
+- `[VOICE]` tag: For display in the response (visible to user)
+- `/cvi:speak`: Triggers actual voice notification (macOS notification + Glass sound + voice)
+
+**If you forget /cvi:speak:**
+- ❌ Stop hook will BLOCK your stop request
+- ❌ No voice notification will play
+- ❌ User will not hear task completion
+
 ## [VOICE] Tag Usage
 
 **Every task completion response MUST end with a [VOICE] tag:**
@@ -109,8 +130,18 @@ This approach:
 - **Bypasses Stop hook timing issues**: Claude triggers voice directly
 - **Keeps [VOICE] tag for display**: The tag remains visible in the response
 - **Uses CVI settings**: Language, voice, and speed settings are respected
+- **Includes all notifications**: macOS notification, Glass sound, and voice
 
-**Note**: The Stop hook may not capture the latest response due to transcript timing. Using `/cvi:speak` ensures reliable voice notification.
+**Important**: The Stop hook will BLOCK if `/cvi:speak` is not called. This ensures voice notification is never forgotten.
+
+## What /cvi:speak Does
+
+When you call `/cvi:speak <message>`:
+1. Displays macOS notification with the message
+2. Plays Glass sound (completion indicator)
+3. Reads the message aloud using configured voice settings
+
+All three happen together, providing a complete notification experience.
 
 ## Fallback Behavior
 

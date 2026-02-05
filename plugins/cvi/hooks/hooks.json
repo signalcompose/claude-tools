@@ -19,8 +19,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/notify-end.sh",
-            "timeout": 30000
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-speak-called.sh",
+            "timeout": 5000
           }
         ]
       }
