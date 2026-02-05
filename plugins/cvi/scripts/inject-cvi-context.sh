@@ -65,16 +65,14 @@ cat << EOF
 
    [detailed work...]
 
-   [VOICE]<${VOICE_LANG_UPPER} summary: 2-3 sentences explaining what was done and outcome>[/VOICE]
+   <use Skill tool: skill="cvi:speak" args="${VOICE_LANG_UPPER} summary: 2-3 sentences">
 
-   <use Skill tool: skill="cvi:speak" args="<same summary>">
-
-   ⚠️ [VOICE] tag AND Skill tool call are REQUIRED
+   ⚠️ Use Skill tool ONLY - no [VOICE] tag needed
+   ⚠️ The Skill result ("Speaking: ...") serves as the visible summary
    ⚠️ Do NOT write "/cvi:speak" as text - use Skill tool
    ⚠️ Stop hook will BLOCK if /cvi:speak not called via Skill
-   ⚠️ No character limit - focus on clarity and useful information
 
-   Exception: Questions to user (then no VOICE tag needed)
+   Exception: Questions to user (then no notification needed)
 EOF
 
 exit 0
