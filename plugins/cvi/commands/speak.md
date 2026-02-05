@@ -1,5 +1,6 @@
 ---
 description: Read text aloud using CVI settings
+user-invocable: false
 ---
 
 # CVI Speak
