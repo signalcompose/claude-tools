@@ -23,20 +23,23 @@ TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path')
 
 # If transcript path exists, extract latest assistant message
 if [ -f "$TRANSCRIPT_PATH" ]; then
-    # Step 1: Search for assistant entry containing [VOICE] tag
-    # Uses official Anthropic pattern (ralph-wiggum plugin style)
-    VOICE_LINE=$(grep '"role":"assistant"' "$TRANSCRIPT_PATH" | \
-                 grep '\[VOICE\].*\[/VOICE\]' | tail -1)
+    # Get last assistant entry
+    LAST_ASSISTANT=$(grep '"role":"assistant"' "$TRANSCRIPT_PATH" | tail -1)
 
-    if [ -n "$VOICE_LINE" ]; then
-        # Step 2a: [VOICE] tag found - extract directly using grep -oE (robust against JSON escaping)
-        VOICE_CONTENT=$(echo "$VOICE_LINE" | grep -oE '\[VOICE\][^\[]*\[/VOICE\]' | tail -1)
+    # Extract text content only (excludes thinking blocks which may contain [VOICE] mentions)
+    # Uses jq to filter by type:"text" - this is critical to avoid matching [VOICE] in thinking blocks
+    TEXT_CONTENT=$(echo "$LAST_ASSISTANT" | \
+        jq -r '.message.content[] | select(.type == "text") | .text' 2>/dev/null)
+
+    # Search for [VOICE] tag in text content
+    VOICE_CONTENT=$(echo "$TEXT_CONTENT" | grep -oE '\[VOICE\][^\[]*\[/VOICE\]' | tail -1)
+
+    if [ -n "$VOICE_CONTENT" ]; then
+        # [VOICE] tag found - extract the message
         MSG=$(echo "$VOICE_CONTENT" | sed 's/\[VOICE\]//; s/\[\/VOICE\]//')
     else
-        # Step 2b: No [VOICE] tag - use official method to get last assistant entry
-        LAST_TEXT=$(grep '"role":"assistant"' "$TRANSCRIPT_PATH" | tail -1 | \
-                    jq -r '.message.content | map(select(.type == "text")) | map(.text) | join(" ")' 2>/dev/null)
-        MSG=$(echo "$LAST_TEXT" | cut -c1-200)
+        # No [VOICE] tag - use first 200 characters of text content
+        MSG=$(echo "$TEXT_CONTENT" | tr '\n' ' ' | cut -c1-200)
     fi
 
     # Fallback message if no message found (language-aware)
