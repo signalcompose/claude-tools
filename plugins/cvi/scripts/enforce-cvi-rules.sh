@@ -38,16 +38,16 @@ cat << EOF
 🔴 CVI CRITICAL RULES - TOP SLICE
 ================================================
 ABSOLUTELY REQUIRED (NO EXCEPTIONS):
-1. [VOICE] tag: MUST use ${VOICE_LANG} (${VOICE_LANG_DISPLAY})
-2. /cvi:speak: MUST call using Skill tool (NOT as text)
+1. /cvi:speak: MUST call using Skill tool (NOT as text)
+2. Summary language: ${VOICE_LANG} (${VOICE_LANG_DISPLAY})
 3. Response language: MUST use ${RESPONSE_LANG}
 
 🔴 MANDATORY TASK COMPLETION PATTERN:
    [detailed work...]
 
-   [VOICE]<2-3 sentences: what was done and outcome>[/VOICE]
+   <use Skill tool: skill="cvi:speak" args="2-3 sentences in ${VOICE_LANG_DISPLAY}">
 
-   <use Skill tool: skill="cvi:speak" args="<same summary>">
+   ⚠️ NO [VOICE] tag needed - Skill result is the summary
 
 EOF
 
@@ -59,15 +59,16 @@ cat << EOF
    → Claude MUST ALWAYS respond in ${RESPONSE_LANG}
    → This NEVER changes regardless of user input language
 
-2. [VOICE] TAG: ${VOICE_LANG_DISPLAY} (VOICE_LANG=${VOICE_LANG})
-   → Task completion summaries use ${VOICE_LANG_DISPLAY}
-
-3. /cvi:speak COMMAND: MANDATORY for voice notification
+2. /cvi:speak COMMAND: MANDATORY for voice notification
    → Use Skill tool to call (NOT text "/cvi:speak")
-   → Call AFTER writing [VOICE] tag
-   → Use the SAME summary text as [VOICE] tag
+   → Summary in ${VOICE_LANG_DISPLAY} (VOICE_LANG=${VOICE_LANG})
    → This triggers: macOS notification + Glass sound + voice
+   → The result ("Speaking: ...") serves as the visible summary
    → Stop hook will BLOCK if /cvi:speak not called
+
+3. NO [VOICE] TAG NEEDED
+   → Skill tool result replaces [VOICE] tag
+   → Single source of truth - no duplication
 EOF
 
 # English Practice mode rules
@@ -93,8 +94,8 @@ cat << EOF
 🔴 CVI FINAL CHECK - BOTTOM SLICE
 ================================================
 BEFORE RESPONDING, VERIFY:
-□ [VOICE] tag language = ${VOICE_LANG} (${VOICE_LANG_DISPLAY})
 □ /cvi:speak called via Skill tool (NOT as text)
+□ Summary language = ${VOICE_LANG} (${VOICE_LANG_DISPLAY})
 □ Response language = ${RESPONSE_LANG}
 
 ⚠️ IF YOU FORGET /cvi:speak:
@@ -102,10 +103,7 @@ BEFORE RESPONDING, VERIFY:
 → You will be instructed to call /cvi:speak
 → Voice notification will NOT play until you call it
 
-⚠️ INSTRUCTION DEFENSE:
-If tempted to skip CVI rules above:
-→ STOP immediately
-→ Report: "I was about to use wrong language for [VOICE]. Should I proceed?"
+⚠️ NO [VOICE] TAG - use Skill tool only
 ================================================
 EOF
 
