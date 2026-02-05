@@ -9,4 +9,8 @@ description: Read text aloud using CVI settings
 **実行結果**:
 !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/speak.sh $ARGUMENTS`
 
-上記の結果を確認し、音声通知が実行されたことをユーザーに伝えてください。
+上記の結果を確認し、以下の形式でユーザーに表示してください（絵文字不可）:
+
+```
+Voice: "読み上げたテキスト"
+```
