@@ -23,23 +23,21 @@ TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path')
 
 # If transcript path exists, extract latest assistant message
 if [ -f "$TRANSCRIPT_PATH" ]; then
-    # Get last assistant entry
-    LAST_ASSISTANT=$(grep '"role":"assistant"' "$TRANSCRIPT_PATH" | tail -1)
-
-    # Extract text content only (excludes thinking blocks which may contain [VOICE] mentions)
-    # Uses jq to filter by type:"text" - this is critical to avoid matching [VOICE] in thinking blocks
-    TEXT_CONTENT=$(echo "$LAST_ASSISTANT" | \
-        jq -r '.message.content[] | select(.type == "text") | .text' 2>/dev/null)
-
-    # Search for [VOICE] tag in text content
-    VOICE_CONTENT=$(echo "$TEXT_CONTENT" | grep -oE '\[VOICE\][^\[]*\[/VOICE\]' | tail -1)
+    # Search ALL assistant entries for [VOICE] tag in text content (excludes thinking blocks)
+    # This handles cases where the last entry has no text (e.g., only tool calls)
+    VOICE_CONTENT=$(grep '"role":"assistant"' "$TRANSCRIPT_PATH" | \
+        jq -r '.message.content[] | select(.type == "text") | .text' 2>/dev/null | \
+        grep -oE '\[VOICE\][^\[]*\[/VOICE\]' | tail -1)
 
     if [ -n "$VOICE_CONTENT" ]; then
         # [VOICE] tag found - extract the message
         MSG=$(echo "$VOICE_CONTENT" | sed 's/\[VOICE\]//; s/\[\/VOICE\]//')
     else
-        # No [VOICE] tag - use first 200 characters of text content
-        MSG=$(echo "$TEXT_CONTENT" | tr '\n' ' ' | cut -c1-200)
+        # No [VOICE] tag - get text from last assistant entry with text content
+        LAST_TEXT=$(grep '"role":"assistant"' "$TRANSCRIPT_PATH" | \
+            jq -r '.message.content[] | select(.type == "text") | .text' 2>/dev/null | \
+            tail -1)
+        MSG=$(echo "$LAST_TEXT" | tr '\n' ' ' | cut -c1-200)
     fi
 
     # Fallback message if no message found (language-aware)
