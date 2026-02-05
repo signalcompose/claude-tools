@@ -39,7 +39,7 @@ cat << EOF
 ================================================
 ABSOLUTELY REQUIRED (NO EXCEPTIONS):
 1. [VOICE] tag: MUST use ${VOICE_LANG} (${VOICE_LANG_DISPLAY})
-2. /cvi:speak: MUST call after [VOICE] tag (triggers voice notification)
+2. /cvi:speak: MUST call using Skill tool (NOT as text)
 3. Response language: MUST use ${RESPONSE_LANG}
 
 🔴 MANDATORY TASK COMPLETION PATTERN:
@@ -47,7 +47,7 @@ ABSOLUTELY REQUIRED (NO EXCEPTIONS):
 
    [VOICE]<summary in 140 chars>[/VOICE]
 
-   /cvi:speak <same summary>
+   <use Skill tool: skill="cvi:speak" args="<same summary>">
 
 EOF
 
@@ -63,6 +63,7 @@ cat << EOF
    → Task completion summaries use ${VOICE_LANG_DISPLAY}
 
 3. /cvi:speak COMMAND: MANDATORY for voice notification
+   → Use Skill tool to call (NOT text "/cvi:speak")
    → Call AFTER writing [VOICE] tag
    → Use the SAME summary text as [VOICE] tag
    → This triggers: macOS notification + Glass sound + voice
@@ -93,7 +94,7 @@ cat << EOF
 ================================================
 BEFORE RESPONDING, VERIFY:
 □ [VOICE] tag language = ${VOICE_LANG} (${VOICE_LANG_DISPLAY})
-□ /cvi:speak called with same message as [VOICE] tag
+□ /cvi:speak called via Skill tool (NOT as text)
 □ Response language = ${RESPONSE_LANG}
 
 ⚠️ IF YOU FORGET /cvi:speak:

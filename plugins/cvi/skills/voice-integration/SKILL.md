@@ -20,14 +20,18 @@ This skill provides guidance on using CVI (Claude Voice Integration) for voice n
 
 [VOICE]Brief summary in 140 chars or less[/VOICE]
 
-/cvi:speak Brief summary in 140 chars or less
+<use Skill tool: skill="cvi:speak" args="Brief summary">
 ```
 
-**Why both [VOICE] and /cvi:speak?**
-- `[VOICE]` tag: For display in the response (visible to user)
-- `/cvi:speak`: Triggers actual voice notification (macOS notification + Glass sound + voice)
+**CRITICAL: Use Skill tool, NOT text**
+- ❌ Do NOT write `/cvi:speak xxx` as text
+- ✅ Use Skill tool with `skill="cvi:speak"` and `args="your message"`
 
-**If you forget /cvi:speak:**
+**Why both [VOICE] and Skill tool call?**
+- `[VOICE]` tag: For display in the response (visible to user)
+- Skill tool `/cvi:speak`: Triggers actual voice notification (macOS notification + Glass sound + voice)
+
+**If you forget to use Skill tool:**
 - ❌ Stop hook will BLOCK your stop request
 - ❌ No voice notification will play
 - ❌ User will not hear task completion
@@ -116,15 +120,17 @@ When `ENGLISH_PRACTICE=on` in `~/.cvi/config`:
 
 ## Direct Voice Notification with /cvi:speak
 
-**For immediate voice notification**, use the `/cvi:speak` command after your [VOICE] tag:
+**For immediate voice notification**, use the Skill tool to call `/cvi:speak` after your [VOICE] tag:
 
 ```
 [detailed task explanation...]
 
 [VOICE]Brief summary[/VOICE]
 
-/cvi:speak Brief summary
+<use Skill tool: skill="cvi:speak" args="Brief summary">
 ```
+
+**CRITICAL**: Do NOT write `/cvi:speak` as text. You MUST use the Skill tool.
 
 This approach:
 - **Bypasses Stop hook timing issues**: Claude triggers voice directly
@@ -132,7 +138,7 @@ This approach:
 - **Uses CVI settings**: Language, voice, and speed settings are respected
 - **Includes all notifications**: macOS notification, Glass sound, and voice
 
-**Important**: The Stop hook will BLOCK if `/cvi:speak` is not called. This ensures voice notification is never forgotten.
+**Important**: The Stop hook will BLOCK if `/cvi:speak` is not called via Skill tool.
 
 ## What /cvi:speak Does
 
