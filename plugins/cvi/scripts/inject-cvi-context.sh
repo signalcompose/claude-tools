@@ -60,10 +60,22 @@ fi
 # Mandatory response format
 cat << EOF
 
-🔴 MANDATORY RESPONSE FORMAT:
-   Every response completing a task MUST end with:
+🔴 MANDATORY TASK COMPLETION FORMAT:
+   Every response completing a task MUST follow this pattern:
+
+   [detailed work...]
 
    [VOICE]<${VOICE_LANG_UPPER} summary in 140 chars>[/VOICE]
+
+   /cvi:speak <same ${VOICE_LANG_UPPER} summary>
+
+   Example:
+   [VOICE]${VOICE_EXAMPLE}[/VOICE]
+
+   /cvi:speak ${VOICE_EXAMPLE}
+
+   ⚠️ Both [VOICE] tag AND /cvi:speak are REQUIRED
+   ⚠️ Stop hook will BLOCK if /cvi:speak not called
 
    Exception: Questions to user (then no VOICE tag needed)
 EOF
