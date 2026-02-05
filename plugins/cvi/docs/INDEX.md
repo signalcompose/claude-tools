@@ -1,6 +1,6 @@
 # CVI ドキュメント索引
 
-**最終更新**: 2026-01-23
+**最終更新**: 2026-02-06
 
 このディレクトリには、CVI (Claude Voice Integration) の設計・使用方法に関するドキュメントが格納されています。
 
@@ -29,7 +29,7 @@
 
 ### カスタマイズする場合
 
-1. **[voice-features.md](voice-features.md)** - [VOICE]タグの使い方、音量調整、音声変更
+1. **[voice-features.md](voice-features.md)** - 音声機能の使い方（Skill tool）、音量調整、音声変更
 2. **[voice-mapping.md](voice-mapping.md)** - 言語別音声設定、自動検出機能
 
 ### Claude Codeで開発する場合
@@ -53,7 +53,7 @@
 ### voice-features.md
 - **目的**: 音声機能の詳細とカスタマイズ方法を説明する
 - **対象**: 開発者、カスタマイズユーザー
-- **含まれる内容**: [VOICE]タグの使い方、技術仕様、カスタマイズ方法
+- **含まれる内容**: Skill toolの使い方、技術仕様、カスタマイズ方法
 
 ### voice-mapping.md
 - **目的**: 言語別音声設定と自動検出機能を説明する
@@ -68,7 +68,7 @@
 
 - **README.md**: 使い方が変わった時、FAQが増えた時
 - **CLAUDE.md**: CVIの機能が追加された時、ルールが変更された時
-- **voice-features.md**: [VOICE]タグの仕様変更、カスタマイズ方法の追加時
+- **voice-features.md**: 音声機能の仕様変更、カスタマイズ方法の追加時
 - **voice-mapping.md**: 音声設定機能の変更、言語検出機能の更新時
 
 ### 誰が更新するか

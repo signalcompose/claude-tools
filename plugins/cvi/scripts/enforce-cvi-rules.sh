@@ -6,11 +6,18 @@ SETTINGS_FILE="$HOME/.claude/settings.json"
 
 # Read CVI config values
 if [ -f "$CONFIG_FILE" ]; then
+    CVI_ENABLED=$(grep "^CVI_ENABLED=" "$CONFIG_FILE" | cut -d'=' -f2)
     VOICE_LANG=$(grep "^VOICE_LANG=" "$CONFIG_FILE" | cut -d'=' -f2)
     ENGLISH_PRACTICE=$(grep "^ENGLISH_PRACTICE=" "$CONFIG_FILE" | cut -d'=' -f2)
 else
+    CVI_ENABLED="on"
     VOICE_LANG="ja"
     ENGLISH_PRACTICE="off"
+fi
+
+# Exit early if CVI is disabled
+if [ "$CVI_ENABLED" = "off" ]; then
+    exit 0
 fi
 
 # Read response language from settings.json
