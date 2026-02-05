@@ -16,12 +16,11 @@ fi
 
 # Check if this is a git commit command
 if [[ "$COMMAND" =~ ^git[[:space:]]+commit ]] || [[ "$COMMAND" =~ git[[:space:]]+commit ]]; then
-    # Use project-local .claude directory or /tmp/claude as fallback
-    if [[ -d ".claude" ]]; then
-        REVIEW_FILE=".claude/review-approved"
-    else
-        REVIEW_FILE="/tmp/claude/review-approved"
-    fi
+    # Get repository root and create unique approval file per repository
+    REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "unknown")
+    REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
+    mkdir -p /tmp/claude 2>/dev/null
+    REVIEW_FILE="/tmp/claude/review-approved-${REPO_HASH}"
 
     # Check if review approval file exists
     if [[ -f "$REVIEW_FILE" ]]; then
