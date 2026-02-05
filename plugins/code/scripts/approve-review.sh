@@ -39,20 +39,14 @@ PLUGIN_ROOT=$(resolve_plugin_root) || {
     echo "Warning: Cannot determine plugin root (continuing anyway)" >&2
 }
 
-# Determine approval file location
-if [[ -d ".claude" ]]; then
-    if [[ ! -w ".claude" ]]; then
-        echo "Error: .claude directory exists but is not writable" >&2
-        exit 1
-    fi
-    REVIEW_FILE=".claude/review-approved"
-else
-    if ! mkdir -p /tmp/claude; then
-        echo "Failed to create /tmp/claude directory" >&2
-        exit 1
-    fi
-    REVIEW_FILE="/tmp/claude/review-approved"
+# Get repository root and create unique approval file per repository
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "unknown")
+REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
+if ! mkdir -p /tmp/claude; then
+    echo "Failed to create /tmp/claude directory" >&2
+    exit 1
 fi
+REVIEW_FILE="/tmp/claude/review-approved-${REPO_HASH}"
 
 # Get staged changes hash
 GIT_OUTPUT=$(git diff --cached --raw 2>&1)
