@@ -76,5 +76,5 @@ else
 fi
 
 cat << EOF
-{"decision": "block", "reason": "MANDATORY: You must call /cvi:speak before stopping. This triggers voice notification for task completion. Call it now with your task summary. Example: /cvi:speak ${EXAMPLE_MSG}"}
+{"decision": "block", "reason": "MANDATORY: You must use the Skill tool to call /cvi:speak before stopping. Do NOT write '/cvi:speak' as text. Use Skill tool with skill='cvi:speak' and args='${EXAMPLE_MSG}' to trigger voice notification."}
 EOF

@@ -67,15 +67,11 @@ cat << EOF
 
    [VOICE]<${VOICE_LANG_UPPER} summary in 140 chars>[/VOICE]
 
-   /cvi:speak <same ${VOICE_LANG_UPPER} summary>
+   <use Skill tool: skill="cvi:speak" args="<same summary>">
 
-   Example:
-   [VOICE]${VOICE_EXAMPLE}[/VOICE]
-
-   /cvi:speak ${VOICE_EXAMPLE}
-
-   ⚠️ Both [VOICE] tag AND /cvi:speak are REQUIRED
-   ⚠️ Stop hook will BLOCK if /cvi:speak not called
+   ⚠️ [VOICE] tag AND Skill tool call are REQUIRED
+   ⚠️ Do NOT write "/cvi:speak" as text - use Skill tool
+   ⚠️ Stop hook will BLOCK if /cvi:speak not called via Skill
 
    Exception: Questions to user (then no VOICE tag needed)
 EOF
