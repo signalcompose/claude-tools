@@ -56,6 +56,7 @@ The [VOICE] tag language is controlled by `VOICE_LANG` in `~/.cvi/config`:
 | `/cvi:auto` | Enable language auto-detection |
 | `/cvi:check` | Diagnose setup issues |
 | `/cvi:practice` | Toggle English practice mode |
+| `/cvi:speak` | Directly speak text (bypasses Stop hook timing) |
 
 ## Best Practices
 
@@ -91,6 +92,25 @@ When `ENGLISH_PRACTICE=on` in `~/.cvi/config`:
 - Claude responds in the language set by Claude Code's `language` setting
 - If user's English is unclear, ask for clarification before acting
 - When user asks "How do you say X in English?", answer the question
+
+## Direct Voice Notification with /cvi:speak
+
+**For immediate voice notification**, use the `/cvi:speak` command after your [VOICE] tag:
+
+```
+[detailed task explanation...]
+
+[VOICE]Brief summary[/VOICE]
+
+/cvi:speak Brief summary
+```
+
+This approach:
+- **Bypasses Stop hook timing issues**: Claude triggers voice directly
+- **Keeps [VOICE] tag for display**: The tag remains visible in the response
+- **Uses CVI settings**: Language, voice, and speed settings are respected
+
+**Note**: The Stop hook may not capture the latest response due to transcript timing. Using `/cvi:speak` ensures reliable voice notification.
 
 ## Fallback Behavior
 

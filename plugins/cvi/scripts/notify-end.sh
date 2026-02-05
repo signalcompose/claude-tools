@@ -21,6 +21,10 @@ SESSION_DIR=$(basename "$(pwd)")
 # Extract transcript path
 TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path')
 
+# NOTE: Stop hook executes BEFORE the current response is written to transcript.
+# This is a known Claude Code limitation. For reliable voice notification,
+# use /cvi:speak command instead of relying solely on this hook.
+
 # If transcript path exists, extract latest assistant message
 if [ -f "$TRANSCRIPT_PATH" ]; then
     # Search ALL assistant entries for [VOICE] tag in text content (excludes thinking blocks)
