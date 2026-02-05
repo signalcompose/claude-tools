@@ -18,7 +18,7 @@ This skill provides guidance on using CVI (Claude Voice Integration) for voice n
 ```
 [detailed task explanation...]
 
-[VOICE]Brief summary in 140 chars or less[/VOICE]
+[VOICE]Brief summary in 2-3 sentences explaining what was done[/VOICE]
 
 <use Skill tool: skill="cvi:speak" args="Brief summary">
 ```
@@ -43,7 +43,7 @@ This skill provides guidance on using CVI (Claude Voice Integration) for voice n
 ```
 [detailed task explanation...]
 
-[VOICE]Brief summary in 140 chars or less[/VOICE]
+[VOICE]Brief summary in 2-3 sentences explaining what was done[/VOICE]
 ```
 
 ## Language Configuration
@@ -85,7 +85,7 @@ The [VOICE] tag language is controlled by `VOICE_LANG` in `~/.cvi/config`:
 
 ## Best Practices
 
-1. **Keep summaries concise**: 140 characters or less
+1. **Be clear and informative**: 2-3 sentences covering what was done and the outcome
 2. **Be informative**: Convey what was accomplished
 3. **Match language setting**: Always follow VOICE_LANG
 4. **Avoid technical jargon**: Use clear, simple language
