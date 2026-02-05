@@ -23,14 +23,14 @@ TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path')
 
 # If transcript path exists, extract latest assistant message
 if [ -f "$TRANSCRIPT_PATH" ]; then
-    FULL_MSG=$(tail -10 "$TRANSCRIPT_PATH" | \
-               jq -r 'select(.message.role == "assistant") | .message.content[0].text' | \
+    FULL_MSG=$(tail -20 "$TRANSCRIPT_PATH" | \
+               jq -r 'select(.type == "assistant") | .message.content[]? | select(.type? == "text") | .text?' | \
                tail -1)
 
     # Check for [VOICE]...[/VOICE] tag
     if echo "$FULL_MSG" | grep -q '\[VOICE\]'; then
-        # Extract text between [VOICE] tags
-        MSG=$(echo "$FULL_MSG" | sed -n 's/.*\[VOICE\]\(.*\)\[\/VOICE\].*/\1/p' | head -1)
+        # Extract text between [VOICE] tags (convert to single line first for multiline support)
+        MSG=$(echo "$FULL_MSG" | tr '\n' ' ' | sed -n 's/.*\[VOICE\]\(.*\)\[\/VOICE\].*/\1/p' | head -1)
     else
         # Fallback to first 200 characters
         MSG=$(echo "$FULL_MSG" | tr '\n' ' ' | cut -c1-200)
