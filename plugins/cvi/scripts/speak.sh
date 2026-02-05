@@ -69,17 +69,6 @@ else
     fi
 fi
 
-# Generate audio
-TEMP_AUDIO="/tmp/cvi_speak_$$.aiff"
-
-if [ "$SELECTED_VOICE" = "system" ]; then
-    # Use system default (no -v flag)
-    say -r "$SPEECH_RATE" -o "$TEMP_AUDIO" "$MSG"
-else
-    # Use specific voice
-    say -v "$SELECTED_VOICE" -r "$SPEECH_RATE" -o "$TEMP_AUDIO" "$MSG"
-fi
-
 # Get current session directory name for notification
 SESSION_DIR=$(basename "$(pwd)")
 
@@ -87,9 +76,15 @@ SESSION_DIR=$(basename "$(pwd)")
 osascript -e "display notification \"$MSG\" with title \"ClaudeCode ($SESSION_DIR) Task Done\"" &
 
 # Play Glass sound to indicate completion
-afplay -v 1.0 /System/Library/Sounds/Glass.aiff &
+afplay /System/Library/Sounds/Glass.aiff &
 
-# Play voice audio in background and clean up
-(afplay -v 0.6 "$TEMP_AUDIO" && rm -f "$TEMP_AUDIO") &
+# Speak directly in background (no file generation delay)
+if [ "$SELECTED_VOICE" = "system" ]; then
+    # Use system default (no -v flag)
+    say -r "$SPEECH_RATE" "$MSG" &
+else
+    # Use specific voice
+    say -v "$SELECTED_VOICE" -r "$SPEECH_RATE" "$MSG" &
+fi
 
 echo "Speaking: $MSG"
