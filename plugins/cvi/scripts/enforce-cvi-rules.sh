@@ -45,7 +45,7 @@ ABSOLUTELY REQUIRED (NO EXCEPTIONS):
 🔴 MANDATORY TASK COMPLETION PATTERN:
    [detailed work...]
 
-   [VOICE]<summary in 140 chars>[/VOICE]
+   [VOICE]<2-3 sentences: what was done and outcome>[/VOICE]
 
    <use Skill tool: skill="cvi:speak" args="<same summary>">
 
