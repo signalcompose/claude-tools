@@ -1,42 +1,41 @@
 ---
-description: "Code review standards and criteria for commit review"
+name: review-commit
+description: |
+  Review staged git changes for code quality, security, and best practices before committing.
+  Use when: "review my code", "check before commit", "code review",
+  "コードレビュー", "コミット前チェック".
+user-invocable: true
 ---
 
-# Code Review Standards
+# Code Review for Commit
 
-Standards and criteria used by the code-reviewer agent when reviewing commits.
+Review staged changes and approve them for commit.
 
-## Review Criteria
+## Step 1: Check Staged Changes
 
-### Code Quality
-- Readability and maintainability
-- Proper error handling
-- No hardcoded sensitive values (API keys, passwords, tokens)
-- Appropriate use of types and interfaces
+Staged files: !`git diff --staged --stat`
 
-### Security
-- No exposed secrets or credentials
-- No SQL injection vulnerabilities
-- No XSS vulnerabilities
-- Input validation where needed
-- Secure handling of user data
+If no staged changes, report "No staged changes to review" and exit.
 
-### Best Practices
-- Project conventions (CLAUDE.md compliance)
-- Consistent naming conventions
-- No unnecessary duplication
-- Appropriate code comments
+## Step 2: Launch Code Reviewer Agent
 
-### Logic
-- No obvious bugs
-- Edge cases handled
-- Correct algorithm usage
-- Proper null/undefined handling
+**MANDATORY**: Use Task tool with `pr-review-toolkit:code-reviewer` agent.
 
-## Confidence Threshold
+Prompt: "Review the staged changes (git diff --staged) for this commit. Check for CLAUDE.md compliance, bugs, and code quality issues. Report only issues with confidence >= 80."
 
-Only issues with **confidence >= 80%** should be reported to the user.
+For review criteria details, see [references/review-criteria.md](references/review-criteria.md).
 
-## Integration
+## Step 3: Handle Review Results
 
-This skill provides standards for the `pr-review-toolkit:code-reviewer` agent invoked by `/code:review-commit` command.
+- If issues found (confidence >= 80): Present issues, suggest fixes, do NOT approve
+- If no issues: Proceed to Step 4
+
+## Step 4: Approve for Commit
+
+**MANDATORY**: Run the approval script.
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/approve-review.sh
+```
+
+This saves a hash of the staged changes that the pre-commit hook verifies.
