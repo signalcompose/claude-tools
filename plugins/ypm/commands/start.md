@@ -10,22 +10,30 @@ description: "Show YPM welcome message and quick commands"
 This system monitors multiple projects in configured directories and centralizes progress management.
 
 **Key Features**:
-- Unified view of all project status (auto-collected from Git info + documentation)
+- Automatic information collection from Git history and documentation
 - Organize next tasks and priorities
 
-**Quick Commands**:
+**Natural Language (say these to auto-trigger)**:
 1. **"Update project status"** - Scan all projects and update `PROJECT_STATUS.md`
 2. **"What's the next task?"** - Show next actions for active projects
 3. **"Show active projects"** - View recently updated projects
+4. **"Create a new project"** - Launch the 8-phase project setup wizard
+5. **"Set up git flow"** - Configure branch protection and workflow
 
-**Slash Commands** (use `ypm:` prefix):
+**Skills** (use `ypm:` prefix):
+- `/ypm:project-status-update` - Update project status
+- `/ypm:next-tasks` - Show next tasks
+- `/ypm:active-projects` - Show active projects
+- `/ypm:project-bootstrap` - Project setup wizard
+- `/ypm:git-workflow-setup` - Git workflow setup
+
+**Commands** (use `ypm:` prefix):
 - `/ypm:start` - Show this welcome message
 - `/ypm:help` - Show detailed help
-- `/ypm:update` - Update project status
-- `/ypm:next` - Show next tasks
-- `/ypm:active` - Show active projects
+- `/ypm:setup` - Initial setup
 - `/ypm:open` - Open project in editor
-- `/ypm:new` - Project setup wizard
+- `/ypm:export-community` - Export to community version
+- `/ypm:trufflehog-scan` - Security scan
 
 What would you like to do?
 

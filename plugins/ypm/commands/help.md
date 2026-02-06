@@ -1,5 +1,5 @@
 ---
-description: "Show detailed YPM help with all available commands"
+description: "Show detailed YPM help with all available commands and skills"
 ---
 
 <!-- Language Handling: Check ~/.ypm/config.yml for settings.language -->
@@ -13,33 +13,29 @@ YPM monitors multiple projects in configured directories and centralizes progres
 
 ---
 
-## Available Commands
+## Available Skills (Auto-triggered)
+
+Skills are automatically activated when you ask related questions in natural language.
+
+| Skill | Trigger Examples |
+|-------|-----------------|
+| `/ypm:project-status-update` | "update project status", "scan projects", "プロジェクトのステータス更新" |
+| `/ypm:next-tasks` | "what should I work on next", "next tasks", "次何やる" |
+| `/ypm:active-projects` | "show active projects", "what am I working on", "アクティブなプロジェクト" |
+| `/ypm:project-bootstrap` | "create a new project", "bootstrap project", "新しいプロジェクト作成" |
+| `/ypm:git-workflow-setup` | "set up git flow", "protect branches", "Gitフロー設定" |
+
+---
+
+## Available Commands (Manual invocation)
 
 ### Project Management
 
 #### `/ypm:start`
 Show welcome message and quick commands.
 
-#### `/ypm:update`
-Scan all projects and update `PROJECT_STATUS.md`.
-- Get Git information for each project
-- Read CLAUDE.md, README.md, docs/INDEX.md
-- Collect progress info (Phase, Implementation, Testing, Documentation)
-
-#### `/ypm:next`
-Display "next tasks" for each project in priority order.
-- Active projects (updated within 1 week)
-- Projects with high implementation progress
-- By Phase order
-
-#### `/ypm:active`
-Display only active projects updated within 1 week.
-- Project name, overview, branch, last update
-- Phase, implementation progress, next task
-
----
-
-### Project Operations
+#### `/ypm:setup`
+Initialize YPM data directory and configuration.
 
 #### `/ypm:open`
 Open project in preferred editor.
@@ -52,32 +48,27 @@ Open project in preferred editor.
 
 ---
 
-### New Project
+### Legacy Commands (Redirected to Skills)
 
-#### `/ypm:new`
-Launch new project setup wizard.
-- Project planning (requirements, tech stack)
-- Directory creation and Git initialization
-- Documentation setup (DDD/TDD/DRY principles)
-- GitHub integration
-- Git Workflow configuration
-- Environment configuration files
+These commands still work but redirect to their skill equivalents:
 
-See `project-bootstrap-prompt.md` for details.
+| Legacy Command | Redirects To |
+|---------------|--------------|
+| `/ypm:update` | `/ypm:project-status-update` |
+| `/ypm:next` | `/ypm:next-tasks` |
+| `/ypm:active` | `/ypm:active-projects` |
+| `/ypm:new` | `/ypm:project-bootstrap` |
+| `/ypm:setup-gitflow` | `/ypm:git-workflow-setup` |
 
 ---
 
-### Export
+### Security & Export
 
 #### `/ypm:export-community`
 Export private repository to public community version.
 - Interactive setup on first run
 - Automatic export on subsequent runs
 - TruffleHog security scan integration
-
----
-
-### Security
 
 #### `/ypm:trufflehog-scan`
 Run TruffleHog security scan on all managed projects.
@@ -105,7 +96,6 @@ YPM monitors other projects in **read-only** mode. Only YPM's own files can be m
 ## Reference Documents
 
 - **CLAUDE.md** - YPM project instructions
-- **project-bootstrap-prompt.md** - New project setup guide
 - **config.example.yml** - Configuration file sample
 
 ---
@@ -119,22 +109,13 @@ YPM monitors other projects in **read-only** mode. Only YPM's own files can be m
 Show welcome message to see available options.
 
 ### 2. Check Project Status
-```
-/ypm:update
-```
-Scan all projects and get latest status.
+Say "update project status" or use `/ypm:project-status-update`.
 
 ### 3. Find Next Task
-```
-/ypm:next
-```
-Check high-priority tasks.
+Say "what should I work on next" or use `/ypm:next-tasks`.
 
 ### 4. Start New Project
-```
-/ypm:new
-```
-Interactive project setup.
+Say "create a new project" or use `/ypm:project-bootstrap`.
 
 ---
 

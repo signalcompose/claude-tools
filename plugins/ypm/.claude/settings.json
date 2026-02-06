@@ -3,23 +3,17 @@
     "allow": [
       "Read(*)",
       "Glob(*)",
-      "Grep(*)"
+      "Grep(*)",
+      "WebSearch(*)",
+      "TodoWrite(*)"
     ],
     "ask": [
       "Write(*)",
       "Edit(*)",
+      "WebFetch(*)",
+      "NotebookEdit(*)",
       "Bash(git :*)",
-      "Bash(gh :*)",
-      "Bash(npm :*)",
-      "Bash(pnpm :*)",
-      "Bash(yarn :*)",
-      "Bash(python :*)",
-      "Bash(pip :*)",
-      "Bash(cargo :*)",
-      "Bash(go :*)",
-      "Bash(docker :*)",
-      "Bash(curl :*)",
-      "Bash(wget :*)"
+      "Bash(gh :*)"
     ],
     "deny": [
       "Read(./.env)",
@@ -34,10 +28,16 @@
       "Bash(git push -f :*)",
       "Bash(git reset --hard :*)",
       "Bash(git clean -f :*)",
+      "Bash(git clean -fd :*)",
+      "Bash(git checkout . :*)",
+      "Bash(git restore . :*)",
+      "Bash(git branch -D :*)",
       "Bash(gh repo delete :*)",
+      "Bash(gh repo archive :*)",
       "Bash(gh secret :*)",
       "Bash(sudo :*)",
-      "Bash(chmod 777 :*)"
+      "Bash(chmod 777 :*)",
+      "Bash(chmod -R 777 :*)"
     ]
   },
   "cleanupPeriodDays": 30

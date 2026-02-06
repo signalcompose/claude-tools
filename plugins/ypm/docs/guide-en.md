@@ -149,33 +149,19 @@ Displays next tasks for each project in priority order.
 
 ---
 
-## Available Commands
+## Skills (Auto-triggered)
 
-YPM provides the following commands. All commands are prefixed with `ypm:`.
+YPM skills are automatically activated when you use natural language. Just say what you need:
 
-| Command | Description |
-|---------|-------------|
-| `/ypm:setup` | Initial setup wizard |
-| `/ypm:start` | Show welcome and quick commands |
-| `/ypm:help` | Show detailed help |
-| `/ypm:update` | Update project status |
-| `/ypm:next` | Show next tasks |
-| `/ypm:active` | Show active projects only |
-| `/ypm:open` | Open project in editor |
-| `/ypm:new` | Launch project setup wizard |
-| `/ypm:setup-gitflow` | Set up Git Flow workflow |
-| `/ypm:export-community` | Export to community version |
-| `/ypm:trufflehog-scan` | Run TruffleHog security scan |
+| Skill | Description | Trigger Examples |
+|-------|-------------|-----------------|
+| `/ypm:project-status-update` | Scan and update project status | "update project status", "scan projects" |
+| `/ypm:next-tasks` | Show next tasks in priority order | "what should I work on next", "next tasks" |
+| `/ypm:active-projects` | Show recently active projects | "show active projects", "what am I working on" |
+| `/ypm:project-bootstrap` | 8-phase new project setup wizard | "create a new project", "bootstrap project" |
+| `/ypm:git-workflow-setup` | Configure Git Flow and branch protection | "set up git flow", "protect branches" |
 
-### Project Management Commands
-
-#### `/ypm:start`
-Displays a welcome message and list of frequently used commands. Useful when starting a session.
-
-#### `/ypm:help`
-Displays detailed help for all commands. You can view command descriptions, YPM principles, and common use cases.
-
-#### `/ypm:update`
+### `/ypm:project-status-update`
 Scans all projects and updates `~/.ypm/PROJECT_STATUS.md`.
 
 **Actions performed**:
@@ -187,7 +173,7 @@ Scans all projects and updates `~/.ypm/PROJECT_STATUS.md`.
 
 **Note**: Other projects' files are read-only (modification forbidden)
 
-#### `/ypm:next`
+### `/ypm:next-tasks`
 Displays "next tasks" for each project in priority order.
 
 **Display content**:
@@ -201,7 +187,7 @@ Displays "next tasks" for each project in priority order.
 2. Projects with high implementation progress
 3. Phase order
 
-#### `/ypm:active`
+### `/ypm:active-projects`
 Displays only active projects updated within the last week.
 
 **Display content**:
@@ -210,6 +196,29 @@ Displays only active projects updated within the last week.
 - Next task
 
 Displayed in descending order of update date (newest first).
+
+---
+
+## Commands (Manual invocation)
+
+YPM also provides the following commands. All commands are prefixed with `ypm:`.
+
+| Command | Description |
+|---------|-------------|
+| `/ypm:setup` | Initial setup wizard |
+| `/ypm:start` | Show welcome and quick commands |
+| `/ypm:help` | Show detailed help |
+| `/ypm:open` | Open project in editor |
+| `/ypm:export-community` | Export to community version |
+| `/ypm:trufflehog-scan` | Run TruffleHog security scan |
+
+Legacy commands (`/ypm:update`, `/ypm:next`, `/ypm:active`, `/ypm:new`, `/ypm:setup-gitflow`) still work and redirect to their skill equivalents.
+
+### `/ypm:start`
+Displays a welcome message and list of frequently used commands. Useful when starting a session.
+
+### `/ypm:help`
+Displays detailed help for all commands and skills.
 
 #### `/ypm:open [project] [editor] [options]`
 Opens a project in your preferred editor with automatic environment variable cleanup.
@@ -250,9 +259,7 @@ editor:
 
 See [ypm-open-spec.md](development/ypm-open-spec.md) for detailed specifications.
 
-### New Project Setup Command
-
-#### `/ypm:new`
+### `/ypm:project-bootstrap`
 Launches an interactive wizard to help set up new projects.
 
 Sets up projects step-by-step through 8 phases:
@@ -265,17 +272,15 @@ Sets up projects step-by-step through 8 phases:
 7. **Documentation Management Rules**: Synchronization between implementation and documentation
 8. **Final Confirmation**: Ready to start development
 
+The skill uses Progressive Disclosure to load each phase on-demand, keeping context usage minimal.
+
 **After setup completion**:
 - Move to the new project directory
 - Start development in a dedicated Claude Code session for that project
-- YPM will automatically add it to monitoring targets on the next `/ypm:update`
+- YPM will automatically add it to monitoring targets on the next scan
 
-See [project-bootstrap-prompt.md](../project-bootstrap-prompt.md) for details.
-
-### Git Workflow Command
-
-#### `/ypm:setup-gitflow`
-Set up Git Flow workflow for the current project with branch protection and security settings.
+### `/ypm:git-workflow-setup`
+Configure Git Flow or GitHub Flow for the current project with branch protection and security settings.
 
 **What it does**:
 - Creates `main` (default) and `develop` branches
@@ -288,12 +293,7 @@ Set up Git Flow workflow for the current project with branch protection and secu
 2. **Small OSS** - CODEOWNERS, branch protection recommended
 3. **Large OSS** - All security settings enabled
 
-**Usage**:
-```bash
-/ypm:setup-gitflow
-```
-
-The command will interactively ask about project type and development style to configure appropriate settings.
+Say "set up git flow" or use `/ypm:git-workflow-setup` to start.
 
 ### Security & Export Commands
 
@@ -316,20 +316,7 @@ YPM includes a comprehensive assistant feature for launching new projects.
 
 ### How to Use
 
-Two methods are available:
-
-**Method 1: Use Custom Command (Recommended)**
-
-Execute in Claude Code:
-```
-/ypm:new
-```
-
-**Method 2: Use Prompt Manually**
-
-1. Copy the contents of `project-bootstrap-prompt.md`
-2. Paste into Claude Code
-3. Follow the interactive wizard through 8 phases
+Say "create a new project" or run `/ypm:project-bootstrap` in Claude Code.
 
 ### Features
 
@@ -394,16 +381,29 @@ The following documentation is created during project setup:
 │   ├── start.md
 │   ├── help.md
 │   ├── setup.md
-│   ├── update.md
-│   ├── next.md
-│   ├── active.md
 │   ├── open.md
-│   ├── new.md
-│   ├── setup-gitflow.md
 │   ├── export-community.md
-│   └── trufflehog-scan.md
+│   ├── trufflehog-scan.md
+│   └── (legacy stubs: update.md, next.md, active.md, new.md, setup-gitflow.md)
+├── skills/                     # Auto-triggered skills
+│   ├── project-status-update/
+│   │   ├── SKILL.md
+│   │   └── references/
+│   ├── next-tasks/
+│   │   └── SKILL.md
+│   ├── active-projects/
+│   │   └── SKILL.md
+│   ├── project-bootstrap/
+│   │   ├── SKILL.md
+│   │   └── references/         # Phase guides and templates (10 files)
+│   └── git-workflow-setup/
+│       ├── SKILL.md
+│       └── references/
+├── hooks/
+│   └── hooks.json              # SessionStart config check
 ├── scripts/
-│   └── scan_projects.py        # Project scanning script
+│   ├── scan_projects.py        # Project scanning script
+│   └── check-ypm-config.sh     # SessionStart hook script
 └── ...
 ```
 

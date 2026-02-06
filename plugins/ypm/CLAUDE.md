@@ -150,41 +150,55 @@ docs/
     └── private-to-public-strategy.md
 ```
 
-## YPM Command Development Guidelines
+## YPM Plugin Architecture
 
-### Command File Structure
+### Skills (Auto-triggered)
 
-All commands are in `commands/*.md` with YAML frontmatter:
+Skills live in `skills/<skill-name>/SKILL.md` with YAML frontmatter:
 
-```markdown
----
-description: "Short description (3-5 words)"
-prerequisites:
-  - "Prerequisite 1"
-  - "Prerequisite 2"
----
+| Skill | Purpose |
+|-------|---------|
+| `project-status-update` | Scan and update PROJECT_STATUS.md |
+| `next-tasks` | Show next tasks in priority order |
+| `active-projects` | Show recently active projects |
+| `project-bootstrap` | 8-phase new project setup wizard |
+| `git-workflow-setup` | Configure Git Flow with branch protection |
 
-# Command Implementation
+Skills use Progressive Disclosure: SKILL.md body (~80 lines) + `references/` for details.
 
-Your command implementation here...
-```
+### Commands (Manual invocation)
 
-### Command Development Workflow
+Commands live in `commands/*.md`:
 
-1. **Read existing commands** for patterns
+| Command | Purpose |
+|---------|---------|
+| `setup` | Initialize YPM |
+| `start` | Welcome message |
+| `help` | Detailed help |
+| `open` | Open project in editor |
+| `export-community` | Export to public repo |
+| `trufflehog-scan` | Security scan |
+
+Legacy stub commands (`update`, `next`, `active`, `new`, `setup-gitflow`) redirect to skills.
+
+### Hooks
+
+- `hooks/hooks.json` - SessionStart: check config existence and status freshness
+
+### Development Workflow
+
+1. **Read existing skills/commands** for patterns
 2. **Follow established conventions**:
    - Use `AskUserQuestion` for user input
+   - Use `${CLAUDE_PLUGIN_ROOT}` for script paths
    - Implement proper error handling
-   - Validate prerequisites
-   - Update relevant PROJECT_STATUS.md files
 3. **Test thoroughly** before committing
 4. **Update documentation** (guide-en.md)
 
 ### File Naming Convention
 
 - Commands: `command-name.md` (lowercase with hyphens)
-
-Note: Future skills/agents will follow the same naming convention.
+- Skills: `skills/<skill-name>/SKILL.md`
 
 ## YPM Configuration System
 
@@ -291,5 +305,5 @@ See README.md for contribution guidelines and support channels.
 
 ---
 
-**Last Updated**: 2026-01-24
+**Last Updated**: 2026-02-06
 **Claude Code Version**: 2.1.0+

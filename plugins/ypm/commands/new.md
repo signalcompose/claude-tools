@@ -1,35 +1,9 @@
 ---
-description: "Launch interactive new project setup wizard"
+description: "Launch project setup wizard (use /ypm:project-bootstrap instead)"
 ---
 
-<!-- Language Handling: Check ~/.ypm/config.yml for settings.language -->
-<!-- If language is not "en", translate all output to that language -->
+This command has been replaced by the `project-bootstrap` skill.
 
-Launch new project setup wizard.
+Use `/ypm:project-bootstrap` or say "create a new project".
 
-Based on `project-bootstrap-prompt.md`, set up through 8 phases interactively:
-
-## Setup Phases
-
-1. **Project Planning**: Gather requirements through interview (purpose, features, tech stack)
-2. **Directory Creation**: Create local directory and initialize Git
-3. **Documentation Setup**: Build development environment based on DDD/TDD/DRY principles
-4. **GitHub Integration**: Create remote repository and initial push
-5. **Git Workflow Setup**: Establish branch strategy and rules
-6. **Environment Configuration**: Set up `.gitignore`, `.claude/settings.json`
-7. **Documentation Rules**: Maintain sync between implementation and documentation
-8. **Final Check**: Ready to start development
-
-## After Setup Complete
-
-- **User should navigate to the new project directory**
-- **Start development in a dedicated Claude Code session for that project**
-- YPM will automatically add it to monitoring on next `/ypm:update`
-
-## How to Run
-
-**IMPORTANT**: Before starting, use the Read tool to load the complete content of:
-
-`${CLAUDE_PLUGIN_ROOT}/project-bootstrap-prompt.md`
-
-This file contains the detailed instructions for all 8 setup phases. Once loaded, proceed through each phase interactively following the instructions in that file.
+The skill provides the same 8-phase interactive wizard with Progressive Disclosure for better context management.
