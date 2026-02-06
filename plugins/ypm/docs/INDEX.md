@@ -16,7 +16,7 @@
 | [../CLAUDE.md](../CLAUDE.md) | Claude Code向け指示書（英語） | AI開発者 |
 | [LANGUAGE_STRATEGY.md](LANGUAGE_STRATEGY.md) | YPMの言語戦略とバイリンガル設計方針（英語） | コントリビューター、国際ユーザー |
 | [../config.example.yml](../config.example.yml) | 設定ファイルサンプル（監視対象、検出パターン） | 設定変更者 |
-| [../project-bootstrap-prompt.md](../project-bootstrap-prompt.md) | 新規プロジェクト立ち上げガイド | 全員 |
+| [../project-bootstrap-prompt.md](../project-bootstrap-prompt.md) | 新規プロジェクト立ち上げガイド（非推奨：`/ypm:project-bootstrap`スキルを使用） | 全員 |
 
 ### 開発者向けドキュメント
 

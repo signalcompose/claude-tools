@@ -61,7 +61,19 @@ This creates `~/.ypm/` with your configuration:
 
 ---
 
-## Available Commands
+## Skills (Auto-triggered)
+
+Skills are automatically activated when you use natural language. Just say what you need:
+
+| Skill | Description | Trigger Examples |
+|-------|-------------|-----------------|
+| `/ypm:project-status-update` | Scan and update project status | "update project status", "scan projects" |
+| `/ypm:next-tasks` | Show next tasks in priority order | "what should I work on next", "next tasks" |
+| `/ypm:active-projects` | Show recently active projects | "show active projects", "what am I working on" |
+| `/ypm:project-bootstrap` | 8-phase new project setup wizard | "create a new project", "bootstrap project" |
+| `/ypm:git-workflow-setup` | Configure Git Flow and branch protection | "set up git flow", "protect branches" |
+
+## Commands (Manual invocation)
 
 All commands are prefixed with `ypm:`:
 
@@ -70,24 +82,11 @@ All commands are prefixed with `ypm:`:
 | `/ypm:setup` | Initial setup wizard |
 | `/ypm:start` | Show welcome and quick commands |
 | `/ypm:help` | Show detailed help |
-| `/ypm:update` | Update project status |
-| `/ypm:next` | Show next tasks |
-| `/ypm:active` | Show active projects only |
 | `/ypm:open` | Open project in editor |
-| `/ypm:new` | Launch project setup wizard |
-| `/ypm:setup-gitflow` | Set up Git Flow workflow |
 | `/ypm:export-community` | Export to community version |
 | `/ypm:trufflehog-scan` | Run TruffleHog security scan |
 
-### Optional: Prefix-Free Commands
-
-During setup, you can optionally create symlinks to `~/.claude/commands/` for prefix-free access:
-
-```bash
-# With symlinks, you can use:
-/update    # instead of /ypm:update
-/next      # instead of /ypm:next
-```
+Legacy commands (`/ypm:update`, `/ypm:next`, `/ypm:active`, `/ypm:new`, `/ypm:setup-gitflow`) still work and redirect to their skill equivalents.
 
 ### Data Location
 
@@ -155,13 +154,8 @@ YPM includes a comprehensive project setup assistant for launching new projects.
 
 **How to use**:
 
-Simply run `/ypm:new` in Claude Code, or manually use the prompt:
-
-1. Copy the contents of `project-bootstrap-prompt.md`
-2. Paste into Claude Code
-3. Follow the interactive wizard through 8 phases
-
-See [project-bootstrap-prompt.md](project-bootstrap-prompt.md) for details.
+Say "create a new project" or run `/ypm:project-bootstrap` in Claude Code.
+The skill uses Progressive Disclosure to load each phase on-demand, keeping context usage minimal.
 
 ---
 

@@ -1,29 +1,9 @@
 ---
-description: "Show only active projects updated within 1 week"
+description: "Show active projects (use /ypm:active-projects instead)"
 ---
 
-<!-- Language Handling: Check ~/.ypm/config.yml for settings.language -->
-<!-- If language is not "en", translate all output to that language -->
+This command has been replaced by the `active-projects` skill.
 
-Display only active projects updated within 1 week from `~/.ypm/PROJECT_STATUS.md`.
+Use `/ypm:active-projects` or say "show active projects".
 
-**Prerequisites**:
-- Run `/ypm:setup` first if `~/.ypm/config.yml` doesn't exist
-- Run `/ypm:update` first if `~/.ypm/PROJECT_STATUS.md` doesn't exist
-
-**Display Content**:
-- Project name
-- Overview
-- Current branch
-- Last update date
-- Phase
-- Implementation progress
-- Next task
-
-**Display Format**:
-Show active projects in descending order by update date (newest first).
-
-**Additional Information**:
-- Total count of active projects
-- Most progressed project
-- Most recently updated project
+The skill provides the same functionality with additional automatic trigger support.

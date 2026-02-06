@@ -177,23 +177,30 @@ cat ~/.ypm/PROJECT_STATUS.md
 
 ---
 
-## 利用可能なコマンド
+## スキル（自動トリガー）
 
-YPMは以下のコマンドを提供します。すべてのコマンドは `ypm:` プレフィックス付きです。
+自然言語で話しかけると自動的に起動します：
+
+| スキル | 説明 | トリガー例 |
+|--------|------|-----------|
+| `/ypm:project-status-update` | プロジェクト状況をスキャン・更新 | 「プロジェクトのステータス更新」 |
+| `/ypm:next-tasks` | 優先度順に次のタスクを表示 | 「次何やる」「次のタスク」 |
+| `/ypm:active-projects` | アクティブなプロジェクトを表示 | 「アクティブなプロジェクト」 |
+| `/ypm:project-bootstrap` | 8フェーズの新規プロジェクトウィザード | 「新しいプロジェクト作成」 |
+| `/ypm:git-workflow-setup` | Git Flowとブランチ保護を設定 | 「Gitフロー設定」 |
+
+## コマンド（手動実行）
 
 | コマンド | 説明 |
 |---------|------|
 | `/ypm:setup` | 初期設定ウィザード |
 | `/ypm:start` | ウェルカムメッセージ表示 |
 | `/ypm:help` | 詳細ヘルプ表示 |
-| `/ypm:update` | プロジェクト状況更新 |
-| `/ypm:next` | 次のタスク表示 |
-| `/ypm:active` | アクティブプロジェクト表示 |
 | `/ypm:open` | エディタでプロジェクトを開く |
-| `/ypm:new` | 新規プロジェクトウィザード |
-| `/ypm:setup-gitflow` | Git Flowワークフロー設定 |
 | `/ypm:export-community` | コミュニティ版へエクスポート |
 | `/ypm:trufflehog-scan` | TruffleHogセキュリティスキャン |
+
+レガシーコマンド（`/ypm:update`、`/ypm:next`、`/ypm:active`、`/ypm:new`、`/ypm:setup-gitflow`）は引き続き動作し、対応するスキルにリダイレクトされます。
 
 ### プロジェクト管理コマンド
 
@@ -201,9 +208,9 @@ YPMは以下のコマンドを提供します。すべてのコマンドは `ypm
 ウェルカムメッセージとよく使うコマンド一覧を表示します。セッション開始時に便利です。
 
 #### `/ypm:help`
-全コマンドの詳細なヘルプを表示します。各コマンドの説明、YPMの原則、よくある使い方が確認できます。
+全コマンドとスキルの詳細なヘルプを表示します。
 
-#### `/ypm:update`
+#### `/ypm:project-status-update`
 全プロジェクトをスキャンして `~/.ypm/PROJECT_STATUS.md` を更新します。
 
 **実行内容**:
@@ -215,7 +222,7 @@ YPMは以下のコマンドを提供します。すべてのコマンドは `ypm
 
 **注意**: 他のプロジェクトのファイルは読み取り専用です（変更禁止）
 
-#### `/ypm:next`
+#### `/ypm:next-tasks`
 各プロジェクトの「次のタスク」を優先度順に表示します。
 
 **表示内容**:
@@ -229,7 +236,7 @@ YPMは以下のコマンドを提供します。すべてのコマンドは `ypm
 2. 実装進捗が高いプロジェクト
 3. Phase順
 
-#### `/ypm:active`
+#### `/ypm:active-projects`
 最近1週間以内に更新されたアクティブなプロジェクトのみを表示します。
 
 **表示内容**:
@@ -278,9 +285,7 @@ editor:
 
 詳細な仕様は [ypm-open-spec.md](development/ypm-open-spec.md) を参照してください。
 
-### 新規プロジェクト立ち上げコマンド
-
-#### `/ypm:new`
+### `/ypm:project-bootstrap`
 新規プロジェクトの立ち上げを支援する対話型ウィザードを起動します。
 
 8つのフェーズで段階的にプロジェクトをセットアップ：
@@ -293,17 +298,15 @@ editor:
 7. **ドキュメント管理ルール確立**: 実装とドキュメントの同期維持
 8. **最終確認**: 開発開始の準備完了
 
+Progressive Disclosureパターンにより、各フェーズの詳細はオンデマンドで読み込まれ、コンテキスト使用量を最小化します。
+
 **セットアップ完了後**:
 - 新しいプロジェクトディレクトリに移動
 - そのプロジェクト専用のClaude Codeセッションで開発を開始
-- YPMは次回の `/ypm:update` で自動的に監視対象に追加
+- YPMは次回のスキャンで自動的に監視対象に追加
 
-詳細は [project-bootstrap-prompt.md](../project-bootstrap-prompt.md) を参照してください。
-
-### Git Workflowコマンド
-
-#### `/ypm:setup-gitflow`
-現在のプロジェクトにGit Flowワークフローを設定します。ブランチ保護とセキュリティ設定を含みます。
+### `/ypm:git-workflow-setup`
+現在のプロジェクトにGit FlowまたはGitHub Flowを設定します。ブランチ保護とセキュリティ設定を含みます。
 
 **実行内容**:
 - `main`（デフォルト）と`develop`ブランチを作成
@@ -316,12 +319,7 @@ editor:
 2. **小規模OSS** - CODEOWNERS、ブランチ保護推奨
 3. **大規模OSS** - 全セキュリティ設定を有効化
 
-**使い方**:
-```bash
-/ypm:setup-gitflow
-```
-
-コマンドはプロジェクトタイプと開発スタイルについて対話的に質問し、適切な設定を構成します。
+「Gitフロー設定」と話しかけるか、`/ypm:git-workflow-setup` を実行してください。
 
 ### セキュリティ＆エクスポートコマンド
 
@@ -344,20 +342,7 @@ YPMには新規プロジェクトを立ち上げるための包括的なアシ�
 
 ### 使い方
 
-2つの方法があります：
-
-**方法1: カスタムコマンドを使用（推奨）**
-
-Claude Code内で以下を実行：
-```
-/ypm:new
-```
-
-**方法2: プロンプトを手動で使用**
-
-1. `project-bootstrap-prompt.md` の内容をコピー
-2. Claude Codeに貼り付け
-3. 対話形式で8つのフェーズを進める
+「新しいプロジェクト作成」と話しかけるか、`/ypm:project-bootstrap` を実行してください。
 
 ### 特徴
 
@@ -422,16 +407,21 @@ Claude Code内で以下を実行：
 │   ├── start.md
 │   ├── help.md
 │   ├── setup.md
-│   ├── update.md
-│   ├── next.md
-│   ├── active.md
 │   ├── open.md
-│   ├── new.md
-│   ├── setup-gitflow.md
 │   ├── export-community.md
-│   └── trufflehog-scan.md
+│   ├── trufflehog-scan.md
+│   └── (レガシースタブ: update.md, next.md, active.md, new.md, setup-gitflow.md)
+├── skills/                     # 自動トリガースキル
+│   ├── project-status-update/
+│   ├── next-tasks/
+│   ├── active-projects/
+│   ├── project-bootstrap/
+│   └── git-workflow-setup/
+├── hooks/
+│   └── hooks.json              # SessionStart設定チェック
 ├── scripts/
-│   └── scan_projects.py        # プロジェクトスキャンスクリプト
+│   ├── scan_projects.py        # プロジェクトスキャンスクリプト
+│   └── check-ypm-config.sh     # SessionStartフックスクリプト
 └── ...
 ```
 

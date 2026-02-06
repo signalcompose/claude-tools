@@ -1,0 +1,17 @@
+{
+  "description": "YPM session hooks for config and status checks",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-ypm-config.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}

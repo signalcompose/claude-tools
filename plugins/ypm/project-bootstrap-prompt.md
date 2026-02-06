@@ -1,3 +1,8 @@
+> **DEPRECATED**: This file has been migrated to `skills/project-bootstrap/` with Progressive Disclosure.
+> Use `/ypm:project-bootstrap` skill instead. This file is kept for reference only.
+
+---
+
 # プロジェクト立ち上げ支援プロンプト
 
 ## ⚠️ 重要: このプロンプトの役割

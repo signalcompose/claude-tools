@@ -12,7 +12,7 @@ Run TruffleHog security scan on all YPM-managed projects.
 ## Overview
 
 This command executes:
-1. Run `python scripts/scan_projects.py` to get project list
+1. Run `python ${CLAUDE_PLUGIN_ROOT}/scripts/scan_projects.py` to get project list
 2. Execute TruffleHog scan on each project
 3. Display detected issues clearly
 
@@ -38,7 +38,7 @@ Please run this command again after installation.
 ### STEP 2: Execute Project Scan
 
 ```bash
-python scripts/scan_projects.py
+python ${CLAUDE_PLUGIN_ROOT}/scripts/scan_projects.py
 ```
 
 Read scan results JSON and check `security_scan` info for each project.
