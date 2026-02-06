@@ -33,13 +33,9 @@ zshrc (7 lines)          External script (~140 lines)
 
 ## Execution
 
-### Phase 1: Environment Detection
+### Phase 1-2: Environment Detection & Migration Check
 
-See [references/migration-check.md](references/migration-check.md) for environment detection and migration check.
-
-### Phase 2: User Confirmation
-
-Present the loader code and features to the user. Ask for confirmation before proceeding.
+See [references/migration-check.md](references/migration-check.md) for environment detection, existing installation check, and user confirmation dialogues.
 
 ### Phase 3: Installation
 

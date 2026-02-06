@@ -85,8 +85,46 @@ echo "   Install type: $INSTALL_TYPE"
 
 ### For New Installation
 
-Present the loader features and ask for confirmation.
+```
+The following loader will be added to your zshrc (7 lines):
+
+┌─────────────────────────────────────────────────────────────────┐
+│ # >>> chezmoi shell sync checker start >>>                      │
+│ # Loader for chezmoi shell sync checker                         │
+│ # Source: https://github.com/signalcompose/claude-tools         │
+│ if [[ -f ~/.claude/plugins/.../shell-check.zsh ]]; then         │
+│   source ~/.claude/plugins/.../shell-check.zsh                  │
+│ fi                                                              │
+│ # <<< chezmoi shell sync checker end <<<                        │
+└─────────────────────────────────────────────────────────────────┘
+
+Features:
+- Checks for remote updates on GitHub
+- Detects local uncommitted changes
+- Shows status only when pressing empty Enter
+- Auto-updates via /plugin update
+
+Proceed with installation?
+1. Yes, install
+2. No, cancel
+```
 
 ### For Migration
 
-Present migration benefits (7 lines vs 140 lines) and ask for confirmation.
+```
+Found old embedded code in your zshrc (~140 lines).
+Recommend migrating to new loader style (7 lines).
+
+Benefits of migration:
+- zshrc stays clean (7 lines vs 140 lines)
+- Auto-updates via /plugin update
+- Same functionality
+
+Migration will:
+1. Remove old embedded code
+2. Add new loader (7 lines)
+
+Proceed with migration?
+1. Yes, migrate to new style
+2. No, keep old style
+```

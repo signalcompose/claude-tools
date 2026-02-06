@@ -28,9 +28,9 @@ Claude Code integration for [chezmoi](https://www.chezmoi.io/) dotfiles manageme
 
 | Skill | Description |
 |-------|-------------|
-| `/chezmoi:chezmoi-setup` | Interactive setup wizard for chezmoi + age + 1Password |
-| `/chezmoi:chezmoi-commit` | Commit and push changed dotfiles |
-| `/chezmoi:shell-sync-setup` | Install shell startup sync checker |
+| `/chezmoi:chezmoi-setup` | Interactive setup wizard for chezmoi dotfiles management with age encryption and 1Password integration |
+| `/chezmoi:chezmoi-commit` | Commit and push changed dotfiles to remote repository |
+| `/chezmoi:shell-sync-setup` | Install shell startup sync checker for chezmoi dotfiles |
 
 ## Commands
 
