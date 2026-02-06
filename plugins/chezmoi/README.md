@@ -24,19 +24,26 @@ Claude Code integration for [chezmoi](https://www.chezmoi.io/) dotfiles manageme
 /plugin install chezmoi
 ```
 
+## Skills
+
+| Skill | Description |
+|-------|-------------|
+| `/chezmoi:chezmoi-setup` | Interactive setup wizard for chezmoi dotfiles management with age encryption and 1Password integration |
+| `/chezmoi:chezmoi-commit` | Commit and push changed dotfiles to remote repository |
+| `/chezmoi:shell-sync-setup` | Install shell startup sync checker for chezmoi dotfiles |
+
 ## Commands
 
 | Command | Description |
 |---------|-------------|
 | `/chezmoi:check` | Check dotfiles status and sync state |
 | `/chezmoi:sync` | Sync from remote repository |
-| `/chezmoi:commit` | Commit and push dotfile changes |
-| `/chezmoi:setup` | Interactive setup wizard |
-| `/chezmoi:setup-shell-check` | Setup shell startup sync checker |
+
+> **Note**: `/chezmoi:setup`, `/chezmoi:commit`, and `/chezmoi:setup-shell-check` have been replaced by skills above. Legacy command stubs redirect to the new skills.
 
 ### Shell Startup Sync Checker
 
-The `/chezmoi:setup-shell-check` command installs a shell sync checker that runs at startup.
+The `/chezmoi:shell-sync-setup` skill installs a shell sync checker that runs at startup.
 
 **Architecture**: Uses a minimal loader approach (7 lines in zshrc) that sources an external script:
 
@@ -47,11 +54,11 @@ The `/chezmoi:setup-shell-check` command installs a shell sync checker that runs
 ```
 
 **Benefits**:
-- Keeps zshrc clean (7 lines vs 140+ embedded)
+- Keeps zshrc clean (7 lines vs ~150 embedded)
 - Auto-updates when you run `/plugin update`
 - Silently skips if plugin not installed
 
-**Migration**: If you have the old embedded code (~140 lines), running the setup will offer to migrate to the new loader style.
+**Migration**: If you have the old embedded code (~150 lines), running the setup will offer to migrate to the new loader style.
 
 ## Usage
 
@@ -77,7 +84,7 @@ Pulls latest changes from remote and applies them to your system.
 ### Commit Changes
 
 ```
-/chezmoi:commit
+/chezmoi:chezmoi-commit
 ```
 
 Interactive workflow:
@@ -90,12 +97,20 @@ Interactive workflow:
 ### Initial Setup
 
 ```
-/chezmoi:setup
+/chezmoi:chezmoi-setup
 ```
 
 Interactive wizard for:
 - First machine: Create new dotfiles repository
 - Second+ machine: Clone existing repository
+
+### Shell Sync Checker Setup
+
+```
+/chezmoi:shell-sync-setup
+```
+
+Installs the shell startup sync checker with environment detection and migration support.
 
 ## Architecture
 
@@ -104,7 +119,7 @@ chezmoi manages dotfiles by:
 2. Tracking changes with Git
 3. Applying files to home directory with `chezmoi apply`
 
-This plugin provides Claude Code commands to streamline the workflow.
+This plugin provides Claude Code skills and commands to streamline the workflow.
 
 ```
 ~/.local/share/chezmoi/     # Source (Git-managed)
