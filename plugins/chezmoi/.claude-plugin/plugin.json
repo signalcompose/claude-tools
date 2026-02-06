@@ -2,7 +2,7 @@
   "name": "chezmoi",
   "description": "Dotfiles management integration for Claude Code using chezmoi",
   "author": {
-    "name": "SignalCompose",
+    "name": "Signal compose",
     "email": "contact@signalcompose.com"
   },
   "repository": "https://github.com/signalcompose/claude-tools",

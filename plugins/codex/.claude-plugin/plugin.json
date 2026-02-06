@@ -2,7 +2,7 @@
   "name": "codex",
   "description": "OpenAI Codex CLI integration for research and code review",
   "author": {
-    "name": "SignalCompose",
+    "name": "Signal compose",
     "email": "contact@signalcompose.com"
   },
   "repository": "https://github.com/signalcompose/claude-tools",
