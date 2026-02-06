@@ -23,7 +23,7 @@ Installs an interactive dotfiles sync checker that runs on shell startup.
 Uses a **minimal loader** approach:
 
 ```
-zshrc (7 lines)          External script (~140 lines)
+zshrc (7 lines)          External script (~150 lines)
 ┌─────────────────┐      ┌────────────────────────────────────────────┐
 │ Loader snippet  │ ───► │ ~/.claude/plugins/.../shell-check.zsh     │
 │ (source if      │      │ (auto-updated via /plugin update)         │
@@ -33,26 +33,14 @@ zshrc (7 lines)          External script (~140 lines)
 
 ## Execution
 
-### Phase 1-2: Environment Detection & Migration Check
+### Step 1: Environment Detection & Migration Check
 
 See [references/migration-check.md](references/migration-check.md) for environment detection, existing installation check, and user confirmation dialogues.
 
-### Phase 3: Installation
+### Step 2: Installation
 
 See [references/loader-code.md](references/loader-code.md) for the loader code and installation steps.
 
-### Phase 4: Verification
+### Step 3: Verification
 
 See [references/troubleshooting.md](references/troubleshooting.md) for verification and troubleshooting.
-
-## How It Works
-
-The sync checker uses a stage-based approach:
-
-| Stage | Event | Action |
-|-------|-------|--------|
-| 1 | First precmd | Skip (avoids instant prompt issues) |
-| 2+ | precmd + no command | Run sync check, cleanup hooks |
-| 2+ | precmd + command entered | Skip check, cleanup hooks |
-
-Compatible with: Plain zsh, Oh My Zsh, Powerlevel10k (with instant prompt).

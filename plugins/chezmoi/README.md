@@ -54,11 +54,11 @@ The `/chezmoi:shell-sync-setup` skill installs a shell sync checker that runs at
 ```
 
 **Benefits**:
-- Keeps zshrc clean (7 lines vs 140+ embedded)
+- Keeps zshrc clean (7 lines vs ~150 embedded)
 - Auto-updates when you run `/plugin update`
 - Silently skips if plugin not installed
 
-**Migration**: If you have the old embedded code (~140 lines), running the setup will offer to migrate to the new loader style.
+**Migration**: If you have the old embedded code (~150 lines), running the setup will offer to migrate to the new loader style.
 
 ## Usage
 

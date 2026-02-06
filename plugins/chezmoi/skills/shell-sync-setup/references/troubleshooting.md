@@ -48,6 +48,16 @@ This indicates code is running during instant prompt. The stage-1 skip should pr
 
 ### Check not running
 
+The sync checker uses a stage-based approach:
+
+| Stage | Event | Action |
+|-------|-------|--------|
+| 1 | First precmd | Skip (avoids instant prompt issues) |
+| 2+ | precmd + no command | Run sync check, cleanup hooks |
+| 2+ | precmd + command entered | Skip check, cleanup hooks |
+
+Compatible with: Plain zsh, Oh My Zsh, Powerlevel10k (with instant prompt).
+
 Verify hooks are registered:
 
 ```bash

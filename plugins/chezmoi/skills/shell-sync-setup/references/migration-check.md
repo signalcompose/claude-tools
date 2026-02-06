@@ -70,7 +70,7 @@ if [[ -n "$ZSHRC_SOURCE" ]]; then
     INSTALL_TYPE="skip"
   # Check for old embedded style
   elif grep -q "_chezmoi_check_sync" "$ZSHRC_SOURCE" 2>/dev/null; then
-    echo "⚠️ Found OLD embedded code (~140 lines in zshrc)"
+    echo "⚠️ Found OLD embedded code (~150 lines in zshrc)"
     echo "   Recommend migrating to new loader style (7 lines)"
     INSTALL_TYPE="migrate"
   else
@@ -112,11 +112,11 @@ Proceed with installation?
 ### For Migration
 
 ```
-Found old embedded code in your zshrc (~140 lines).
+Found old embedded code in your zshrc (~150 lines).
 Recommend migrating to new loader style (7 lines).
 
 Benefits of migration:
-- zshrc stays clean (7 lines vs 140 lines)
+- zshrc stays clean (7 lines vs 150 lines)
 - Auto-updates via /plugin update
 - Same functionality
 

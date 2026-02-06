@@ -43,10 +43,3 @@ Based on selection:
 ### Phase 5: Verification
 
 See [references/phase-5-verification.md](references/phase-5-verification.md) for post-setup verification.
-
-## Notes
-
-- This wizard guides you through setup but cannot fully automate it
-- Age key must be manually transferred between machines
-- 1Password integration requires desktop app connected to CLI
-- Always backup existing dotfiles before starting

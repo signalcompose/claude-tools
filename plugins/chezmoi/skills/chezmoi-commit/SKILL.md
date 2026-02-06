@@ -13,99 +13,28 @@ Detect changed dotfiles, commit and push to remote.
 
 ## Diff Interpretation
 
-Use `--reverse` flag to get **git-like diff output**:
+Use `chezmoi diff --reverse` to get git-like diff output. Read it exactly like a normal `git diff`.
 
-```bash
-chezmoi diff --reverse
-```
+For detailed examples, see [references/diff-interpretation.md](references/diff-interpretation.md).
 
-This shows what **commit will do** to the source repository:
-- `-` lines will be **removed** from source
-- `+` lines will be **added** to source
+## Execution
 
-Read the diff exactly like a normal `git diff`.
+### Step 1: Detect & Show Changes
 
-## Execution Steps
+Run `chezmoi status` and `chezmoi diff --reverse`. If no changes, report and exit.
 
-### Step 1: Detect Changes
+### Step 2: Confirm with User
 
-```bash
-chezmoi status
-```
+Present detected changes and ask for confirmation before proceeding.
 
-**If no changes**: Report "No changes to commit" and exit.
+### Step 3: Add, Commit & Push
 
-### Step 2: Show Diff
+Add files with `chezmoi add`, then commit and push from `~/.local/share/chezmoi`.
 
-```bash
-chezmoi diff --reverse
-```
+For detailed execution steps and error handling, see [references/commit-workflow.md](references/commit-workflow.md).
 
-Report changes using standard git diff language:
-- `-` lines: "Will **remove** X from source"
-- `+` lines: "Will **add** X to source"
-
-**Example:**
-```diff
--    "sigcomintra@sigcomintra": true,
-+    "hookify@claude-plugins-official": true,
-```
-→ `sigcomintra` will be removed, `hookify` will be added to source
-
-### Step 3: Confirm with User
-
-```
-🔍 Detected changes:
-  - .zshrc (local content will be added to source)
-  - .gitconfig (source will be updated with local version)
-
-Commit these changes? [Y/n]:
-```
-
-### Step 4: Add Files to Chezmoi
-
-```bash
-chezmoi add ~/.zshrc
-chezmoi add ~/.gitconfig
-```
-
-### Step 5: Commit and Push
-
-```bash
-cd ~/.local/share/chezmoi
-git add .
-git commit -m "chore: update dotfiles
-
-[Description of changes]
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
-git push
-```
-
-## Flow Diagram
+## Flow
 
 ```
 status → diff → confirm → chezmoi add → git add → commit → push
 ```
-
-## Error Handling
-
-### Push Error (non-fast-forward)
-
-```
-❌ Failed to push: rejected (non-fast-forward)
-
-Run /chezmoi:sync first to pull remote changes.
-```
-
-### Chezmoi Add Error
-
-```
-❌ Failed to add file
-
-Check if file contains binary data or is in .chezmoiignore.
-```
-
-## Reference
-
-For detailed diff interpretation examples, see [references/diff-interpretation.md](references/diff-interpretation.md).
