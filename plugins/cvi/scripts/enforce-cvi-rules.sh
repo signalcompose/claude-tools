@@ -111,6 +111,10 @@ BEFORE RESPONDING, VERIFY:
 → Voice notification will NOT play until you call it
 
 ⚠️ NO [VOICE] TAG - use Skill tool only
+
+⚠️ PLAN MODE: /cvi:speak is STILL REQUIRED even in plan mode
+→ Skill tool works in plan mode - use it
+→ Do NOT skip or apologize for voice notification
 ================================================
 EOF
 

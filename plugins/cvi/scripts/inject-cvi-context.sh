@@ -73,6 +73,7 @@ cat << EOF
    ⚠️ Stop hook will BLOCK if /cvi:speak not called via Skill
 
    Exception: Questions to user (then no notification needed)
+   ⚠️ Plan mode is NOT an exception - /cvi:speak is STILL required
 EOF
 
 exit 0
