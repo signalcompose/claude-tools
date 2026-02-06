@@ -1,6 +1,6 @@
 # Code Review Criteria
 
-Standards and criteria used by the code-reviewer agent when reviewing commits.
+These criteria are applied by the `pr-review-toolkit:code-reviewer` agent during the `/code:review-commit` workflow.
 
 ## Code Quality
 - Readability and maintainability
