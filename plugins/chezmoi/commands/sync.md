@@ -50,7 +50,7 @@ Updated files:
 
 | Situation | Action |
 |-----------|--------|
-| Local has changes you want to keep | Run `/chezmoi:commit` to push to source |
+| Local has changes you want to keep | Run `/chezmoi:chezmoi-commit` to push to source |
 | Source has updates you want | Run `chezmoi apply` to apply to local |
 
 ## Error Handling
@@ -83,4 +83,4 @@ Please resolve conflicts manually:
 
 - `chezmoi update` automatically runs git pull and chezmoi apply
 - If there are uncommitted local changes, an error may occur
-- In that case, run `/chezmoi:commit` first
+- In that case, run `/chezmoi:chezmoi-commit` first

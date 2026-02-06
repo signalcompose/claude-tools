@@ -116,7 +116,7 @@ Found old embedded code in your zshrc (~150 lines).
 Recommend migrating to new loader style (7 lines).
 
 Benefits of migration:
-- zshrc stays clean (7 lines vs 150 lines)
+- zshrc stays clean (7 lines vs ~150 lines)
 - Auto-updates via /plugin update
 - Same functionality
 
