@@ -4,7 +4,7 @@ description: |
   Interactive setup wizard for chezmoi dotfiles management with age encryption and 1Password integration.
   Use when: "set up chezmoi", "configure dotfiles", "initialize chezmoi",
   "chezmoi初期設定", "dotfiles設定", "1Password連携".
-user-invocable: true
+user-invocable: false
 ---
 
 # Chezmoi Setup Wizard
