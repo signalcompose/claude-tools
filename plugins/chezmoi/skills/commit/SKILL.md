@@ -1,5 +1,5 @@
 ---
-name: chezmoi-commit
+name: commit
 description: |
   Commit and push changed dotfiles to remote repository.
   Use when: "commit dotfiles", "push dotfiles", "save dotfile changes",

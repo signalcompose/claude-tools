@@ -28,18 +28,11 @@ Claude Code integration for [chezmoi](https://www.chezmoi.io/) dotfiles manageme
 
 | Skill | Description |
 |-------|-------------|
-| `/chezmoi:chezmoi-setup` | Interactive setup wizard for chezmoi dotfiles management with age encryption and 1Password integration |
-| `/chezmoi:chezmoi-commit` | Commit and push changed dotfiles to remote repository |
+| `/chezmoi:check` | Check dotfiles status and sync state with remote |
+| `/chezmoi:sync` | Sync dotfiles from remote repository and apply changes |
+| `/chezmoi:setup` | Interactive setup wizard for chezmoi dotfiles management with age encryption and 1Password integration |
+| `/chezmoi:commit` | Commit and push changed dotfiles to remote repository |
 | `/chezmoi:shell-sync-setup` | Install shell startup sync checker for chezmoi dotfiles |
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `/chezmoi:check` | Check dotfiles status and sync state |
-| `/chezmoi:sync` | Sync from remote repository |
-
-> **Note**: `/chezmoi:setup`, `/chezmoi:commit`, and `/chezmoi:setup-shell-check` have been replaced by skills above. Legacy command stubs redirect to the new skills.
 
 ### Shell Startup Sync Checker
 
@@ -84,7 +77,7 @@ Pulls latest changes from remote and applies them to your system.
 ### Commit Changes
 
 ```
-/chezmoi:chezmoi-commit
+/chezmoi:commit
 ```
 
 Interactive workflow:
@@ -97,7 +90,7 @@ Interactive workflow:
 ### Initial Setup
 
 ```
-/chezmoi:chezmoi-setup
+/chezmoi:setup
 ```
 
 Interactive wizard for:
@@ -119,7 +112,7 @@ chezmoi manages dotfiles by:
 2. Tracking changes with Git
 3. Applying files to home directory with `chezmoi apply`
 
-This plugin provides Claude Code skills and commands to streamline the workflow.
+This plugin provides Claude Code skills to streamline the workflow.
 
 ```
 ~/.local/share/chezmoi/     # Source (Git-managed)
