@@ -4,7 +4,7 @@ description: |
   Commit and push changed dotfiles to remote repository.
   Use when: "commit dotfiles", "push dotfiles", "save dotfile changes",
   "dotfilesコミット", "dotfiles反映".
-user-invocable: true
+user-invocable: false
 ---
 
 # Chezmoi Commit
