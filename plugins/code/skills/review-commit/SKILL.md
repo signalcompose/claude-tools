@@ -34,8 +34,6 @@ For review criteria details, see [references/review-criteria.md](references/revi
 
 **MANDATORY**: Run the approval script.
 
-```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/approve-review.sh
-```
+Approve: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/approve-review.sh`
 
 This saves a hash of the staged changes that the pre-commit hook verifies.
