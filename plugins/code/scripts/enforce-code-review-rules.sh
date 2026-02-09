@@ -36,7 +36,7 @@ cat << 'EOF'
    → NEVER analyze code quality/security yourself
 
 3. APPROVAL PROCESS (after review passes):
-   → MUST run: bash ${CLAUDE_PLUGIN_ROOT}/scripts/approve-review.sh
+   → MUST run: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/approve-review.sh`
    → This saves a hash that the pre-commit hook verifies
    → NEVER approve by just outputting "review passed" or "approved"
 
