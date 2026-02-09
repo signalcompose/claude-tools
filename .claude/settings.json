@@ -6,8 +6,6 @@
       "Grep(*)"
     ],
     "ask": [
-      "Write(*)",
-      "Edit(*)",
       "Bash(git :*)",
       "Bash(gh :*)"
     ],

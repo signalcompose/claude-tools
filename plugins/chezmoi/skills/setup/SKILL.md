@@ -1,5 +1,5 @@
 ---
-name: chezmoi-setup
+name: setup
 description: |
   Interactive setup wizard for chezmoi dotfiles management with age encryption and 1Password integration.
   Use when: "set up chezmoi", "configure dotfiles", "initialize chezmoi",
