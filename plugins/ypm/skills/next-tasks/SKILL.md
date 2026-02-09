@@ -5,7 +5,7 @@ description: |
   Use when the user asks "what should I work on next", "show priorities",
   "next tasks", "what's pending", "which project needs attention",
   "次何やる", "次のタスク", "優先度の高いタスク", or "何から始める".
-user-invocable: true
+user-invocable: false
 ---
 
 <!-- Language Handling: Check ~/.ypm/config.yml for settings.language -->

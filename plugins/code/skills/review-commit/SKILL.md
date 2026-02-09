@@ -4,7 +4,7 @@ description: |
   Review staged git changes for code quality, security, and best practices before committing.
   Use when: "review my code", "check before commit", "code review",
   "コードレビュー", "コミット前チェック".
-user-invocable: true
+user-invocable: false
 ---
 
 # Code Review for Commit

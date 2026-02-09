@@ -4,7 +4,7 @@ description: |
   Sync dotfiles from remote repository and apply changes.
   Use when: "sync dotfiles", "pull dotfiles", "update dotfiles",
   "dotfiles同期", "リモートから取得".
-user-invocable: true
+user-invocable: false
 ---
 
 # Chezmoi Sync
