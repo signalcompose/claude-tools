@@ -1,10 +1,5 @@
 ---
-name: check
-description: |
-  Check dotfiles status and sync state with remote repository.
-  Use when: "check dotfiles", "dotfiles status", "chezmoi status",
-  "dotfiles確認", "同期状態チェック".
-user-invocable: false
+description: "Check dotfiles status and sync state with remote repository"
 ---
 
 # Chezmoi Status Check
