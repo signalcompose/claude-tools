@@ -18,7 +18,7 @@ If no staged changes, report "No staged changes to review" and exit.
 
 Prompt: "Review the staged changes (git diff --staged) for this commit. Check for CLAUDE.md compliance, bugs, and code quality issues. Report only issues with confidence >= 80."
 
-For review criteria details: !`cat ${CLAUDE_PLUGIN_ROOT}/skills/review-commit/references/review-criteria.md`
+For review criteria details, see [references/review-criteria.md](references/review-criteria.md).
 
 ## Step 3: Handle Review Results
 

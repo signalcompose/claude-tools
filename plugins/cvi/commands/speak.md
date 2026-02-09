@@ -7,11 +7,15 @@ user-invocable: false
 
 テキストをCVI設定に従って読み上げます。
 
-**実行結果**:
-!`bash ${CLAUDE_PLUGIN_ROOT}/scripts/speak.sh $ARGUMENTS`
+**手順**:
 
-上記の結果を確認し、以下の形式でユーザーに表示してください（絵文字不可）:
+1. CVI が有効か確認（`~/.cvi/config` の `CVI_ENABLED` が `on` であること）
+2. 無効の場合: "CVI is disabled. Enable with: /cvi:state on" と表示して終了
+3. 有効の場合: Write tool を使用して `~/.cvi/speak-queue` に `$ARGUMENTS` を書き込む
+4. 成功したら、以下の形式で表示:
 
 ```
-Voice: "読み上げたテキスト"
+Speaking: <メッセージ内容>
 ```
+
+**注意**: 実際の音声再生は PostToolUse hook で自動的に処理されます。
