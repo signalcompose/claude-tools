@@ -4,7 +4,7 @@ description: |
   Install shell startup sync checker for chezmoi dotfiles.
   Use when: "set up shell sync", "install chezmoi checker",
   "シェル同期チェッカー設定", "起動時チェック設定".
-user-invocable: false
+user-invocable: true
 ---
 
 # Chezmoi Shell Sync Checker Setup
