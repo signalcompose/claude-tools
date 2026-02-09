@@ -57,3 +57,22 @@ else
   echo "💡 Next steps:"
   echo "  - Run /chezmoi:setup to configure chezmoi"
 fi
+
+# Step 3: Check for old embedded sync checker
+ZSHRC_SOURCE="$HOME/.local/share/chezmoi/dot_zshrc"
+if [ ! -f "$ZSHRC_SOURCE" ]; then
+  ZSHRC_SOURCE="$HOME/.zshrc"
+fi
+
+if [ -f "$ZSHRC_SOURCE" ]; then
+  HAS_OLD_EMBED=$(grep -c '_chezmoi_check_sync' "$ZSHRC_SOURCE" 2>/dev/null || true)
+  HAS_LOADER=$(grep -c 'shell-check.zsh' "$ZSHRC_SOURCE" 2>/dev/null || true)
+
+  if [ "$HAS_OLD_EMBED" -gt 0 ] && [ "$HAS_LOADER" -eq 0 ]; then
+    echo ""
+    echo "⚠️  Shell sync checker:"
+    echo "  Old embedded code detected in your zshrc."
+    echo "  This version has a known bug on macOS (timeout command missing)."
+    echo "  Run /chezmoi:shell-sync-setup to migrate to the new loader style."
+  fi
+fi
