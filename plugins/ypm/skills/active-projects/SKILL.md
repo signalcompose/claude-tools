@@ -5,7 +5,7 @@ description: |
   Use when the user asks "show active projects", "what am I working on",
   "recent projects", "current projects",
   "アクティブなプロジェクト", "最近のプロジェクト", or "今やってるプロジェクト".
-user-invocable: true
+user-invocable: false
 ---
 
 <!-- Language Handling: Check ~/.ypm/config.yml for settings.language -->

@@ -5,7 +5,7 @@ description: |
   Use when the user asks "update project status", "scan projects",
   "refresh status", "check all projects", "what changed in my projects",
   "プロジェクトのステータス更新", "プロジェクトをスキャン", or "全プロジェクトの状態確認".
-user-invocable: true
+user-invocable: false
 ---
 
 <!-- Language Handling: Check ~/.ypm/config.yml for settings.language -->

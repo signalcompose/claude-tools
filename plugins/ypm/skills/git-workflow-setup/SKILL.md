@@ -5,7 +5,7 @@ description: |
   Use when the user asks "set up git flow", "configure branch protection",
   "set up git workflow", "protect branches",
   "Gitフロー設定", "ブランチ保護設定", or "ワークフロー設定".
-user-invocable: true
+user-invocable: false
 ---
 
 # Git Workflow Setup

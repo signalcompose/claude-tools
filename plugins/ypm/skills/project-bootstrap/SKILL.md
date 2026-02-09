@@ -5,7 +5,7 @@ description: |
   Use when the user asks "create a new project", "start a project",
   "bootstrap project", "set up a new repo", "initialize project",
   "新しいプロジェクト作成", "プロジェクトを始める", or "プロジェクト立ち上げ".
-user-invocable: true
+user-invocable: false
 ---
 
 # Project Bootstrap Wizard
