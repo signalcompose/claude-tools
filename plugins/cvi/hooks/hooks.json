@@ -53,6 +53,21 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": {
+          "tool": "Skill",
+          "args.skill": "cvi:speak"
+        },
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-speak.sh",
+            "timeout": 30000
+          }
+        ]
+      }
     ]
   }
 }
