@@ -1,0 +1,260 @@
+#!/bin/bash
+
+# CVI - Claude Voice Integration
+# Auto-detection settings command
+
+CONFIG_FILE="$HOME/.cvi/config"
+
+# Ensure config directory exists
+mkdir -p "$(dirname "$CONFIG_FILE")"
+
+# Create config file if it doesn't exist
+if [ ! -f "$CONFIG_FILE" ]; then
+    cat > "$CONFIG_FILE" <<EOF
+CVI_ENABLED=on
+SPEECH_RATE=200
+VOICE_LANG=ja
+VOICE_EN=Samantha
+VOICE_JA=system
+AUTO_DETECT_LANG=false
+VOICE_MODE=auto
+EOF
+fi
+
+# Show usage
+usage() {
+    cat <<EOF
+CVI - Auto-Detection Settings
+
+Usage:
+  cvi-auto                Show current auto-detection settings
+  cvi-auto on             Enable language auto-detection
+  cvi-auto off            Disable language auto-detection (default)
+  cvi-auto status         Show detailed status with examples
+
+What is Auto-Detection?
+  When enabled, CVI will automatically detect the language of the [VOICE] tag
+  content and select the appropriate voice (Japanese or English).
+
+How it works:
+  1. Detects if text contains Japanese characters (hiragana/katakana/kanji)
+  2. If Japanese detected → Use VOICE_JA voice
+  3. If no Japanese detected → Use VOICE_EN voice
+  4. Works in combination with voice mode settings
+
+Examples:
+  With auto-detection ON and mode=auto:
+    [VOICE]タスクが完了しました[/VOICE]  → Uses VOICE_JA (e.g., system/Kyoko)
+    [VOICE]Task completed[/VOICE]       → Uses VOICE_EN (e.g., Zoe/Samantha)
+
+  With auto-detection OFF (default):
+    All messages use voice based on VOICE_LANG setting
+    VOICE_LANG=ja → Always use VOICE_JA
+    VOICE_LANG=en → Always use VOICE_EN
+
+Note:
+- Auto-detection only affects voice selection, not the fallback message language
+- Use 'cvi-lang' to set the fallback message language
+- Use 'cvi-voice' to configure specific voices for each language
+EOF
+}
+
+# Show current status
+show_status() {
+    echo "=== CVI Auto-Detection Status ==="
+    echo ""
+
+    # Load current settings
+    local auto_detect=$(grep "^AUTO_DETECT_LANG=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    local voice_mode=$(grep "^VOICE_MODE=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    local voice_lang=$(grep "^VOICE_LANG=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    local voice_en=$(grep "^VOICE_EN=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    local voice_ja=$(grep "^VOICE_JA=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    local voice_fixed=$(grep "^VOICE_FIXED=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+
+    # Set defaults if not found
+    auto_detect=${auto_detect:-false}
+    voice_mode=${voice_mode:-auto}
+    voice_lang=${voice_lang:-ja}
+    voice_en=${voice_en:-Samantha}
+    voice_ja=${voice_ja:-system}
+
+    # Display status
+    if [ "$auto_detect" = "true" ]; then
+        echo "Language Auto-Detection: ✅ ENABLED"
+        echo ""
+        echo "How it works:"
+        echo "  1. CVI analyzes [VOICE] tag content"
+        echo "  2. If Japanese characters detected → Use '$voice_ja' voice"
+        echo "  3. If no Japanese detected → Use '$voice_en' voice"
+    else
+        echo "Language Auto-Detection: ❌ DISABLED"
+        echo ""
+        echo "Current behavior:"
+        echo "  All messages use voice based on VOICE_LANG setting"
+        echo "  VOICE_LANG='$voice_lang' → "
+        if [ "$voice_lang" = "ja" ]; then
+            echo "  Always uses '$voice_ja' voice"
+        else
+            echo "  Always uses '$voice_en' voice"
+        fi
+    fi
+
+    echo ""
+    echo "Related Settings:"
+    echo "  Voice Mode: $voice_mode"
+    if [ "$voice_mode" = "fixed" ] && [ -n "$voice_fixed" ]; then
+        echo "  Fixed Voice: $voice_fixed (overrides auto-detection)"
+    else
+        echo "  English Voice: $voice_en"
+        echo "  Japanese Voice: $voice_ja"
+    fi
+    echo "  Fallback Language: $voice_lang"
+}
+
+# Show detailed status with examples
+show_detailed_status() {
+    show_status
+    echo ""
+    echo "=== Example Scenarios ==="
+    echo ""
+
+    # Load current settings
+    local auto_detect=$(grep "^AUTO_DETECT_LANG=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    local voice_mode=$(grep "^VOICE_MODE=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    local voice_lang=$(grep "^VOICE_LANG=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    local voice_en=$(grep "^VOICE_EN=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    local voice_ja=$(grep "^VOICE_JA=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    local voice_fixed=$(grep "^VOICE_FIXED=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+
+    # Set defaults
+    auto_detect=${auto_detect:-false}
+    voice_mode=${voice_mode:-auto}
+    voice_lang=${voice_lang:-ja}
+    voice_en=${voice_en:-Samantha}
+    voice_ja=${voice_ja:-system}
+
+    if [ "$voice_mode" = "fixed" ] && [ -n "$voice_fixed" ]; then
+        echo "Mode: FIXED (Always uses '$voice_fixed')"
+        echo ""
+        echo "  [VOICE]完了しました[/VOICE]  → '$voice_fixed' voice"
+        echo "  [VOICE]Completed[/VOICE]     → '$voice_fixed' voice"
+    elif [ "$auto_detect" = "true" ]; then
+        echo "Mode: AUTO with AUTO-DETECTION"
+        echo ""
+        echo "  [VOICE]完了しました[/VOICE]  → '$voice_ja' voice (Japanese detected)"
+        echo "  [VOICE]Completed[/VOICE]     → '$voice_en' voice (English detected)"
+        echo "  Mixed text → Voice selected based on presence of Japanese characters"
+    else
+        echo "Mode: AUTO without AUTO-DETECTION"
+        echo ""
+        if [ "$voice_lang" = "ja" ]; then
+            echo "  All messages → '$voice_ja' voice (VOICE_LANG=ja)"
+        else
+            echo "  All messages → '$voice_en' voice (VOICE_LANG=en)"
+        fi
+    fi
+
+    echo ""
+    echo "=== Testing ==="
+    echo ""
+    echo "Test current settings with:"
+    echo "  echo '[VOICE]テストメッセージ[/VOICE]' | ~/.claude/scripts/test-voice.sh"
+    echo "  echo '[VOICE]Test message[/VOICE]' | ~/.claude/scripts/test-voice.sh"
+}
+
+# Enable auto-detection
+enable_auto() {
+    if grep -q "^AUTO_DETECT_LANG=" "$CONFIG_FILE"; then
+        sed -i '' "s/^AUTO_DETECT_LANG=.*/AUTO_DETECT_LANG=true/" "$CONFIG_FILE"
+    else
+        echo "AUTO_DETECT_LANG=true" >> "$CONFIG_FILE"
+    fi
+
+    echo "✅ Language auto-detection ENABLED"
+    echo ""
+    echo "CVI will now automatically detect language and select the appropriate voice."
+    echo ""
+    echo "Testing with sample messages..."
+
+    # Test Japanese
+    echo "Japanese test:"
+    if [ "$(grep "^VOICE_JA=" "$CONFIG_FILE" | cut -d'=' -f2)" = "system" ]; then
+        say "テストメッセージ。日本語を検出しました。"
+    else
+        local voice_ja=$(grep "^VOICE_JA=" "$CONFIG_FILE" | cut -d'=' -f2)
+        say -v "$voice_ja" "テストメッセージ。日本語を検出しました。"
+    fi
+
+    # Test English
+    echo "English test:"
+    if [ "$(grep "^VOICE_EN=" "$CONFIG_FILE" | cut -d'=' -f2)" = "system" ]; then
+        say "Test message. English detected."
+    else
+        local voice_en=$(grep "^VOICE_EN=" "$CONFIG_FILE" | cut -d'=' -f2)
+        say -v "$voice_en" "Test message. English detected."
+    fi
+}
+
+# Disable auto-detection
+disable_auto() {
+    if grep -q "^AUTO_DETECT_LANG=" "$CONFIG_FILE"; then
+        sed -i '' "s/^AUTO_DETECT_LANG=.*/AUTO_DETECT_LANG=false/" "$CONFIG_FILE"
+    else
+        echo "AUTO_DETECT_LANG=false" >> "$CONFIG_FILE"
+    fi
+
+    echo "✅ Language auto-detection DISABLED"
+    echo ""
+
+    local voice_lang=$(grep "^VOICE_LANG=" "$CONFIG_FILE" | cut -d'=' -f2)
+    voice_lang=${voice_lang:-ja}
+
+    echo "CVI will use voice based on VOICE_LANG setting (currently: $voice_lang)"
+    echo ""
+    echo "Testing with sample message..."
+
+    if [ "$voice_lang" = "ja" ]; then
+        local voice_ja=$(grep "^VOICE_JA=" "$CONFIG_FILE" | cut -d'=' -f2)
+        voice_ja=${voice_ja:-system}
+        if [ "$voice_ja" = "system" ]; then
+            say "自動検出を無効にしました。常に日本語音声を使用します。"
+        else
+            say -v "$voice_ja" "自動検出を無効にしました。常に日本語音声を使用します。"
+        fi
+    else
+        local voice_en=$(grep "^VOICE_EN=" "$CONFIG_FILE" | cut -d'=' -f2)
+        voice_en=${voice_en:-Samantha}
+        if [ "$voice_en" = "system" ]; then
+            say "Auto-detection disabled. Always using English voice."
+        else
+            say -v "$voice_en" "Auto-detection disabled. Always using English voice."
+        fi
+    fi
+}
+
+# Main
+case "$1" in
+    "")
+        show_status
+        ;;
+    on|enable)
+        enable_auto
+        ;;
+    off|disable)
+        disable_auto
+        ;;
+    status)
+        show_detailed_status
+        ;;
+    help|--help|-h)
+        usage
+        ;;
+    *)
+        echo "Error: Unknown command '$1'"
+        echo ""
+        echo "Valid commands: on, off, status"
+        echo "Use 'cvi-auto help' for more information"
+        exit 1
+        ;;
+esac

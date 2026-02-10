@@ -1,0 +1,22 @@
+# CODEOWNERS
+# These owners will be the default owners for everything in the repo
+# They will be requested for review when someone opens a pull request.
+
+# Global owner
+* @dropcontrol
+
+# GitHub configuration files
+/.github/ @dropcontrol
+
+# CI/CD workflows
+/.github/workflows/ @dropcontrol
+
+# Scripts and executables
+/scripts/ @dropcontrol
+
+# Configuration files
+/*.md @dropcontrol
+/LICENSE @dropcontrol
+
+# Documentation
+/docs/ @dropcontrol
