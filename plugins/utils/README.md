@@ -1,48 +1,10 @@
 # utils
 
-Utility commands and skills for Claude Code plugin management and testing.
+Utility commands for Claude Code plugin management.
 
 ## Overview
 
-This plugin provides utility commands and skills to help manage and test Claude Code plugins. It includes workarounds for plugin cache issues and an interactive testing framework.
-
-## Skills
-
-### `/utils:plugin-test <plugin-name>`
-
-Interactive plugin testing with automated validation and step-by-step manual test guidance.
-
-**Features**:
-- **Phase 1: Automated Validation** (5 checks)
-  - Script syntax validation
-  - Executable permissions check
-  - Hook configuration verification
-  - File structure validation
-  - Sandbox compatibility scan
-
-- **Phase 2: Manual Testing** (interactive)
-  - Plugin type detection (Hook-based, Voice/Audio, Team/Agent, Utility)
-  - Step-by-step test guidance
-  - User confirmation for each test
-  - Result recording and summary
-
-**Usage**:
-```
-/utils:plugin-test code
-/utils:plugin-test cvi
-/utils:plugin-test ypm
-```
-
-**Benefits**:
-- Reduces manual test time by 50%
-- Provides consistent test coverage
-- Automates repetitive checks
-- Guides through manual tests interactively
-- Generates test summary report
-
-See `skills/plugin-test/SKILL.md` for detailed documentation.
-
----
+This plugin provides utility commands to help manage Claude Code plugins. It includes workarounds for plugin cache issues.
 
 ## Available Commands
 

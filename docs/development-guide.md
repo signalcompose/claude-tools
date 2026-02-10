@@ -279,10 +279,10 @@ claude plugin validate .
 
 #### Phase 2補助: インタラクティブプラグインテスト（推奨）
 
-**新機能**: `/utils:plugin-test` スキルを使用した対話型テスト
+**新機能**: `/plugin-test` スキル（プロジェクト専用）を使用した対話型テスト
 
 ```
-/utils:plugin-test <plugin-name>
+/plugin-test <plugin-name>
 ```
 
 **特徴**:
@@ -295,12 +295,12 @@ claude plugin validate .
 
 **使用例**:
 ```
-/utils:plugin-test code
-/utils:plugin-test cvi
-/utils:plugin-test ypm
+/plugin-test code
+/plugin-test cvi
+/plugin-test ypm
 ```
 
-**詳細**: `plugins/utils/skills/plugin-test/SKILL.md`
+**詳細**: `.claude/skills/plugin-test/SKILL.md`
 
 ---
 

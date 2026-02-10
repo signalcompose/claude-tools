@@ -500,7 +500,7 @@ If issues persist after trying these solutions:
 
 1. **Re-run validation**:
 ```
-/utils:plugin-test <plugin>
+/plugin-test <plugin>
 ```
 
 2. **Check documentation**:
