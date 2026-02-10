@@ -13,12 +13,6 @@ SignalComposeが提供するClaude Codeプラグインのマーケットプレ�
 | [development-guide.md](./development-guide.md) | プラグイン開発ガイド |
 | [onboarding.md](./onboarding.md) | 新規コントリビューター向けガイド |
 
-## Development Tools
-
-| Tool | Description |
-|------|-------------|
-| [.claude/skills/plugin-test/](../.claude/skills/plugin-test/SKILL.md) | インタラクティブプラグインテスト（プロジェクト専用） |
-
 ## Research
 
 - [research/](./research/) - 調査・検討内容のドキュメント

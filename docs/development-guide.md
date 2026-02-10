@@ -214,97 +214,6 @@ claude plugin validate .
 
 ---
 
-## プラグインのローカルテスト
-
-### 問題
-
-**マーケットプレイスとして公開しているリポジトリ**で、featureブランチの変更をmainにmergeせずにテストする方法が必要です。
-
-**なぜ重要か**:
-- mainにmergeすると`/plugin update`でauto updateしているユーザーがバグに巻き込まれる
-- 開発中の変更を**Claude Code上で実際に実行**してテストしたい
-- 「push → merge → /plugin update」のサイクルでは開発速度が遅い
-
-### 解決策
-
-#### 方法A: Docker Sandboxes（推奨 ⭐⭐⭐）
-
-Docker Desktopの`docker sandbox run`コマンドを使用して、microVM隔離環境でプラグインをテストします。
-
-**特徴**:
-- ✅ microVM隔離（最高レベルのセキュリティ）
-- ✅ Dockerfile不要（自動セットアップ）
-- ✅ ホスト環境に一切影響なし
-- ✅ 本番環境のプラグインキャッシュと完全分離
-
-**ワークフロー**:
-```bash
-# ===== Terminal 1（ホスト環境）=====
-git checkout feature/your-feature
-vim plugins/utils/scripts/xxx.sh
-
-# ===== Terminal 2（別ターミナル）=====
-cd ~/Src/proj_claude-tools/claude-tools
-docker sandbox run claude .
-
-# ===== Terminal 2（Sandbox内のClaude Code）=====
->> /plugin-test plugins/utils
->> /utils:clear-plugin-cache cvi --dry-run
->> exit
-
-# ===== Terminal 1（ホスト環境に戻る）=====
-# テスト結果を確認して、問題なければマージ
-```
-
-**詳細**: `docs/testing/docker-sandboxes-guide.md`
-
-#### 方法B: --plugin-dir（簡易 ⭐）
-
-Dockerが使えない環境では、`claude --plugin-dir`でセッション分離が可能です。
-
-**ワークフロー**:
-```bash
-git checkout feature/your-feature
-claude --plugin-dir plugins/utils
-
-/plugin-test .
-/utils:clear-plugin-cache cvi --dry-run
-exit
-```
-
-**特徴**:
-- セットアップ不要（最も手軽）
-- セッション分離（Dockerほど完全ではない）
-- ホスト環境で実行
-
-### 完全なテストフロー
-
-```
-開発 → Docker Sandboxesでテスト → 問題修正 → 再テスト → mainにマージ → /plugin update
-```
-
-**Before（従来）**:
-```
-開発 → merge → /plugin update → バグ発見 → 修正 → merge → ...
-```
-
-**After（改善後）**:
-```
-開発 → Sandboxテスト → 修正 → Sandboxテスト → merge（安全）
-```
-
-### テストツール
-
-**構造検証と統合テスト**: `/plugin-test <plugin-name-or-path>`
-- Phase 1（自動）: スクリプト構文、権限、Hook設定、ファイル構造、サンドボックス互換性
-- Phase 2（手動）: 実際のコマンド/スキル実行、Hook動作確認
-
-**詳細**:
-- Docker Sandboxes: `docs/testing/docker-sandboxes-guide.md`
-- plugin-testスキル: `.claude/skills/plugin-test/SKILL.md`
-
----
-
 ## トラブルシューティング
 
 ### プラグインが認識されない
@@ -368,33 +277,6 @@ exit
 2. **未変更プラグインのスモークテスト**: 基本コマンドの動作確認
 3. **プラグイン間相互作用の確認**: Hook共存、連携動作の確認
 
-#### Phase 2補助: インタラクティブプラグインテスト（推奨）
-
-**新機能**: `/plugin-test` スキル（プロジェクト専用）を使用した対話型テスト
-
-```
-/plugin-test <plugin-name>
-```
-
-**特徴**:
-- Phase 1相当の自動検証を即座に実行
-- プラグイン種別を自動検出（Hook-based, Voice/Audio, Team/Agent, Utility）
-- ステップバイステップで手動テストをガイド
-- テスト結果のサマリーを自動生成
-
-**所要時間**: 手動テスト時間を約50%削減（3時間 → 1.5時間）
-
-**使用例**:
-```
-/plugin-test code
-/plugin-test cvi
-/plugin-test ypm
-```
-
-**詳細**: `.claude/skills/plugin-test/SKILL.md`
-
----
-
 #### Phase 3: 結果記録（30分）
 
 テスト結果をチェックリスト形式で記録。
@@ -409,9 +291,8 @@ exit
 
 ### 所要時間見積もり
 
-- **完全テスト（従来）**: 3-4時間（Phase 1-3すべて）
-- **完全テスト（plugin-test使用）**: 2-2.5時間（Phase 1-3すべて、50%削減）
-- **最小限テスト**: 1-1.5時間（変更プラグイン + plugin-test）
+- **完全テスト**: 3-4時間（Phase 1-3すべて）
+- **最小限テスト**: 1-1.5時間（変更プラグインのみ）
 
 ### テスト結果の活用
 
