@@ -2,6 +2,14 @@
 
 Detailed validation rules for plugin automated testing.
 
+## Path Conventions
+
+Throughout this document, `<PLUGIN_ROOT>` represents the plugin directory path:
+- **In documentation**: `<PLUGIN_ROOT>/` = generic plugin path (e.g., `plugins/code/`)
+- **In runtime**: `${CLAUDE_PLUGIN_ROOT}` = actual installed path (e.g., `~/.claude/plugins/cache/claude-tools/code/abc123/`)
+
+Examples use concrete plugin names (e.g., `plugins/code/`) for clarity, but validation logic should use `<PLUGIN_ROOT>/` as the parameterized path.
+
 ---
 
 ## Check 1: Script Syntax Validation
@@ -15,7 +23,7 @@ Verify all shell scripts have valid bash syntax without executing them.
 Use `bash -n` (dry run mode) to check syntax:
 
 ```bash
-bash -n plugins/<plugin>/scripts/<script>.sh
+bash -n <PLUGIN_ROOT>/scripts/<script>.sh
 ```
 
 ### Success Criteria
@@ -24,6 +32,8 @@ bash -n plugins/<plugin>/scripts/<script>.sh
 - Exit code != 0: Syntax error
 
 ### Examples
+
+**Note**: Examples use concrete plugin names (`plugins/code/`, `plugins/bad/`) for clarity. Replace with actual plugin path when validating.
 
 **Good script** (no syntax errors):
 ```bash
@@ -73,7 +83,7 @@ Verify scripts have execute permission so they can be run by hooks.
 Use `test -x` to check executable bit:
 
 ```bash
-test -x plugins/<plugin>/scripts/<script>.sh
+test -x <PLUGIN_ROOT>/scripts/<script>.sh
 echo $?  # 0 = executable, 1 = not executable
 ```
 
@@ -83,6 +93,8 @@ echo $?  # 0 = executable, 1 = not executable
 - Exit code 1: Script is not executable
 
 ### Examples
+
+**Note**: Examples show concrete paths for illustration. Validation applies to `<PLUGIN_ROOT>/`.
 
 **Executable script**:
 ```bash
@@ -100,7 +112,7 @@ test -x plugins/bad/scripts/missing-x.sh
 
 Add execute permission:
 ```bash
-chmod +x plugins/<plugin>/scripts/<script>.sh
+chmod +x <PLUGIN_ROOT>/scripts/<script>.sh
 ```
 
 ### Why This Matters
@@ -119,12 +131,12 @@ Verify hooks.json is valid and references existing, executable scripts.
 
 1. **Validate JSON syntax**:
 ```bash
-jq empty plugins/<plugin>/hooks/hooks.json
+jq empty <PLUGIN_ROOT>/hooks/hooks.json
 ```
 
 2. **Extract hook commands**:
 ```bash
-jq -r '.hooks[] | .[] | .hooks[] | .command' hooks.json
+jq -r '.hooks[] | .[] | .hooks[] | .command' <PLUGIN_ROOT>/hooks/hooks.json
 ```
 
 3. **For each command**:
@@ -166,14 +178,14 @@ jq -r '.hooks[] | .[] | .hooks[] | .command' hooks.json
 
 **Step 1: Parse hook command**
 ```bash
-COMMAND=$(jq -r '.hooks.PreToolUse[0].hooks[0].command' hooks.json)
+COMMAND=$(jq -r '.hooks.PreToolUse[0].hooks[0].command' <PLUGIN_ROOT>/hooks/hooks.json)
 # Output: bash ${CLAUDE_PLUGIN_ROOT}/scripts/check.sh
 ```
 
 **Step 2: Extract script path**
 ```bash
-SCRIPT_PATH=$(echo "$COMMAND" | sed 's/.*${CLAUDE_PLUGIN_ROOT}/plugins\/<plugin>/')
-# Output: plugins/<plugin>/scripts/check.sh
+SCRIPT_PATH=$(echo "$COMMAND" | sed 's|.*\${CLAUDE_PLUGIN_ROOT}|<PLUGIN_ROOT>|')
+# Output: <PLUGIN_ROOT>/scripts/check.sh
 ```
 
 **Step 3: Verify script exists**
@@ -190,6 +202,8 @@ test -x "$SCRIPT_PATH"
 
 ### Examples
 
+**Note**: Validation expands `${CLAUDE_PLUGIN_ROOT}` to `<PLUGIN_ROOT>/` for checking.
+
 **Valid hook**:
 ```json
 {
@@ -198,7 +212,7 @@ test -x "$SCRIPT_PATH"
 }
 ```
 - ✓ Valid hook type
-- ✓ Script exists: `plugins/code/scripts/check-code-review.sh`
+- ✓ Script exists: `<PLUGIN_ROOT>/scripts/check-code-review.sh`
 - ✓ Script is executable
 
 **Invalid hook** (missing script):
@@ -260,15 +274,15 @@ Verify plugin has required files and at least one functional component.
 
 ```bash
 # Check plugin.json
-test -f plugins/<plugin>/.claude-plugin/plugin.json
+test -f <PLUGIN_ROOT>/.claude-plugin/plugin.json
 
 # Check README.md
-test -f plugins/<plugin>/README.md
+test -f <PLUGIN_ROOT>/README.md
 
 # Check at least one component exists
-test -d plugins/<plugin>/commands || \
-test -d plugins/<plugin>/skills || \
-test -f plugins/<plugin>/hooks/hooks.json
+test -d <PLUGIN_ROOT>/commands || \
+test -d <PLUGIN_ROOT>/skills || \
+test -f <PLUGIN_ROOT>/hooks/hooks.json
 ```
 
 ### Success Criteria
@@ -278,6 +292,8 @@ test -f plugins/<plugin>/hooks/hooks.json
 - ✓ At least one of: commands/, skills/, hooks/
 
 ### Examples
+
+**Note**: Directory structure shows concrete plugin name for illustration. Paths map to `<PLUGIN_ROOT>/`.
 
 **Valid structure**:
 ```
@@ -345,7 +361,7 @@ TEMP="/tmp/my-file"  # ✗ Bad
 
 3. **Absolute paths without `${CLAUDE_PLUGIN_ROOT}`**:
 ```bash
-/Users/yamato/.claude/plugins/.../script.sh  # ✗ Bad
+/Users/<username>/.claude/plugins/.../script.sh  # ✗ Bad
 ```
 
 ### Detection Method
@@ -353,17 +369,19 @@ TEMP="/tmp/my-file"  # ✗ Bad
 **Scan for bad patterns**:
 ```bash
 # Check for hardcoded ~/.claude/ (excluding comments)
-grep -n '~/.claude' plugins/<plugin>/scripts/*.sh | \
+grep -n '~/.claude' <PLUGIN_ROOT>/scripts/*.sh | \
   grep -v CLAUDE_PLUGIN_ROOT | \
   grep -v '^[[:space:]]*#'
 
 # Check for /tmp/ without /tmp/claude/ (catches quoted and unquoted)
-grep -n '/tmp/' plugins/<plugin>/scripts/*.sh | \
+grep -n '/tmp/' <PLUGIN_ROOT>/scripts/*.sh | \
   grep -v '/tmp/claude' | \
   grep -v '^[[:space:]]*#'
 ```
 
 ### Examples
+
+**Note**: Scripts use `${CLAUDE_PLUGIN_ROOT}` at runtime, which expands to the actual install path.
 
 **Good script**:
 ```bash
@@ -384,7 +402,7 @@ source "${PLUGIN_ROOT}/scripts/common.sh"
 CONFIG="~/.claude/config"
 TEMP="/tmp/my-file"
 
-source /Users/yamato/.claude/plugins/code/scripts/common.sh
+source /Users/<username>/.claude/plugins/code/scripts/common.sh
 ```
 - ✗ Hardcoded `~/.claude/`
 - ✗ Direct `/tmp/` usage

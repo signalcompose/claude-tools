@@ -1,5 +1,10 @@
 # Test Patterns by Plugin Type
 
+> **Note**: This guide uses conceptual examples and file paths for illustration purposes.
+> The `plugin-test` skill works with plugins installed at any location. Examples may show
+> paths like `~/.claude/plugins/<plugin>` but actual paths will vary based on your installation
+> (e.g., from marketplace, custom locations, or development directories).
+
 Manual test patterns organized by plugin type.
 
 ---

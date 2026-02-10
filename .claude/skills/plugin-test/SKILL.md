@@ -11,21 +11,96 @@ Test a plugin interactively with automated validation and step-by-step manual te
 ## Usage
 
 ```
-/plugin-test <plugin-name>
+/plugin-test <plugin-name-or-path>
 ```
 
 **Examples**:
-- `/plugin-test code` - Test code plugin
-- `/plugin-test cvi` - Test cvi plugin
-- `/plugin-test ypm` - Test ypm plugin
+- `/plugin-test code` - Simple name (backward compatible)
+- `/plugin-test plugins/utils` - Relative path
+- `/plugin-test ../other-plugin` - Parent directory
+- `/plugin-test /abs/path/to/plugin` - Absolute path
+- `/plugin-test .` - Current directory
+
+## Testing Development Branches Without Merge
+
+**Problem**: Testing feature branch plugins without merging to main (avoids affecting auto-update users).
+
+**Solution A: Docker Sandboxes (Recommended)**
+- microVM isolation with `docker sandbox run claude .`
+- Complete separation from production environment
+- See: `docs/testing/docker-sandboxes-guide.md`
+
+**Solution B: --plugin-dir (Lightweight)**
+- Session isolation with `claude --plugin-dir plugins/xxx`
+- Simpler but less isolated than Docker
 
 ## Instructions for Claude
 
-When user invokes `/plugin-test <plugin-name>`:
+When user invokes `/plugin-test <plugin-name-or-path>`:
+
+### Step 0: Resolve Plugin Path
+
+Before loading plugin information, resolve the plugin directory path from user input.
+
+**Input parameter**: `<plugin-name-or-path>` (can be simple name, relative path, absolute path, or `.`)
+
+**Resolution algorithm**:
+
+1. **Try backward-compatible path first** (for simple plugin names):
+   ```bash
+   # Check if plugins/<input>/.claude-plugin/plugin.json exists
+   test -f "plugins/<input>/.claude-plugin/plugin.json"
+   ```
+   - If exists: `PLUGIN_ROOT="plugins/<input>"`
+   - If not: Continue to step 2
+
+2. **Try direct path** (for relative/absolute paths):
+   ```bash
+   # Check if <input>/.claude-plugin/plugin.json exists
+   test -f "<input>/.claude-plugin/plugin.json"
+   ```
+   - If exists: `PLUGIN_ROOT="<input>"`
+   - If not: Continue to step 3
+
+3. **Error - plugin not found**:
+   ```
+   ✗ Error: Plugin not found
+
+   Searched:
+   - plugins/<input>/.claude-plugin/plugin.json (NOT FOUND)
+   - <input>/.claude-plugin/plugin.json (NOT FOUND)
+
+   Valid examples:
+   - /plugin-test code                    (simple name)
+   - /plugin-test plugins/utils           (relative path)
+   - /plugin-test ../other-plugin         (parent directory)
+   - /plugin-test /abs/path/to/plugin     (absolute path)
+   - /plugin-test .                       (current directory)
+   ```
+   Stop execution - ask user to verify path.
+
+4. **Extract plugin name from plugin.json**:
+   ```bash
+   PLUGIN_NAME=$(jq -r '.name' "<PLUGIN_ROOT>/.claude-plugin/plugin.json")
+   ```
+
+5. **Display resolution result**:
+   ```
+   === Resolved Plugin Path ===
+
+   Plugin path: <PLUGIN_ROOT>
+   Plugin name: <PLUGIN_NAME>
+   ```
+
+**Important notes**:
+- Backward compatibility: `plugins/<input>/` is always tried first
+- Path resolution is case-sensitive
+- Symlinks are supported (resolved to real path)
+- All subsequent steps use `<PLUGIN_ROOT>` as the base directory
 
 ### Step 1: Load Plugin Information
 
-Read the following files from `plugins/<plugin-name>/`:
+Read the following files from `<PLUGIN_ROOT>/`:
 
 1. **Core files** (read in parallel):
    - `.claude-plugin/plugin.json` - Plugin metadata
@@ -59,7 +134,7 @@ Execute these checks **sequentially** (run all checks regardless of failures):
 
 For each `.sh` script in `scripts/`:
 ```bash
-bash -n <script-path>
+bash -n <PLUGIN_ROOT>/scripts/<script-name>.sh
 ```
 
 **Report format**:
@@ -70,7 +145,7 @@ bash -n <script-path>
 
 For each `.sh` script:
 ```bash
-test -x <script-path>
+test -x <PLUGIN_ROOT>/scripts/<script-name>.sh
 ```
 
 **Report format**:
@@ -83,7 +158,7 @@ If `hooks/hooks.json` exists:
 
 1. **Validate JSON syntax**:
 ```bash
-jq empty hooks/hooks.json
+jq empty <PLUGIN_ROOT>/hooks/hooks.json
 ```
 
 2. **For each hook**, extract and verify:
@@ -120,8 +195,8 @@ Scan all `.sh` scripts for common issues:
 **Detection method**:
 ```bash
 # Check for bad patterns
-grep -n '~/.claude' scripts/*.sh | grep -v CLAUDE_PLUGIN_ROOT | grep -v '^[[:space:]]*#'
-grep -n '/tmp/' scripts/*.sh | grep -v '/tmp/claude' | grep -v '^[[:space:]]*#'
+grep -n '~/.claude' <PLUGIN_ROOT>/scripts/*.sh | grep -v CLAUDE_PLUGIN_ROOT | grep -v '^[[:space:]]*#'
+grep -n '/tmp/' <PLUGIN_ROOT>/scripts/*.sh | grep -v '/tmp/claude' | grep -v '^[[:space:]]*#'
 ```
 
 **Report format**:
@@ -256,23 +331,66 @@ Next Steps:
 - Re-run /plugin-test <plugin> after fixes
 ```
 
+## Development Testing
+
+**When testing development branch plugins**:
+
+### Method A: Docker Sandboxes (Recommended ⭐⭐⭐)
+
+**Workflow**:
+1. Develop in feature branch (Terminal 1 - host environment)
+2. Run `docker sandbox run claude .` (Terminal 2 - separate terminal)
+3. Test plugins in sandbox session (Terminal 2)
+4. Report results back to host session (Terminal 1)
+5. Merge if tests pass
+
+**Why this works**:
+- Complete microVM isolation
+- Zero impact on production plugin cache
+- Same as Team workflow (user bridges two sessions)
+
+**See**: `docs/testing/docker-sandboxes-guide.md` for detailed guide
+
+### Method B: --plugin-dir (Lightweight ⭐)
+
+**Workflow**:
+```bash
+git checkout feature/your-feature
+claude --plugin-dir plugins/utils
+/plugin-test .
+exit
+```
+
+**Why this works**:
+- Session-level isolation
+- Simpler than Docker (no separate terminal needed)
+- Less isolation than microVM
+
 ## Important Notes
 
-1. **Progressive Disclosure**: This frontmatter contains core instructions only. See `references/` for:
+1. **Flexible Path Support**: The skill supports multiple path formats:
+   - Simple names (backward compatible): `code` → `plugins/code/`
+   - Relative paths: `plugins/utils`, `../other-plugin`
+   - Absolute paths: `/abs/path/to/plugin`
+   - Current directory: `.`
+   - Path resolution happens in Step 0 before any validation
+
+2. **Progressive Disclosure**: This frontmatter contains core instructions only. See `references/` for:
    - Detailed validation rules
    - Plugin-specific test patterns
    - Troubleshooting guide
 
-2. **No Plugin Execution**: This skill CANNOT execute plugins directly. It guides the user to execute commands and reports results.
+3. **No Plugin Execution**: This skill CANNOT execute plugins directly. It guides the user to execute commands and reports results.
 
-3. **Parallel Reading**: Always read plugin files in parallel when possible to maximize efficiency.
+4. **Parallel Reading**: Always read plugin files in parallel when possible to maximize efficiency.
 
-4. **Run All Checks**: In Phase 1, run all checks even if some fail. This provides complete diagnostic information.
+5. **Run All Checks**: In Phase 1, run all checks even if some fail. This provides complete diagnostic information.
 
-5. **Interactive Flow**: Always wait for user confirmation before proceeding to next test.
+6. **Interactive Flow**: Always wait for user confirmation before proceeding to next test.
 
 ## See Also
 
 - `references/validation-rules.md` - Detailed validation rules
 - `references/test-patterns.md` - Test patterns by plugin type
 - `references/troubleshooting.md` - Common issues and solutions
+- `docs/testing/docker-sandboxes-guide.md` - Docker Sandboxes for development testing

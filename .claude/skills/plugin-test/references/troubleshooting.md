@@ -1,5 +1,9 @@
 # Troubleshooting Guide
 
+**Note on Commands**: All commands in this guide use `<PLUGIN_ROOT>` to represent the plugin directory path. In actual execution:
+- Replace `<PLUGIN_ROOT>` with the actual plugin path (e.g., `plugins/code`, `plugins/cvi`)
+- In hook scripts, `${CLAUDE_PLUGIN_ROOT}` is automatically set by Claude Code
+
 Common issues during plugin testing and how to resolve them.
 
 ---
@@ -23,7 +27,7 @@ Common issues during plugin testing and how to resolve them.
 
 1. **Check the specific line**:
 ```bash
-sed -n '42p' plugins/code/scripts/check-code-review.sh
+sed -n '42p' <PLUGIN_ROOT>/scripts/check-code-review.sh
 ```
 
 2. **Common fixes**:
@@ -33,7 +37,7 @@ sed -n '42p' plugins/code/scripts/check-code-review.sh
 
 3. **Test fix**:
 ```bash
-bash -n plugins/code/scripts/check-code-review.sh
+bash -n <PLUGIN_ROOT>/scripts/check-code-review.sh
 ```
 
 ---
@@ -51,12 +55,12 @@ bash -n plugins/code/scripts/check-code-review.sh
 
 **Solution**:
 ```bash
-chmod +x plugins/code/scripts/check-code-review.sh
+chmod +x <PLUGIN_ROOT>/scripts/check-code-review.sh
 ```
 
 **Verify**:
 ```bash
-ls -l plugins/code/scripts/check-code-review.sh
+ls -l <PLUGIN_ROOT>/scripts/check-code-review.sh
 # Should show: -rwxr-xr-x (note the 'x' bits)
 ```
 
@@ -82,12 +86,12 @@ ls -l plugins/code/scripts/check-code-review.sh
 
 1. **Find the reference**:
 ```bash
-jq '.hooks.PostToolUse' plugins/code/hooks/hooks.json
+jq '.hooks.PostToolUse' <PLUGIN_ROOT>/hooks/hooks.json
 ```
 
 2. **Check if script exists**:
 ```bash
-ls plugins/code/scripts/missing-script.sh
+ls <PLUGIN_ROOT>/scripts/missing-script.sh
 ```
 
 3. **Fix options**:
@@ -97,7 +101,7 @@ ls plugins/code/scripts/missing-script.sh
 
 4. **Validate JSON after fix**:
 ```bash
-jq empty plugins/code/hooks/hooks.json
+jq empty <PLUGIN_ROOT>/hooks/hooks.json
 ```
 
 ---
@@ -148,7 +152,7 @@ TEMP_FILE="${TMPDIR}/my-file"
 
 **Before**:
 ```bash
-source /Users/yamato/.claude/plugins/code/scripts/common.sh
+source /Users/yamato/.claude/plugins/cache/claude-tools/code/abc123/scripts/common.sh
 ```
 
 **After**:
@@ -176,8 +180,8 @@ Create at least one component:
 
 **Option 1: Add a command**:
 ```bash
-mkdir -p plugins/<plugin>/commands
-cat > plugins/<plugin>/commands/hello.md <<'EOF'
+mkdir -p <PLUGIN_ROOT>/commands
+cat > <PLUGIN_ROOT>/commands/hello.md <<'EOF'
 # Hello Command
 
 Say hello!
@@ -188,8 +192,8 @@ EOF
 
 **Option 2: Add a skill**:
 ```bash
-mkdir -p plugins/<plugin>/skills/my-skill
-cat > plugins/<plugin>/skills/my-skill/SKILL.md <<'EOF'
+mkdir -p <PLUGIN_ROOT>/skills/my-skill
+cat > <PLUGIN_ROOT>/skills/my-skill/SKILL.md <<'EOF'
 ---
 name: my-skill
 description: Example skill
@@ -203,8 +207,8 @@ EOF
 
 **Option 3: Add hooks**:
 ```bash
-mkdir -p plugins/<plugin>/hooks
-cat > plugins/<plugin>/hooks/hooks.json <<'EOF'
+mkdir -p <PLUGIN_ROOT>/hooks
+cat > <PLUGIN_ROOT>/hooks/hooks.json <<'EOF'
 {
   "hooks": {
     "Stop": [
@@ -254,19 +258,19 @@ cat ~/.claude/settings.json | jq '.hooks'
 ```bash
 # Simulate hook input
 echo '{"tool_input":{"command":"git commit -m test"}}' | \
-  bash plugins/code/scripts/check-code-review.sh
+  bash <PLUGIN_ROOT>/scripts/check-code-review.sh
 echo $?  # Should be 2 for blocking
 ```
 
 **Check 3: Verify hook matcher**:
 ```bash
-jq '.hooks.PreToolUse[].matcher' plugins/code/hooks/hooks.json
+jq '.hooks.PreToolUse[].matcher' <PLUGIN_ROOT>/hooks/hooks.json
 # Should match tool name (e.g., "Bash")
 ```
 
 **Check 4: Check for script errors**:
 ```bash
-bash -n plugins/code/scripts/check-code-review.sh
+bash -n <PLUGIN_ROOT>/scripts/check-code-review.sh
 ```
 
 **Fix**: Correct the identified issue and re-run test.
@@ -300,7 +304,7 @@ which say
 
 **Check 3: Test audio script directly**:
 ```bash
-bash plugins/cvi/scripts/speak-from-queue.sh
+bash <PLUGIN_ROOT>/scripts/speak-from-queue.sh
 # Manually trigger the script
 ```
 
@@ -333,10 +337,10 @@ ls -la /tmp/claude/
 **Check 2: Check skill syntax**:
 ```bash
 # Read skill file
-cat plugins/code/skills/review-commit/SKILL.md
+cat <PLUGIN_ROOT>/skills/review-commit/SKILL.md
 
 # Look for TeamCreate usage
-grep -n "TeamCreate" plugins/code/skills/review-commit/SKILL.md
+grep -n "TeamCreate" <PLUGIN_ROOT>/skills/review-commit/SKILL.md
 ```
 
 **Check 3: Test manually**:
@@ -404,13 +408,29 @@ Answer: abort
 
 ### "Plugin not found"
 
-**Cause**: Plugin directory doesn't exist or is misnamed
+**Cause**: Plugin directory doesn't exist or path is incorrect
 
 **Fix**:
-```bash
-ls plugins/  # Verify plugin name
-# Use exact name from directory
-```
+
+1. **Verify the path exists**:
+   ```bash
+   # Check if plugin.json exists at the specified path
+   test -f <your-path>/.claude-plugin/plugin.json && echo "Found" || echo "Not found"
+   ```
+
+2. **Try simple plugin name** (backward compatible):
+   ```bash
+   ls plugins/  # Verify available plugin names in marketplace
+   /plugin-test <exact-name>
+   ```
+
+3. **Check current directory**:
+   ```bash
+   pwd  # Verify you're in the right location
+   ls -la .claude-plugin/  # Check if plugin.json exists here
+   ```
+
+4. **See Step 0 in SKILL.md** for full path resolution logic and supported formats
 
 ---
 
@@ -435,7 +455,7 @@ sudo apt-get install jq
 
 **Fix**:
 ```bash
-chmod +x plugins/<plugin>/scripts/<script>.sh
+chmod +x <PLUGIN_ROOT>/scripts/<script>.sh
 ```
 
 ---
@@ -464,7 +484,7 @@ set -x  # Print each command before execution
 **For hook debugging**:
 ```bash
 # Run script manually with verbose flag
-bash -x plugins/code/scripts/check-code-review.sh
+bash -x <PLUGIN_ROOT>/scripts/check-code-review.sh
 ```
 
 ---
