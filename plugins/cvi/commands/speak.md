@@ -57,5 +57,5 @@ Speaking: <メッセージ内容>
 ## 注意事項
 
 - `speak-current`ファイルは音声再生後に自動削除される
-- 複数プロジェクトで同時に`/cvi:speak`を呼ぶと、片方のメッセージが失われる可能性がある（将来の改善予定）
+- ⚠️ **注意**: 複数のClaude Codeプロジェクトで同時に`/cvi:speak`を呼ぶと、後から書き込まれたメッセージで上書きされ、先のメッセージが失われます
 - PostToolUse hookはsandbox外で実行されるため、osascript/afplay/sayが正常に動作する
