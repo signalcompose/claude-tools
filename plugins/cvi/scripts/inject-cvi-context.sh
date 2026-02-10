@@ -22,17 +22,10 @@ fi
 
 # Determine language display
 if [ "$VOICE_LANG" = "en" ]; then
-    VOICE_EXAMPLE="Task completed successfully."
     VOICE_LANG_UPPER="ENGLISH"
 else
-    VOICE_EXAMPLE="タスクが完了しました。"
     VOICE_LANG_UPPER="JAPANESE"
 fi
-
-# Output CVI context
-echo "🔴 CRITICAL REMINDER: [VOICE] tag MUST use language: ${VOICE_LANG}"
-echo "   → Use ${VOICE_LANG_UPPER} in [VOICE] tag"
-echo "   → Example: [VOICE]${VOICE_EXAMPLE}[/VOICE]"
 
 # English Practice mode
 if [ "$ENGLISH_PRACTICE" = "on" ]; then
