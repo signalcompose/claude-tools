@@ -307,43 +307,6 @@ Siri音声で読み上げられれば、CVIでも同じ音声が使われます�
 
 ---
 
-## CVIアーキテクチャ
-
-### Reporter Agent設計
-
-CVIは音声通知のため永続的Reporter agentを使用。
-
-**仕組み**：
-1. 初回`/cvi:speak`呼び出し時（またはcompacting後）:
-   - MainがReporterの存在をチェック
-   - 存在しない場合: `cvi-reporter`チームでReporter agentをspawn
-2. MainがReporterに音声通知リクエストを送信
-3. ReporterがmacOS `say`コマンドを実行
-4. Reporterが結果を返す
-5. Mainが結果をユーザーに表示
-
-**利点**：
-- ✅ **直接制御**（キューファイルなし）
-- ✅ **Compacting耐性**（オンデマンド再召喚）
-- ✅ **明確な分離**（音声ロジックはReporter内）
-
-### Compacting対応
-
-会話のcompacting後、Reporterがガベージコレクトされる可能性あり。
-Mainセッションがこれを自動処理：
-- 各通知前にReporterの存在をチェック
-- 不在の場合は再召喚
-- ユーザー介入不要
-
-### 設定
-
-Reporterは`~/.cvi/config`から音声設定を読み込み：
-- `VOICE_LANG`: ja または en
-- `SPEECH_RATE`: 分あたりの単語数
-- 音声選択: Kyoko (ja) または Samantha (en)
-
----
-
 ## 高度なカスタマイズ
 
 ### 音量調整
@@ -374,13 +337,6 @@ afplay -v 1.0 /System/Library/Sounds/Ping.aiff &
 
 ## トラブルシューティング
 
-### Q: compacting後にReporterが見つからない
-
-**正常な動作です**：
-- Compacting後、Reporter agentがガベージコレクトされる可能性あり
-- 自動的に再召喚される
-- 対応不要
-
 ### Q: 音声が再生されない
 
 **まず診断コマンドを実行**:
@@ -394,16 +350,11 @@ cvi:check
    cvi status
    ```
 2. macOSの音量がミュートになっていないか確認
-3. macOS `say`コマンドが動作するか確認
-   ```bash
-   say "test"
-   ```
-4. Reporter agentの状態をチェック（自動spawnされるべき）
-5. スクリプトに実行権限があるか確認
+3. スクリプトに実行権限があるか確認
    ```bash
    ls -l ~/.claude/scripts/notify-end.sh
    ```
-6. hooks設定が正しいか確認
+4. hooks設定が正しいか確認
    ```bash
    cat ~/.claude/settings.json
    ```
