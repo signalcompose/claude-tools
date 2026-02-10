@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# DEPRECATED: 2026-02-11
+# Replaced by Reporter Agent architecture
+# This script is no longer used - kept for reference only
+#
+# Original purpose:
 # CVI Speak From Queue - PostToolUse hook handler
 # Runs outside sandbox, reads queue file and plays audio.
 # Called by PostToolUse hook with matcher="Skill".
