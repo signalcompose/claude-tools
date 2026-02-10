@@ -1,11 +1,11 @@
 {
   "name": "utils",
-  "description": "Utility commands for Claude Code plugin management",
+  "description": "Utility commands and skills for Claude Code plugin management and testing",
   "author": {
     "name": "Signal compose",
     "email": "contact@signalcompose.com"
   },
   "repository": "https://github.com/signalcompose/claude-tools",
   "license": "MIT",
-  "keywords": ["utility", "cache", "plugin-management"]
+  "keywords": ["utility", "cache", "plugin-management", "testing"]
 }

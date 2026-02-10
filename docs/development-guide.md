@@ -235,6 +235,106 @@ claude plugin validate .
 
 ---
 
+## マーケットプレイス全体のテスト手順
+
+### テストフレームワーク概要
+
+マーケットプレイスのブランチをPR・マージする前に、全プラグインの品質を保証するためのE2Eテストフレームワークを使用します。
+
+### 推奨ワークフロー
+
+#### Phase 1: 静的検証（30-45分、自動化可能）
+
+マニフェスト、ファイル構造、サンドボックス互換性などを自動で検証。
+
+**実行方法**:
+```bash
+# 各検証スクリプトを順次実行
+# 詳細は docs/testing/e2e-test-results-YYYY-MM-DD.md 参照
+```
+
+**検証項目**:
+1. marketplace.json の構文検証
+2. 全プラグインの plugin.json 検証
+3. ファイル構造の整合性
+4. コマンド/スキルの構文チェック
+5. Hooks設定の検証
+6. サンドボックス互換性スキャン
+7. コマンド名の衝突検出
+
+#### Phase 2: 手動テスト（2-3時間）
+
+実際にプラグインを実行して動作を確認。
+
+**テストガイド**:
+- `docs/testing/manual-test-guide-code.md` - codeプラグイン詳細テスト
+- `docs/testing/manual-test-guide-cvi.md` - cviプラグイン詳細テスト
+- `docs/testing/manual-test-guide-unchanged-plugins.md` - 未変更プラグインのスモークテスト
+- `docs/testing/manual-test-guide-plugin-interactions.md` - プラグイン間相互作用テスト
+
+**テストカテゴリ**:
+1. **変更されたプラグインの詳細テスト**: 新機能、アーキテクチャ変更の確認
+2. **未変更プラグインのスモークテスト**: 基本コマンドの動作確認
+3. **プラグイン間相互作用の確認**: Hook共存、連携動作の確認
+
+#### Phase 2補助: インタラクティブプラグインテスト（推奨）
+
+**新機能**: `/utils:plugin-test` スキルを使用した対話型テスト
+
+```
+/utils:plugin-test <plugin-name>
+```
+
+**特徴**:
+- Phase 1相当の自動検証を即座に実行
+- プラグイン種別を自動検出（Hook-based, Voice/Audio, Team/Agent, Utility）
+- ステップバイステップで手動テストをガイド
+- テスト結果のサマリーを自動生成
+
+**所要時間**: 手動テスト時間を約50%削減（3時間 → 1.5時間）
+
+**使用例**:
+```
+/utils:plugin-test code
+/utils:plugin-test cvi
+/utils:plugin-test ypm
+```
+
+**詳細**: `plugins/utils/skills/plugin-test/SKILL.md`
+
+---
+
+#### Phase 3: 結果記録（30分）
+
+テスト結果をチェックリスト形式で記録。
+
+**記録先**: `docs/testing/e2e-test-results-YYYY-MM-DD.md`
+
+**記録内容**:
+- Phase 1の自動検証結果
+- Phase 2の手動テスト結果
+- 発見された問題（Critical/Important/Minor）
+- マージ可否判定
+
+### 所要時間見積もり
+
+- **完全テスト（従来）**: 3-4時間（Phase 1-3すべて）
+- **完全テスト（plugin-test使用）**: 2-2.5時間（Phase 1-3すべて、50%削減）
+- **最小限テスト**: 1-1.5時間（変更プラグイン + plugin-test）
+
+### テスト結果の活用
+
+1. **PRマージ判定**: Critical/Important問題がなければマージ可
+2. **品質トレンド追跡**: 過去のテスト結果と比較
+3. **再利用**: 次回のプラグイン開発でも同じフレームワークを使用
+
+### 参考ドキュメント
+
+- `docs/testing/e2e-test-results-YYYY-MM-DD.md` - テスト結果テンプレート
+- `docs/testing/manual-test-guide-*.md` - 各種手動テストガイド
+
+---
+
 ## 公式リソース
 
 - [Create plugins](https://code.claude.com/docs/en/plugins)
