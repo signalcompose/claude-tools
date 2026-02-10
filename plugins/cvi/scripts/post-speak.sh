@@ -6,6 +6,16 @@
 
 set -euo pipefail
 
+# Error logging
+ERROR_LOG="$HOME/.cvi/error.log"
+
+log_error() {
+    local message="$1"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    mkdir -p "$(dirname "$ERROR_LOG")" 2>/dev/null
+    echo "[${timestamp}] [post-speak.sh] ${message}" >> "$ERROR_LOG"
+}
+
 # Debug mode (set DEBUG=1 to enable)
 DEBUG=${DEBUG:-0}
 debug_log() {
@@ -32,6 +42,7 @@ fi
 # Validate text
 if [ -z "$TEXT" ] || [ "$TEXT" = "null" ]; then
     debug_log "Error: No text to speak"
+    log_error "No text provided to /cvi:speak"
     echo "Error: No text provided to /cvi:speak" >&2
     exit 1
 fi
@@ -63,6 +74,7 @@ debug_log "Acquiring lock: $LOCK_FILE"
     # Try to acquire lock (wait up to 30 seconds)
     if ! flock -w 30 200; then
         debug_log "Failed to acquire lock within 30 seconds"
+        log_error "Lock timeout: Another voice notification in progress (project: $PROJECT_HASH)"
         echo "Error: Another voice notification is already in progress for this project" >&2
         exit 1
     fi

@@ -3,6 +3,16 @@
 # ユーザーが新しい指示を入力した時に実行される
 # 現在のプロジェクトで再生中の音声のみを停止する
 
+# Error logging
+ERROR_LOG="$HOME/.cvi/error.log"
+
+log_error() {
+    local message="$1"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    mkdir -p "$(dirname "$ERROR_LOG")" 2>/dev/null
+    echo "[${timestamp}] [kill-voice.sh] ${message}" >> "$ERROR_LOG"
+}
+
 # Debug mode (set DEBUG=1 to enable)
 DEBUG=${DEBUG:-0}
 debug_log() {

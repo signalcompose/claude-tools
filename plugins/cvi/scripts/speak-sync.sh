@@ -6,10 +6,21 @@
 
 set -euo pipefail
 
+# Error logging
+ERROR_LOG="$HOME/.cvi/error.log"
+
+log_error() {
+    local message="$1"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    mkdir -p "$(dirname "$ERROR_LOG")" 2>/dev/null
+    echo "[${timestamp}] [speak-sync.sh] ${message}" >> "$ERROR_LOG"
+}
+
 # Get the text to speak from arguments
 MSG="$*"
 
 if [ -z "$MSG" ]; then
+    log_error "No text provided"
     echo "Error: No text provided"
     echo "Usage: speak-sync.sh <text to speak>"
     exit 1

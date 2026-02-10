@@ -7,6 +7,16 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-dependencies.sh",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-stale-locks.sh",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/inject-cvi-context.sh",
             "timeout": 5000
           }
