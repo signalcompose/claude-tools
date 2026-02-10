@@ -4,7 +4,7 @@ Utility commands for Claude Code plugin management.
 
 ## Overview
 
-This plugin provides utility commands to help manage Claude Code plugins. Currently, it includes a workaround for the plugin cache invalidation bug.
+This plugin provides utility commands to help manage Claude Code plugins. It includes workarounds for plugin cache issues.
 
 ## Available Commands
 

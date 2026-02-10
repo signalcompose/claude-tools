@@ -194,7 +194,8 @@ claude-tools/
 │   ├── development-guide.md
 │   └── onboarding.md
 ├── .claude/           # Claude Code設定
-│   └── settings.json
+│   ├── settings.json
+│   └── skills/        # プロジェクト専用スキル
 ├── .github/           # GitHub設定
 │   └── pull_request_template.md
 └── CLAUDE.md          # このファイル

@@ -1,34 +1,49 @@
----
-description: "Review staged git changes for code quality, security, and best practices before committing"
----
-
 # Code Review for Commit
 
-Review staged changes and approve them for commit.
+ステージング済み変更をレビューし、コミット前にすべてのcritical/important問題を修正。
 
-## Step 1: Check Staged Changes
+## 使い方
 
-Staged files: !`git diff --staged --stat`
+実行: /code:review-commit
 
-If no staged changes, report "No staged changes to review" and exit.
+確認: git diff --staged --stat
 
-## Step 2: Launch Code Reviewer Agent
+## ワークフロー
 
-**MANDATORY**: Use Task tool with `pr-review-toolkit:code-reviewer` agent.
+1. **変更をステージング**: git add <files>
+2. **レビュー実行**: /code:review-commit
+3. **自動修正ループ**:
+   - レビューチーム作成 (reviewer + fixer)
+   - Reviewerが問題を発見（信頼度 >= 80）
+   - Fixerがcritical/important問題を解決
+   - 品質達成まで再レビュー（最大5回）
+4. **コミット**: git commit -m "message"
 
-Prompt: "Review the staged changes (git diff --staged) for this commit. Check for CLAUDE.md compliance, bugs, and code quality issues. Report only issues with confidence >= 80."
+## 品質保証
 
-For review criteria details, see [references/review-criteria.md](references/review-criteria.md).
+レビューループは以下を保証：
+- すべてのcritical問題が解決
+- すべてのimportant問題が解決
+- 専門的なpr-review-toolkit:code-reviewer agentによるコード品質検証
+- ハッシュマッチングの複雑さなし
 
-## Step 3: Handle Review Results
+## 例
 
-- If issues found (confidence >= 80): Present issues, suggest fixes, do NOT approve
-- If no issues: Proceed to Step 4
+```bash
+# 1. 変更を加える
+echo "// new feature" >> src/app.ts
 
-## Step 4: Approve for Commit
+# 2. 変更をステージング
+git add src/app.ts
 
-**MANDATORY**: Run the approval script.
+# 3. レビュー実行（チーム作成、問題修正）
+/code:review-commit
 
-Approve: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/approve-review.sh`
+# 4. コミット
+git commit -m "feat: add new feature"
+```
 
-This saves a hash of the staged changes that the pre-commit hook verifies.
+## 関連項目
+
+- スキル実装: skills/review-commit/SKILL.md
+- Pre-commit hook: scripts/check-code-review.sh
