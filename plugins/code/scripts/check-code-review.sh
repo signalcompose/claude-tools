@@ -1,7 +1,6 @@
 #!/bin/bash
-# Pre-commit code review hook for Claude Code
-# This script checks if the command is 'git commit' and blocks it
-# unless code review has been completed (verified by hash).
+# Pre-commit code review hook for Claude Code (flag-based)
+# Blocks git commit unless code review approval flag exists.
 
 # Read JSON from stdin
 INPUT=$(cat)
@@ -19,54 +18,52 @@ if [[ "$COMMAND" =~ ^gh[[:space:]] ]]; then
     exit 0
 fi
 
-# Check if this is a git commit command (at start or after "cd ... &&")
-if [[ "$COMMAND" =~ ^git[[:space:]]+commit ]] || [[ "$COMMAND" =~ \&\&[[:space:]]*git[[:space:]]+commit ]]; then
-    # Extract target directory if command contains "cd <path> &&"
-    TARGET_DIR=""
-    if [[ "$COMMAND" =~ ^cd[[:space:]]+([^[:space:]&]+)[[:space:]]*\&\& ]]; then
-        TARGET_DIR="${BASH_REMATCH[1]}"
-        # Expand ~ to home directory
-        TARGET_DIR="${TARGET_DIR/#\~/$HOME}"
-    fi
-
-    # Get repository root from target directory or current directory
-    if [[ -n "$TARGET_DIR" && -d "$TARGET_DIR" ]]; then
-        REPO_ROOT=$(cd "$TARGET_DIR" && git rev-parse --show-toplevel 2>/dev/null || echo "unknown")
-    else
-        REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "unknown")
-    fi
-    REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
-    mkdir -p /tmp/claude 2>/dev/null
-    REVIEW_FILE="/tmp/claude/review-approved-${REPO_HASH}"
-
-    # Check if review approval file exists
-    if [[ -f "$REVIEW_FILE" ]]; then
-        # Get current staged changes hash from target directory
-        if [[ -n "$TARGET_DIR" && -d "$TARGET_DIR" ]]; then
-            CURRENT_HASH=$(cd "$TARGET_DIR" && git diff --cached --raw 2>/dev/null | shasum -a 256 | cut -d' ' -f1)
-        else
-            CURRENT_HASH=$(git diff --cached --raw 2>/dev/null | shasum -a 256 | cut -d' ' -f1)
-        fi
-        APPROVED_HASH=$(cat "$REVIEW_FILE" 2>/dev/null)
-
-        if [[ "$CURRENT_HASH" == "$APPROVED_HASH" ]]; then
-            # Review completed and staged changes haven't changed
-            # Remove the approval file and allow commit
-            rm -f "$REVIEW_FILE"
-            exit 0
-        else
-            echo "Staged changes have been modified since review." >&2
-            echo "Please run code review again with: /code:review-commit" >&2
-            rm -f "$REVIEW_FILE"
-            exit 2
-        fi
-    fi
-
-    echo "STOP: Code review required before commit!" >&2
-    echo "" >&2
-    echo "Please run: /code:review-commit" >&2
-    exit 2  # Exit code 2 blocks the tool call
+# Only process git commit commands
+if [[ ! "$COMMAND" =~ git[[:space:]]+commit ]]; then
+    exit 0
 fi
 
-# Allow other commands to proceed
-exit 0
+# Extract target directory if command contains "cd <path> &&"
+TARGET_DIR=""
+if [[ "$COMMAND" =~ ^cd[[:space:]]+([^[:space:]&]+)[[:space:]]*\&\& ]]; then
+    TARGET_DIR="${BASH_REMATCH[1]}"
+    # Expand ~ to home directory
+    TARGET_DIR="${TARGET_DIR/#\~/$HOME}"
+fi
+
+# Get repository root from target directory or current directory
+if [[ -n "$TARGET_DIR" && -d "$TARGET_DIR" ]]; then
+    REPO_ROOT=$(cd "$TARGET_DIR" && git rev-parse --show-toplevel 2>/dev/null || echo "unknown")
+else
+    REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "unknown")
+fi
+
+# Calculate repository-specific flag file path
+REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
+REVIEW_FLAG="/tmp/claude/review-approved-${REPO_HASH}"
+
+# Check if review approval flag exists
+if [[ -f "$REVIEW_FLAG" ]]; then
+    # Review approved - remove flag and allow commit
+    rm -f "$REVIEW_FLAG"
+    exit 0
+fi
+
+# Review not completed - block commit with helpful message
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
+echo "⛔ Code Review Required" >&2
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
+echo "" >&2
+echo "Commits require code review approval." >&2
+echo "" >&2
+echo "Run the review workflow:" >&2
+echo "  /code:review-commit" >&2
+echo "" >&2
+echo "The review team will:" >&2
+echo "  1. Analyze your changes for issues" >&2
+echo "  2. Automatically fix critical/important problems" >&2
+echo "  3. Iterate until code quality meets standards" >&2
+echo "  4. Approve commit when ready (up to 5 iterations)" >&2
+echo "" >&2
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
+exit 2  # Exit code 2 blocks the tool call
