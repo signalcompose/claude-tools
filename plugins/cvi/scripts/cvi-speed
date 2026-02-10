@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# CVI - Claude Voice Integration
+# Speed configuration tool
+
+CONFIG_DIR="$HOME/.cvi"
+CONFIG_FILE="$CONFIG_DIR/config"
+
+# Ensure config directory exists
+mkdir -p "$CONFIG_DIR"
+
+# Show usage
+usage() {
+    cat <<EOF
+CVI Speed Configuration
+
+Usage:
+  cvi-speed [SPEED]       Set reading speed (90-350 words/min)
+  cvi-speed               Show current speed
+  cvi-speed reset         Reset to default (200)
+
+Examples:
+  cvi-speed 180           Set speed to 180 wpm (slower)
+  cvi-speed 220           Set speed to 220 wpm (faster)
+  cvi-speed               Show current setting
+
+Recommended range: 180-220 wpm
+Default: 200 wpm
+EOF
+}
+
+# Get current speed
+get_speed() {
+    if [ -f "$CONFIG_FILE" ]; then
+        grep "^SPEECH_RATE=" "$CONFIG_FILE" | cut -d'=' -f2
+    else
+        echo "200"
+    fi
+}
+
+# Set speed
+set_speed() {
+    local speed=$1
+
+    # Validate speed
+    if ! [[ "$speed" =~ ^[0-9]+$ ]]; then
+        echo "Error: Speed must be a number"
+        exit 1
+    fi
+
+    if [ "$speed" -lt 90 ] || [ "$speed" -gt 350 ]; then
+        echo "Error: Speed must be between 90 and 350"
+        exit 1
+    fi
+
+    # Update or create config file
+    if [ -f "$CONFIG_FILE" ]; then
+        # Update existing
+        if grep -q "^SPEECH_RATE=" "$CONFIG_FILE"; then
+            sed -i '' "s/^SPEECH_RATE=.*/SPEECH_RATE=$speed/" "$CONFIG_FILE"
+        else
+            echo "SPEECH_RATE=$speed" >> "$CONFIG_FILE"
+        fi
+    else
+        # Create new
+        echo "SPEECH_RATE=$speed" > "$CONFIG_FILE"
+    fi
+
+    echo "✅ Reading speed set to $speed wpm"
+
+    # Test with sample
+    echo "Testing with sample message..."
+    say -r "$speed" "読み上げ速度を${speed}に設定しました。"
+}
+
+# Main
+case "$1" in
+    "")
+        # Show current speed
+        current=$(get_speed)
+        echo "Current reading speed: $current wpm"
+        ;;
+    reset)
+        # Reset to default
+        set_speed 200
+        ;;
+    -h|--help|help)
+        usage
+        ;;
+    *)
+        # Set speed
+        set_speed "$1"
+        ;;
+esac

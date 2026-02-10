@@ -1,0 +1,421 @@
+#!/bin/bash
+
+# CVI - Claude Voice Integration
+# Setup command for initial installation
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Show usage
+usage() {
+    cat <<EOF
+CVI - Claude Voice Integration Setup
+
+Usage:
+  cvi-setup [LOCATION]
+
+Locations:
+  global        Install to ~/.claude/scripts/ (affects all projects)
+  project       Install to current project's scripts/ directory
+
+Examples:
+  cvi-setup global     Setup CVI globally for all Claude Code projects
+  cvi-setup project    Setup CVI for current project only
+
+What this command does:
+  1. Copy scripts with proper permissions
+  2. Check/update ~/.claude/settings.json hooks
+  3. Verify Siri voice configuration
+  4. Set initial preferences (speed, language)
+  5. Run diagnostic check
+
+Note: Requires macOS with Claude Code installed
+EOF
+}
+
+# Check if running on macOS
+check_macos() {
+    if [[ "$OSTYPE" != "darwin"* ]]; then
+        echo -e "${RED}Error: CVI requires macOS${NC}"
+        exit 1
+    fi
+}
+
+# Check if Claude Code is installed
+check_claude_code() {
+    if [ ! -d "$HOME/.claude" ]; then
+        echo -e "${YELLOW}Warning: ~/.claude directory not found${NC}"
+        echo "Claude Code may not be installed or initialized."
+        read -p "Continue anyway? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
+    fi
+}
+
+# Setup global installation
+setup_global() {
+    echo -e "${BLUE}=== Global CVI Setup ===${NC}"
+    echo
+
+    # Create directories
+    echo "Creating directories..."
+    mkdir -p "$HOME/.claude/scripts"
+    mkdir -p "$HOME/.claude/commands"
+    mkdir -p "$HOME/.cvi"
+
+    # Copy scripts
+    echo "Copying scripts..."
+    cp -v "$SCRIPT_DIR/notify-end.sh" "$HOME/.claude/scripts/"
+    cp -v "$SCRIPT_DIR/notify-input.sh" "$HOME/.claude/scripts/"
+    cp -v "$SCRIPT_DIR/kill-voice.sh" "$HOME/.claude/scripts/"
+    cp -v "$SCRIPT_DIR/cvi" "$HOME/.claude/scripts/"
+    cp -v "$SCRIPT_DIR/cvi-speed" "$HOME/.claude/scripts/"
+    cp -v "$SCRIPT_DIR/cvi-lang" "$HOME/.claude/scripts/"
+    cp -v "$SCRIPT_DIR/cvi-voice" "$HOME/.claude/scripts/"
+    cp -v "$SCRIPT_DIR/cvi-auto" "$HOME/.claude/scripts/"
+    cp -v "$SCRIPT_DIR/cvi-check" "$HOME/.claude/scripts/"
+
+    # Set executable permissions
+    echo "Setting permissions..."
+    chmod +x "$HOME/.claude/scripts/notify-end.sh"
+    chmod +x "$HOME/.claude/scripts/notify-input.sh"
+    chmod +x "$HOME/.claude/scripts/kill-voice.sh"
+    chmod +x "$HOME/.claude/scripts/cvi"
+    chmod +x "$HOME/.claude/scripts/cvi-speed"
+    chmod +x "$HOME/.claude/scripts/cvi-lang"
+    chmod +x "$HOME/.claude/scripts/cvi-voice"
+    chmod +x "$HOME/.claude/scripts/cvi-auto"
+    chmod +x "$HOME/.claude/scripts/cvi-check"
+
+    # Setup hooks
+    setup_hooks
+
+    # Setup configuration
+    setup_config
+
+    # Copy slash commands if available
+    if [ -d "$PROJECT_ROOT/.claude/commands" ]; then
+        echo "Copying slash commands..."
+        cp -v "$PROJECT_ROOT/.claude/commands/cvi.md" "$HOME/.claude/commands/" 2>/dev/null || true
+        cp -v "$PROJECT_ROOT/.claude/commands/cvi-speed.md" "$HOME/.claude/commands/" 2>/dev/null || true
+        cp -v "$PROJECT_ROOT/.claude/commands/cvi-lang.md" "$HOME/.claude/commands/" 2>/dev/null || true
+        cp -v "$PROJECT_ROOT/.claude/commands/cvi-voice.md" "$HOME/.claude/commands/" 2>/dev/null || true
+        cp -v "$PROJECT_ROOT/.claude/commands/cvi-auto.md" "$HOME/.claude/commands/" 2>/dev/null || true
+        cp -v "$PROJECT_ROOT/.claude/commands/cvi-check.md" "$HOME/.claude/commands/" 2>/dev/null || true
+    fi
+
+    echo
+    echo -e "${GREEN}Global setup completed!${NC}"
+    echo
+    echo "CVI has been installed to ~/.claude/scripts/"
+    echo "All Claude Code projects will now have voice notifications."
+}
+
+# Setup project-specific installation
+setup_project() {
+    echo -e "${BLUE}=== Project CVI Setup ===${NC}"
+    echo
+
+    # Check if we're in a project directory
+    if [ ! -f "$PROJECT_ROOT/CLAUDE.md" ] && [ ! -d "$PROJECT_ROOT/.git" ]; then
+        echo -e "${YELLOW}Warning: Current directory doesn't look like a project${NC}"
+        read -p "Continue anyway? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
+    fi
+
+    # Create directories
+    echo "Creating directories..."
+    mkdir -p "$PROJECT_ROOT/.claude/scripts"
+    mkdir -p "$PROJECT_ROOT/.cvi"
+
+    # Copy scripts
+    echo "Copying scripts..."
+    cp -v "$SCRIPT_DIR/notify-end.sh" "$PROJECT_ROOT/.claude/scripts/"
+    cp -v "$SCRIPT_DIR/notify-input.sh" "$PROJECT_ROOT/.claude/scripts/"
+    cp -v "$SCRIPT_DIR/kill-voice.sh" "$PROJECT_ROOT/.claude/scripts/"
+
+    # Set executable permissions
+    echo "Setting permissions..."
+    chmod +x "$PROJECT_ROOT/.claude/scripts/notify-end.sh"
+    chmod +x "$PROJECT_ROOT/.claude/scripts/notify-input.sh"
+    chmod +x "$PROJECT_ROOT/.claude/scripts/kill-voice.sh"
+
+    # Setup hooks for project
+    setup_hooks_project
+
+    # Setup configuration
+    setup_config
+
+    echo
+    echo -e "${GREEN}Project setup completed!${NC}"
+    echo
+    echo "CVI has been installed to $PROJECT_ROOT/.claude/scripts/"
+    echo "Only this project will have voice notifications."
+}
+
+# Setup hooks in ~/.claude/settings.json
+setup_hooks() {
+    local settings_file="$HOME/.claude/settings.json"
+
+    echo "Checking hooks configuration..."
+
+    if [ ! -f "$settings_file" ]; then
+        echo "Creating $settings_file..."
+        cat > "$settings_file" <<'EOF'
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/kill-voice.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/notify-end.sh"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/notify-input.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+EOF
+        echo -e "${GREEN}Created settings.json with CVI hooks${NC}"
+    else
+        echo -e "${YELLOW}settings.json already exists${NC}"
+        echo "Please manually add the following hooks if not present:"
+        echo ""
+        echo "  UserPromptSubmit: bash ~/.claude/scripts/kill-voice.sh"
+        echo "  Stop: bash ~/.claude/scripts/notify-end.sh"
+        echo "  Notification: bash ~/.claude/scripts/notify-input.sh"
+        echo ""
+    fi
+}
+
+# Setup hooks for project-specific installation
+setup_hooks_project() {
+    local settings_file="$PROJECT_ROOT/.claude/settings.json"
+
+    echo "Checking project hooks configuration..."
+
+    if [ ! -f "$settings_file" ]; then
+        echo "Creating $settings_file..."
+        cat > "$settings_file" <<'EOF'
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/scripts/kill-voice.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/scripts/notify-end.sh"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/scripts/notify-input.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+EOF
+        echo -e "${GREEN}Created project settings.json with CVI hooks${NC}"
+    else
+        echo -e "${YELLOW}Project settings.json already exists${NC}"
+        echo "Please manually add the hooks if not present."
+    fi
+}
+
+# Setup initial configuration
+setup_config() {
+    local config_file="$HOME/.cvi/config"
+
+    echo "Setting up configuration..."
+
+    if [ -f "$config_file" ]; then
+        echo -e "${YELLOW}Configuration already exists at $config_file${NC}"
+        return
+    fi
+
+    # Create default config
+    cat > "$config_file" <<EOF
+CVI_ENABLED=on
+SPEECH_RATE=200
+VOICE_LANG=ja
+VOICE_EN=Samantha
+VOICE_JA=system
+AUTO_DETECT_LANG=false
+VOICE_MODE=auto
+EOF
+
+    echo -e "${GREEN}Created default configuration${NC}"
+    echo ""
+    echo "Default settings:"
+    echo "  - Voice notifications: ENABLED"
+    echo "  - Reading speed: 200 wpm"
+    echo "  - Fallback language: Japanese"
+    echo "  - English voice: Samantha"
+    echo "  - Japanese voice: System default"
+    echo "  - Voice mode: Auto (language-based)"
+    echo "  - Language auto-detection: OFF"
+    echo ""
+
+    # Ask if user wants to customize
+    read -p "Customize settings now? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        customize_settings
+    fi
+}
+
+# Customize settings interactively
+customize_settings() {
+    echo ""
+    echo -e "${BLUE}=== Customize Settings ===${NC}"
+    echo ""
+
+    # Speed
+    read -p "Reading speed (90-350 wpm, default 200): " speed
+    if [ -n "$speed" ]; then
+        if [ "$speed" -ge 90 ] && [ "$speed" -le 350 ]; then
+            sed -i '' "s/^SPEECH_RATE=.*/SPEECH_RATE=$speed/" "$HOME/.cvi/config"
+            echo -e "${GREEN}Speed set to $speed wpm${NC}"
+        else
+            echo -e "${YELLOW}Invalid speed, keeping default (200 wpm)${NC}"
+        fi
+    fi
+
+    # Language
+    echo ""
+    read -p "Language (ja/en, default ja): " lang
+    if [ -n "$lang" ]; then
+        if [[ "$lang" =~ ^(ja|en)$ ]]; then
+            sed -i '' "s/^VOICE_LANG=.*/VOICE_LANG=$lang/" "$HOME/.cvi/config"
+            echo -e "${GREEN}Language set to $lang${NC}"
+        else
+            echo -e "${YELLOW}Invalid language, keeping default (ja)${NC}"
+        fi
+    fi
+}
+
+# Run diagnostic check
+run_diagnostic() {
+    echo ""
+    echo -e "${BLUE}=== Running Diagnostic Check ===${NC}"
+    echo ""
+
+    if [ -x "$HOME/.claude/scripts/cvi-check" ]; then
+        "$HOME/.claude/scripts/cvi-check"
+    else
+        echo -e "${YELLOW}cvi-check not found, skipping diagnostic${NC}"
+    fi
+}
+
+# Main
+main() {
+    case "$1" in
+        global)
+            check_macos
+            check_claude_code
+            setup_global
+            run_diagnostic
+            echo ""
+            echo -e "${GREEN}Setup complete!${NC}"
+            echo ""
+            echo "Next steps:"
+            echo "  1. Restart Claude Code to activate hooks"
+            echo "  2. Check System Settings > Accessibility > Spoken Content"
+            echo "     and set 'System voice' to 'Siri (Voice 2)' for best quality"
+            echo "  3. Use 'cvi status' to check current settings"
+            echo "  4. Use 'cvi-voice' to set language-specific voices"
+            echo "  5. Use 'cvi-auto on' to enable automatic language detection"
+            echo "  6. Use 'cvi-speed' to adjust reading speed"
+            echo ""
+            ;;
+        project)
+            check_macos
+            check_claude_code
+            setup_project
+            run_diagnostic
+            echo ""
+            echo -e "${GREEN}Setup complete!${NC}"
+            echo ""
+            echo "Next steps:"
+            echo "  1. Restart Claude Code to activate hooks"
+            echo "  2. Check System Settings > Accessibility > Spoken Content"
+            echo "  3. Project-specific installation complete"
+            echo ""
+            ;;
+        help|--help|-h)
+            usage
+            ;;
+        "")
+            echo "Error: Location argument required"
+            echo ""
+            usage
+            exit 1
+            ;;
+        *)
+            echo "Error: Unknown location '$1'"
+            echo ""
+            usage
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

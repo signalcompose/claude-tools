@@ -1,0 +1,141 @@
+#!/bin/bash
+
+# CVI - Claude Voice Integration
+# English Practice Mode configuration
+
+CONFIG_FILE="$HOME/.cvi/config"
+
+# Ensure config directory exists
+mkdir -p "$(dirname "$CONFIG_FILE")"
+
+# Create config file if it doesn't exist
+if [ ! -f "$CONFIG_FILE" ]; then
+    cat > "$CONFIG_FILE" <<EOF
+CVI_ENABLED=on
+SPEECH_RATE=200
+VOICE_LANG=ja
+VOICE_EN=Samantha
+VOICE_JA=system
+AUTO_DETECT_LANG=false
+VOICE_MODE=auto
+ENGLISH_PRACTICE=off
+EOF
+fi
+
+# Show usage
+usage() {
+    cat <<EOF
+CVI - English Practice Mode
+
+Usage:
+  cvi-practice                Show current status
+  cvi-practice on             Enable English practice mode
+  cvi-practice off            Disable English practice mode (default)
+  cvi-practice status         Show detailed status
+
+What is English Practice Mode?
+  When enabled, Claude will help you practice giving instructions in English.
+
+How it works:
+  1. You give an instruction in Japanese
+  2. Claude shows the English equivalent with "your turn" prompt
+  3. You repeat the instruction in English
+  4. Claude executes the instruction
+
+Examples:
+  With ENGLISH_PRACTICE=on:
+    You: "ファイルを読んで"
+    Claude: > "Please read the file"
+            your turn
+    You: "Please read the file"
+    Claude: [executes the instruction]
+
+  With ENGLISH_PRACTICE=off (default):
+    You: "ファイルを読んで"
+    Claude: [executes immediately]
+
+Note:
+- This is for language learning purposes
+- Disable for normal workflow efficiency
+EOF
+}
+
+# Show current status
+show_status() {
+    local practice=$(grep "^ENGLISH_PRACTICE=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
+    practice=${practice:-off}
+
+    echo "=== CVI English Practice Mode ==="
+    echo ""
+
+    if [ "$practice" = "on" ]; then
+        echo "Status: ✅ ENABLED"
+        echo ""
+        echo "Behavior:"
+        echo "  1. Japanese instructions trigger English practice prompt"
+        echo "  2. Claude shows English equivalent with 'your turn'"
+        echo "  3. You repeat in English, then Claude executes"
+    else
+        echo "Status: ❌ DISABLED"
+        echo ""
+        echo "Behavior:"
+        echo "  Instructions are executed directly regardless of language"
+    fi
+}
+
+# Enable practice mode
+enable_practice() {
+    if grep -q "^ENGLISH_PRACTICE=" "$CONFIG_FILE"; then
+        sed -i '' "s/^ENGLISH_PRACTICE=.*/ENGLISH_PRACTICE=on/" "$CONFIG_FILE"
+    else
+        echo "ENGLISH_PRACTICE=on" >> "$CONFIG_FILE"
+    fi
+
+    echo "✅ English Practice Mode ENABLED"
+    echo ""
+    echo "When you give instructions in Japanese, Claude will:"
+    echo "  1. Show the English equivalent"
+    echo "  2. Wait for you to repeat in English"
+    echo "  3. Then execute the instruction"
+    echo ""
+    echo "To disable: cvi-practice off"
+}
+
+# Disable practice mode
+disable_practice() {
+    if grep -q "^ENGLISH_PRACTICE=" "$CONFIG_FILE"; then
+        sed -i '' "s/^ENGLISH_PRACTICE=.*/ENGLISH_PRACTICE=off/" "$CONFIG_FILE"
+    else
+        echo "ENGLISH_PRACTICE=off" >> "$CONFIG_FILE"
+    fi
+
+    echo "✅ English Practice Mode DISABLED"
+    echo ""
+    echo "Instructions will be executed directly regardless of language."
+}
+
+# Main
+case "$1" in
+    "")
+        show_status
+        ;;
+    on|enable)
+        enable_practice
+        ;;
+    off|disable)
+        disable_practice
+        ;;
+    status)
+        show_status
+        ;;
+    help|--help|-h)
+        usage
+        ;;
+    *)
+        echo "Error: Unknown command '$1'"
+        echo ""
+        echo "Valid commands: on, off, status"
+        echo "Use 'cvi-practice help' for more information"
+        exit 1
+        ;;
+esac
