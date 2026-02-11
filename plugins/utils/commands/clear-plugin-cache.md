@@ -21,9 +21,7 @@ Related issues:
 
 Execute the cache clear script with the provided arguments:
 
-```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/clear-plugin-cache.sh $ARGUMENTS
-```
+!`bash ${CLAUDE_PLUGIN_ROOT}/scripts/clear-plugin-cache.sh $ARGUMENTS`
 
 ## Arguments
 
