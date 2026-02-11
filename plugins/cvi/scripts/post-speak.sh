@@ -57,52 +57,68 @@ debug_log "Project root: $PROJECT_ROOT"
 PROJECT_HASH=$(echo "$PROJECT_ROOT" | md5 | cut -c1-16)
 debug_log "Project hash: $PROJECT_HASH"
 
-# Project-specific lock file and PID file
-LOCK_DIR="/tmp/cvi"
-LOCK_FILE="${LOCK_DIR}/${PROJECT_HASH}.lock"
-PID_FILE="${LOCK_DIR}/${PROJECT_HASH}.lock.pid"
-
-# Create lock directory if it doesn't exist
-mkdir -p "$LOCK_DIR"
+# Project-specific lock directory and PID file
+LOCK_DIR="/tmp/cvi/${PROJECT_HASH}.lock"
+PID_FILE="${LOCK_DIR}/pid"
 
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Acquire project-specific lock and execute speak-sync.sh
-debug_log "Acquiring lock: $LOCK_FILE"
-(
-    # Try to acquire lock (wait up to 30 seconds)
-    if ! flock -w 30 200; then
-        debug_log "Failed to acquire lock within 30 seconds"
+# Acquire project-specific lock using mkdir (atomic operation)
+debug_log "Acquiring lock: $LOCK_DIR"
+
+# Try to acquire lock (wait up to 30 seconds)
+TIMEOUT=30
+START_TIME=$(date +%s)
+while ! mkdir "$LOCK_DIR" 2>/dev/null; do
+    if [ ! -d "$LOCK_DIR" ]; then
+        log_error "Failed to create lock directory: $LOCK_DIR"
+        echo "Error: Cannot create lock directory" >&2
+        exit 1
+    fi
+    CURRENT_TIME=$(date +%s)
+    ELAPSED=$((CURRENT_TIME - START_TIME))
+    if [ $ELAPSED -ge $TIMEOUT ]; then
+        # Check if lock is stale
+        if [ -f "$PID_FILE" ]; then
+            LOCK_PID=$(cat "$PID_FILE" 2>/dev/null)
+            if [[ "$LOCK_PID" =~ ^[0-9]+$ ]] && ! ps -p "$LOCK_PID" > /dev/null 2>&1; then
+                # Stale lock, clean up and retry
+                debug_log "Stale lock detected (PID: $LOCK_PID), cleaning up"
+                rm -rf "$LOCK_DIR" 2>/dev/null
+                START_TIME=$(date +%s)  # Reset timeout
+                continue
+            fi
+        fi
+        # Still locked, give up
+        debug_log "Failed to acquire lock within ${TIMEOUT} seconds"
         log_error "Lock timeout: Another voice notification in progress (project: $PROJECT_HASH)"
         echo "Error: Another voice notification is already in progress for this project" >&2
         exit 1
     fi
+    sleep 0.1
+done
 
-    debug_log "Lock acquired, calling speak-sync.sh"
+# Lock acquired, set up cleanup trap
+cleanup() {
+    rm -f "$PID_FILE" 2>/dev/null
+    rm -rf "$LOCK_DIR" 2>/dev/null
+}
+trap cleanup EXIT SIGTERM SIGINT SIGHUP
+debug_log "Lock acquired, calling speak-sync.sh"
 
-    # Execute speak-sync.sh in background and record PID
-    # Use atomic write (temp file + mv) to prevent race condition with kill-voice.sh
-    echo "INITIALIZING" > "${PID_FILE}.init"
-    mv "${PID_FILE}.init" "$PID_FILE"
-    "${SCRIPT_DIR}/speak-sync.sh" "$TEXT" &
-    SAY_PID=$!
-    echo "$SAY_PID" > "${PID_FILE}.tmp"
-    mv "${PID_FILE}.tmp" "$PID_FILE"
-    debug_log "speak-sync.sh PID: $SAY_PID"
+# Execute speak-sync.sh in background and record PID
+echo "$$" > "$PID_FILE"  # Parent PID temporarily
+"${SCRIPT_DIR}/speak-sync.sh" "$TEXT" &
+SAY_PID=$!
+echo "$SAY_PID" > "$PID_FILE"  # Update with actual PID
+debug_log "speak-sync.sh PID: $SAY_PID"
 
-    # Wait for completion
-    wait $SAY_PID
-    EXIT_CODE=$?
-    debug_log "speak-sync.sh completed with exit code: $EXIT_CODE"
-
-    # Cleanup PID file
-    rm -f "$PID_FILE"
-    debug_log "Cleaned up PID file"
-
-    exit $EXIT_CODE
-) 200>"$LOCK_FILE"
-
+# Wait for completion
+wait $SAY_PID
 EXIT_CODE=$?
-debug_log "Lock released, final exit code: $EXIT_CODE"
+debug_log "speak-sync.sh completed with exit code: $EXIT_CODE"
+
+# Cleanup is handled by trap
+debug_log "Lock will be released by trap, final exit code: $EXIT_CODE"
 exit $EXIT_CODE
