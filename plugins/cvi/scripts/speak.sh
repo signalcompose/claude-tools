@@ -3,10 +3,23 @@
 # CVI Speak Script
 # Read provided text aloud using CVI settings
 
+set -euo pipefail
+
+# Error logging
+ERROR_LOG="$HOME/.cvi/error.log"
+
+log_error() {
+    local message="$1"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    mkdir -p "$(dirname "$ERROR_LOG")" 2>/dev/null
+    echo "[${timestamp}] [speak.sh] ${message}" >> "$ERROR_LOG"
+}
+
 # Get the text to speak from arguments
 MSG="$*"
 
 if [ -z "$MSG" ]; then
+    log_error "No text provided"
     echo "Error: No text provided"
     echo "Usage: speak.sh <text to speak>"
     exit 1
@@ -36,13 +49,13 @@ if [ -f "$CONFIG_FILE" ]; then
     VOICE_FIXED=$(grep "^VOICE_FIXED=" "$CONFIG_FILE" | cut -d'=' -f2)
 fi
 
-# Set defaults
-SPEECH_RATE=${SPEECH_RATE:-200}
-VOICE_LANG=${VOICE_LANG:-ja}
-VOICE_EN=${VOICE_EN:-Samantha}
-VOICE_JA=${VOICE_JA:-system}
-AUTO_DETECT_LANG=${AUTO_DETECT_LANG:-false}
-VOICE_MODE=${VOICE_MODE:-auto}
+# Set defaults (handle empty strings from malformed config)
+[ -z "$SPEECH_RATE" ] && SPEECH_RATE=200
+[ -z "$VOICE_LANG" ] && VOICE_LANG=ja
+[ -z "$VOICE_EN" ] && VOICE_EN=Samantha
+[ -z "$VOICE_JA" ] && VOICE_JA=system
+[ -z "$AUTO_DETECT_LANG" ] && AUTO_DETECT_LANG=false
+[ -z "$VOICE_MODE" ] && VOICE_MODE=auto
 
 # Detect language if AUTO_DETECT_LANG is enabled
 if [ "$AUTO_DETECT_LANG" = "true" ]; then
@@ -73,7 +86,12 @@ fi
 SESSION_DIR=$(basename "$(pwd)")
 
 # Display macOS notification
-osascript -e "display notification \"$MSG\" with title \"ClaudeCode ($SESSION_DIR) Task Done\"" &
+# Use separate -e arguments to prevent command injection
+osascript \
+    -e 'on run argv' \
+    -e '  display notification item 1 of argv with title "ClaudeCode (" & item 2 of argv & ") Task Done"' \
+    -e 'end run' \
+    -- "$MSG" "$SESSION_DIR" &
 
 # Play Glass sound to indicate completion
 afplay /System/Library/Sounds/Glass.aiff &

@@ -50,13 +50,13 @@ if [ -f "$CONFIG_FILE" ]; then
     VOICE_FIXED=$(grep "^VOICE_FIXED=" "$CONFIG_FILE" | cut -d'=' -f2- || echo "")
 fi
 
-# Set defaults
-SPEECH_RATE=${SPEECH_RATE:-200}
-VOICE_LANG=${VOICE_LANG:-ja}
-VOICE_EN=${VOICE_EN:-Samantha}
-VOICE_JA=${VOICE_JA:-system}
-AUTO_DETECT_LANG=${AUTO_DETECT_LANG:-false}
-VOICE_MODE=${VOICE_MODE:-auto}
+# Set defaults (handle empty strings from malformed config)
+[ -z "$SPEECH_RATE" ] && SPEECH_RATE=200
+[ -z "$VOICE_LANG" ] && VOICE_LANG=ja
+[ -z "$VOICE_EN" ] && VOICE_EN=Samantha
+[ -z "$VOICE_JA" ] && VOICE_JA=system
+[ -z "$AUTO_DETECT_LANG" ] && AUTO_DETECT_LANG=false
+[ -z "$VOICE_MODE" ] && VOICE_MODE=auto
 
 # Detect language if AUTO_DETECT_LANG is enabled
 if [ "$AUTO_DETECT_LANG" = "true" ]; then
@@ -86,13 +86,13 @@ fi
 # Get current session directory name for notification
 SESSION_DIR=$(basename "$(pwd)")
 
-# Escape special characters for AppleScript to prevent command injection
-# Escape backslashes first, then double quotes
-SAFE_MSG=$(printf '%s' "$MSG" | sed 's/\\/\\\\/g; s/"/\\"/g')
-SAFE_SESSION_DIR=$(printf '%s' "$SESSION_DIR" | sed 's/\\/\\\\/g; s/"/\\"/g')
-
 # Display macOS notification (background - non-blocking)
-osascript -e "display notification \"$SAFE_MSG\" with title \"ClaudeCode ($SAFE_SESSION_DIR) Task Done\"" &
+# Use separate -e arguments to prevent command injection
+osascript \
+    -e 'on run argv' \
+    -e '  display notification item 1 of argv with title "ClaudeCode (" & item 2 of argv & ") Task Done"' \
+    -e 'end run' \
+    -- "$MSG" "$SESSION_DIR" &
 
 # Play Glass sound to indicate completion (background - non-blocking)
 afplay /System/Library/Sounds/Glass.aiff &
