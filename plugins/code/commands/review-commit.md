@@ -1,3 +1,7 @@
+---
+description: Review working directory changes for code quality, security, and best practices before committing
+---
+
 # Code Review for Commit
 
 ステージング済み変更をレビューし、コミット前にすべてのcritical/important問題を修正。
