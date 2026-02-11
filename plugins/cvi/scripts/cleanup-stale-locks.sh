@@ -36,6 +36,9 @@ CHECKED=0
 CLEANED_COUNT_FILE="/tmp/cvi/cleanup_count.$$"
 echo "0" > "$CLEANED_COUNT_FILE"
 
+# Ensure temp file cleanup on exit
+trap 'rm -f "$CLEANED_COUNT_FILE"' EXIT
+
 # Check each lock file
 for LOCK_FILE in "$LOCK_DIR"/*.lock; do
     # Skip if no lock files found (glob didn't match)
@@ -111,11 +114,11 @@ if [ -f "$ERROR_LOG" ]; then
     LOG_SIZE=$(stat -f%z "$ERROR_LOG" 2>/dev/null || echo 0)
     if [ "$LOG_SIZE" -gt 1048576 ]; then
         debug_log "Rotating error log (size: $LOG_SIZE bytes)"
-        # Use flock to prevent race condition during rotation
+        # Use copytruncate approach to prevent race condition with log writers
         (
             flock -x 200
-            mv "$ERROR_LOG" "${ERROR_LOG}.old"
-            touch "$ERROR_LOG"
+            cp "$ERROR_LOG" "${ERROR_LOG}.old"
+            > "$ERROR_LOG"  # Truncate in-place (writers keep their file descriptors)
         ) 200>"${ERROR_LOG}.lock"
         rm -f "${ERROR_LOG}.lock"
     fi

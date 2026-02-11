@@ -99,15 +99,16 @@ afplay /System/Library/Sounds/Glass.aiff &
 
 # Speak synchronously in FOREGROUND (blocking - waits for completion)
 # This is the key difference from speak.sh
+# Use printf + pipe to prevent command injection
 if [ "$SELECTED_VOICE" = "system" ]; then
     # Use system default (no -v flag)
-    if ! say -r "$SPEECH_RATE" "$MSG"; then
+    if ! printf '%s' "$MSG" | say -r "$SPEECH_RATE" -f -; then
         log_error "say command failed (system voice, rate=$SPEECH_RATE)"
         exit 1
     fi
 else
     # Use specific voice
-    if ! say -v "$SELECTED_VOICE" -r "$SPEECH_RATE" "$MSG"; then
+    if ! printf '%s' "$MSG" | say -v "$SELECTED_VOICE" -r "$SPEECH_RATE" -f -; then
         log_error "say command failed (voice=$SELECTED_VOICE, rate=$SPEECH_RATE)"
         exit 1
     fi
