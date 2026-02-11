@@ -12,11 +12,27 @@ if [ "$CVI_ENABLED" = "off" ]; then
     exit 0
 fi
 
-# Check if another voice notification is already playing
-LOCK_FILE="/tmp/cvi_speaking.lock"
+# Get project root directory
+PROJECT_ROOT=$(pwd)
+
+# Generate project-specific hash (16 characters)
+PROJECT_HASH=$(echo "$PROJECT_ROOT" | md5 | cut -c1-16)
+
+# Project-specific lock file
+LOCK_DIR="/tmp/cvi"
+LOCK_FILE="${LOCK_DIR}/${PROJECT_HASH}.lock"
+
+# Create lock directory if it doesn't exist
+mkdir -p "$LOCK_DIR"
+
+# Try to acquire lock (non-blocking)
+# If lock is held (voice is playing), skip this notification
 if [ -f "$LOCK_FILE" ]; then
-    # Another voice is speaking, skip this notification
-    exit 0
+    # Try to acquire lock without blocking
+    if ! flock -n "$LOCK_FILE" true 2>/dev/null; then
+        # Lock is held, voice is playing, skip notification
+        exit 0
+    fi
 fi
 
 # Play Glass notification sound
