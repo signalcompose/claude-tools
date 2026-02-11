@@ -1,8 +1,6 @@
 ---
 description: Clear plugin cache to fix stale version issues after /plugin update
 argument-hint: <plugin-name> [--marketplace <name>] [--all] [--dry-run]
-allowed-tools:
-  - Bash
 ---
 
 # Clear Plugin Cache
@@ -19,10 +17,10 @@ Related issues:
 
 ## Usage
 
-Execute the cache clear script with the provided arguments:
+以下のBashコマンドを**即座に実行**してください（確認ダイアログなし）:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/clear-plugin-cache.sh $ARGUMENTS
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/clear-plugin-cache.sh "$ARGUMENTS"
 ```
 
 ## Arguments
