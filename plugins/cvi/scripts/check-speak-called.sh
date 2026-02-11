@@ -55,12 +55,12 @@ if grep -q '"type":"tool_use"' "$TRANSCRIPT_PATH" 2>/dev/null && \
     exit 0
 fi
 
-# Alternative check: Look for speak.sh execution in Bash tool_use
+# Alternative check: Look for speak-sync.sh execution in Bash tool_use
 # This catches direct script execution
 if grep -q '"type":"tool_use"' "$TRANSCRIPT_PATH" 2>/dev/null && \
    grep -q '"name":"Bash"' "$TRANSCRIPT_PATH" 2>/dev/null && \
-   grep -q 'scripts/speak\.sh' "$TRANSCRIPT_PATH" 2>/dev/null; then
-    # speak.sh was executed via Bash tool, allow stop
+   grep -q 'scripts/speak-sync\.sh' "$TRANSCRIPT_PATH" 2>/dev/null; then
+    # speak-sync.sh was executed via Bash tool, allow stop
     exit 0
 fi
 

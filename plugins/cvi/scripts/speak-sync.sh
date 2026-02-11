@@ -90,29 +90,50 @@ SESSION_DIR=$(basename "$(pwd)")
 # Use separate -e arguments to prevent command injection
 osascript \
     -e 'on run argv' \
-    -e '  display notification item 1 of argv with title "ClaudeCode (" & item 2 of argv & ") Task Done"' \
+    -e '  set msg to item 1 of argv' \
+    -e '  set sessionDir to item 2 of argv' \
+    -e '  display notification msg with title "ClaudeCode - " & sessionDir & " - Task Done"' \
     -e 'end run' \
     -- "$MSG" "$SESSION_DIR" &
 
 # Play Glass sound to indicate completion (background - non-blocking)
 afplay /System/Library/Sounds/Glass.aiff &
 
-# Speak synchronously in FOREGROUND (blocking - waits for completion)
-# This is the key difference from speak.sh
-# Use printf + pipe to prevent command injection
+# Generate speech audio file (works in sandboxed/non-GUI contexts)
+# Using say -o instead of osascript to avoid GUI session dependency
+# Use /tmp/ directly (same pattern as notify-input.sh)
+TEMP_AUDIO="/tmp/claude_speak_$$.aiff"
+
+# Ensure cleanup on exit (including signals)
+trap 'rm -f "$TEMP_AUDIO"' EXIT
+
 if [ "$SELECTED_VOICE" = "system" ]; then
     # Use system default (no -v flag)
-    if ! printf '%s' "$MSG" | say -r "$SPEECH_RATE" -f -; then
+    # Use printf + pipe to prevent command injection (preserve security pattern)
+    if ! printf '%s' "$MSG" | say -r "$SPEECH_RATE" -o "$TEMP_AUDIO" -f -; then
         log_error "say command failed (system voice, rate=$SPEECH_RATE)"
+        rm -f "$TEMP_AUDIO"
         exit 1
     fi
 else
     # Use specific voice
-    if ! printf '%s' "$MSG" | say -v "$SELECTED_VOICE" -r "$SPEECH_RATE" -f -; then
+    # Use printf + pipe to prevent command injection (preserve security pattern)
+    if ! printf '%s' "$MSG" | say -v "$SELECTED_VOICE" -r "$SPEECH_RATE" -o "$TEMP_AUDIO" -f -; then
         log_error "say command failed (voice=$SELECTED_VOICE, rate=$SPEECH_RATE)"
+        rm -f "$TEMP_AUDIO"
         exit 1
     fi
 fi
+
+# Play audio file synchronously (foreground - waits for completion)
+if ! afplay "$TEMP_AUDIO"; then
+    log_error "afplay command failed for $TEMP_AUDIO"
+    rm -f "$TEMP_AUDIO"
+    exit 1
+fi
+
+# Cleanup temporary file
+rm -f "$TEMP_AUDIO"
 
 # Only print after speech completes
 echo "Speaking: $MSG"
