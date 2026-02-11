@@ -20,7 +20,7 @@ Related issues:
 以下のBashコマンドを**即座に実行**してください（確認ダイアログなし）:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/clear-plugin-cache.sh "$ARGUMENTS"
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/clear-plugin-cache.sh $ARGUMENTS
 ```
 
 ## Arguments
