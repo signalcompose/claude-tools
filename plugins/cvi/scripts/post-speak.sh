@@ -82,11 +82,13 @@ debug_log "Acquiring lock: $LOCK_FILE"
     debug_log "Lock acquired, calling speak-sync.sh"
 
     # Execute speak-sync.sh in background and record PID
-    # Use sentinel value to handle race condition with kill-voice.sh
-    echo "INITIALIZING" > "$PID_FILE"
+    # Use atomic write (temp file + mv) to prevent race condition with kill-voice.sh
+    echo "INITIALIZING" > "${PID_FILE}.tmp"
+    mv "${PID_FILE}.tmp" "$PID_FILE"
     "${SCRIPT_DIR}/speak-sync.sh" "$TEXT" &
     SAY_PID=$!
-    echo "$SAY_PID" > "$PID_FILE"
+    echo "$SAY_PID" > "${PID_FILE}.tmp"
+    mv "${PID_FILE}.tmp" "$PID_FILE"
     debug_log "speak-sync.sh PID: $SAY_PID"
 
     # Wait for completion
