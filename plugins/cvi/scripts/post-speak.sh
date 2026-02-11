@@ -71,9 +71,26 @@ debug_log "Acquiring lock: $LOCK_DIR"
 TIMEOUT=30
 START_TIME=$(date +%s)
 while ! mkdir "$LOCK_DIR" 2>/dev/null; do
+    if [ ! -d "$LOCK_DIR" ]; then
+        log_error "Failed to create lock directory: $LOCK_DIR"
+        echo "Error: Cannot create lock directory" >&2
+        exit 1
+    fi
     CURRENT_TIME=$(date +%s)
     ELAPSED=$((CURRENT_TIME - START_TIME))
     if [ $ELAPSED -ge $TIMEOUT ]; then
+        # Check if lock is stale
+        if [ -f "$PID_FILE" ]; then
+            LOCK_PID=$(cat "$PID_FILE" 2>/dev/null)
+            if [[ "$LOCK_PID" =~ ^[0-9]+$ ]] && ! ps -p "$LOCK_PID" > /dev/null 2>&1; then
+                # Stale lock, clean up and retry
+                debug_log "Stale lock detected (PID: $LOCK_PID), cleaning up"
+                rm -rf "$LOCK_DIR" 2>/dev/null
+                START_TIME=$(date +%s)  # Reset timeout
+                continue
+            fi
+        fi
+        # Still locked, give up
         debug_log "Failed to acquire lock within ${TIMEOUT} seconds"
         log_error "Lock timeout: Another voice notification in progress (project: $PROJECT_HASH)"
         echo "Error: Another voice notification is already in progress for this project" >&2
@@ -83,13 +100,18 @@ while ! mkdir "$LOCK_DIR" 2>/dev/null; do
 done
 
 # Lock acquired, set up cleanup trap
-trap 'rm -f "$PID_FILE"; rm -rf "$LOCK_DIR" 2>/dev/null' EXIT SIGTERM SIGINT SIGHUP
+cleanup() {
+    rm -f "$PID_FILE" 2>/dev/null
+    rm -rf "$LOCK_DIR" 2>/dev/null
+}
+trap cleanup EXIT SIGTERM SIGINT SIGHUP
 debug_log "Lock acquired, calling speak-sync.sh"
 
 # Execute speak-sync.sh in background and record PID
+echo "$$" > "$PID_FILE"  # Parent PID temporarily
 "${SCRIPT_DIR}/speak-sync.sh" "$TEXT" &
 SAY_PID=$!
-echo "$SAY_PID" > "$PID_FILE"
+echo "$SAY_PID" > "$PID_FILE"  # Update with actual PID
 debug_log "speak-sync.sh PID: $SAY_PID"
 
 # Wait for completion
