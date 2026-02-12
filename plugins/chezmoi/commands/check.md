@@ -20,9 +20,11 @@ Check dotfiles status including local changes, remote sync state, and shell sync
 
 ## Execution
 
-Run the status check script:
+以下のBashコマンドを**即座に実行**してください:
 
-Check: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/chezmoi-check.sh`
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/chezmoi-check.sh
+```
 
 After execution, report the results to the user.
 

@@ -21,9 +21,11 @@ Sync dotfiles from remote repository and apply changes.
 
 ### Step 1: Fetch and Apply
 
-chezmoi update で git pull + apply を自動実行:
+chezmoi update で git pull + apply を自動実行。以下のBashコマンドを**即座に実行**してください:
 
-Run: !`chezmoi update -v`
+```bash
+chezmoi update -v
+```
 
 ### Step 2: Report Results
 
