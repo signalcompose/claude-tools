@@ -172,10 +172,12 @@ If you need guidance:
 ### 1. Use Descriptive Labels
 
 ```markdown
-- **Diff interpretation**: Read `${CLAUDE_PLUGIN_ROOT}/skills/sync/references/diff-guide.md`
+## Reference: Diff Interpretation
+
+[Inline reference content explaining diff interpretation]
 ```
 
-Not just the filename - explain what the reference provides.
+Not just the section name - explain what the reference provides in the section header.
 
 ### 2. Group Related References
 
@@ -238,15 +240,25 @@ For each phase, read the corresponding reference file to get detailed instructio
 ...
 ```
 
-### chezmoi sync (2 references)
+### chezmoi sync (2 inline references)
 
 ```markdown
-## Reference Files (read as needed)
+## Reference: Diff Interpretation
 
-If you need guidance:
+**Important**: `chezmoi diff` shows "what would happen if you run `chezmoi apply`".
 
-- **Diff interpretation**: Read `${CLAUDE_PLUGIN_ROOT}/skills/sync/references/diff-interpretation-guide.md`
-- **Error handling**: Read `${CLAUDE_PLUGIN_ROOT}/skills/sync/references/error-handling.md`
+- `-` lines = Current **local** file content (destination)
+- `+` lines = **Chezmoi source** content (what would be applied)
+
+## Reference: Error Handling
+
+### Network Error
+
+```
+Cannot reach github.com
+```
+
+Please check your internet connection and try again.
 ```
 
 ### code review-commit (1 reference)
