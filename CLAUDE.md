@@ -192,7 +192,9 @@ claude-tools/
 │   ├── specifications.md
 │   ├── architecture.md
 │   ├── development-guide.md
-│   └── onboarding.md
+│   ├── onboarding.md
+│   ├── progressive-disclosure.md
+│   └── skill-template.md
 ├── .claude/           # Claude Code設定
 │   ├── settings.json
 │   └── skills/        # プロジェクト専用スキル
@@ -234,9 +236,45 @@ Script: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/my-script.sh`
 
 **注意**: コードブロック形式（```bash）では展開されない。`!` 構文が必須。
 
+### Progressive Disclosure パターン
+
+**標準実装**: YPMパターン（`${CLAUDE_PLUGIN_ROOT}` 環境変数形式）
+
+**正しい実装**:
+```markdown
+## How to Execute
+
+### Step 1: Planning
+
+Read `${CLAUDE_PLUGIN_ROOT}/skills/skill-name/references/planning.md` for detailed instructions.
+
+## Reference Files (read as needed)
+
+If you need guidance:
+
+- **Troubleshooting**: Read `${CLAUDE_PLUGIN_ROOT}/skills/skill-name/references/troubleshooting.md`
+- **Advanced**: Read `${CLAUDE_PLUGIN_ROOT}/skills/skill-name/references/advanced.md`
+```
+
+**誤った実装（使用禁止）**:
+```markdown
+## References
+
+- Planning: [references/planning.md](references/planning.md)  ← Markdownリンクは動作しない
+```
+
+**理由**:
+- Markdownリンクは**Claude Codeで自動解決されない**（仕様）
+- 相対パス解決が不安定
+- ワーキングディレクトリ制限でブロックされる
+
+**詳細**: [docs/progressive-disclosure.md](./docs/progressive-disclosure.md)、[docs/skill-template.md](./docs/skill-template.md)
+
 ### 主要ベストプラクティス
 
 1. **Progressive Disclosure**: frontmatter（常時読込）→ 本文（必要時）→ references/（詳細）
+   - YPMパターン（`${CLAUDE_PLUGIN_ROOT}`）を標準として使用
+   - Markdownリンクは使用しない
 2. **決定論的検証**: クリティカルなチェックはスクリプトで実装（言語指示より確実）
 3. **スクリプトバンドル**: 重要な処理は外部スクリプト化し、SKILL.mdから呼び出す
 4. **エージェント委譲**: MANDATORYと明記し、正確なagent名とパラメータを指定
