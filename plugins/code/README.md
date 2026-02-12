@@ -149,7 +149,6 @@ plugins/code/
 │   └── review-commit/
 │       └── SKILL.md        # Review skill definition
 ├── scripts/
-│   ├── approve-review.sh           # (Legacy) Hash-based approval
 │   ├── check-code-review.sh        # PreToolUse hook (checks review flag)
 │   ├── check-pr-created.sh         # PostToolUse hook (tracks PR creation)
 │   └── enforce-code-review-rules.sh # UserPromptSubmit hook (enforces review policy)
