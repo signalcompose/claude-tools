@@ -11,6 +11,7 @@ MARKETPLACE_SPECIFIED=false
 PLUGIN_NAME=""
 ALL_PLUGINS=false
 DRY_RUN=false
+SKIP_CONFIRMATION=false
 CACHE_BASE_DIR="$HOME/.claude/plugins/cache"
 
 # Colors for output
@@ -41,6 +42,7 @@ Options:
   --marketplace <name>     Marketplace name (default: claude-tools)
   --all                    Clear all plugin caches for the marketplace
   --dry-run                Show what would be deleted without deleting
+  -y, --yes                Skip confirmation prompt
   -h, --help               Show this help message
 
 Examples:
@@ -48,6 +50,7 @@ Examples:
   clear-plugin-cache cvi --dry-run
   clear-plugin-cache plugin --marketplace other-market
   clear-plugin-cache --all --marketplace claude-tools
+  clear-plugin-cache --all --marketplace claude-tools -y
 EOF
 }
 
@@ -65,6 +68,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --dry-run)
             DRY_RUN=true
+            shift
+            ;;
+        -y|--yes)
+            SKIP_CONFIRMATION=true
             shift
             ;;
         -h|--help)
@@ -141,7 +148,7 @@ delete_plugin_cache() {
 # Clear cache
 if [[ "$ALL_PLUGINS" == true ]]; then
     # Confirmation for --all
-    if [[ "$DRY_RUN" == false ]]; then
+    if [[ "$DRY_RUN" == false ]] && [[ "$SKIP_CONFIRMATION" == false ]]; then
         echo ""
         print_warning "This will delete ALL plugin caches for marketplace: $MARKETPLACE"
         echo ""

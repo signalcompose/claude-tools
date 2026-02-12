@@ -1,6 +1,6 @@
 ---
 description: Clear plugin cache to fix stale version issues after /plugin update
-argument-hint: <plugin-name> [--marketplace <name>] [--all] [--dry-run]
+argument-hint: <plugin-name> [--marketplace <name>] [--all] [--dry-run] [-y/--yes]
 ---
 
 # Clear Plugin Cache
@@ -31,12 +31,14 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/clear-plugin-cache.sh $ARGUMENTS
 | `--marketplace <name>` | Specify marketplace (default: claude-tools) |
 | `--all` | Clear all plugin caches for the specified marketplace |
 | `--dry-run` | Show what would be deleted without actually deleting |
+| `-y, --yes` | Skip confirmation prompt (useful for automated workflows) |
 
 ## Examples
 
 - Clear single plugin: `/utils:clear-plugin-cache cvi`
 - Clear with marketplace: `/utils:clear-plugin-cache plugin --marketplace other-market`
 - Clear all: `/utils:clear-plugin-cache --all --marketplace claude-tools`
+- Clear all (skip confirmation): `/utils:clear-plugin-cache --all --marketplace claude-tools -y`
 - Dry run: `/utils:clear-plugin-cache cvi --dry-run`
 
 ## After Clearing
