@@ -18,6 +18,43 @@ if ! command -v jq &> /dev/null; then
     exit 0
 fi
 
+# Function: Detect if sandbox is enabled
+# Returns: 0 if sandbox enabled, 1 if disabled or unknown
+is_sandbox_enabled() {
+    local SETTINGS_LOCAL="$HOME/.claude/settings.local.json"
+    local SETTINGS_GLOBAL="$HOME/.claude/settings.json"
+
+    # Priority 1: Check settings.local.json
+    if [ -f "$SETTINGS_LOCAL" ]; then
+        local sandbox_enabled=$(jq -r '.sandbox.enabled // "null"' "$SETTINGS_LOCAL" 2>/dev/null || echo "null")
+        if [ "$sandbox_enabled" = "true" ]; then
+            return 0  # Sandbox enabled
+        elif [ "$sandbox_enabled" = "false" ]; then
+            return 1  # Sandbox explicitly disabled
+        fi
+    fi
+
+    # Priority 2: Check settings.json
+    if [ -f "$SETTINGS_GLOBAL" ]; then
+        local sandbox_enabled=$(jq -r '.sandbox.enabled // "null"' "$SETTINGS_GLOBAL" 2>/dev/null || echo "null")
+        if [ "$sandbox_enabled" = "true" ]; then
+            return 0  # Sandbox enabled
+        fi
+    fi
+
+    # Default: Assume disabled if not specified
+    # Rationale: Prioritize CVI notifications over sandbox detection failures
+    # If sandbox state is unknown, allow CVI checks to run to avoid missing notifications
+    return 1
+}
+
+# Skip CVI check if sandbox is enabled
+if is_sandbox_enabled; then
+    # Sandbox is enabled, skip /cvi:speak check
+    # Allow stop without blocking
+    exit 0
+fi
+
 # Check if CVI is enabled
 CONFIG_FILE="$HOME/.cvi/config"
 if [ -f "$CONFIG_FILE" ]; then
