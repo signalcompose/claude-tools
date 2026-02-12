@@ -202,13 +202,15 @@ See troubleshooting.md for errors.
 - Read `${CLAUDE_PLUGIN_ROOT}/skills/skill-name/references/debugging.md`
 ```
 
-### 5. Use Descriptive Labels
+### 5. Use Descriptive Section Headers
 
 ```markdown
-- **Diff interpretation**: Read `${CLAUDE_PLUGIN_ROOT}/skills/sync/references/diff-guide.md`
+## Reference: Diff Interpretation
+
+[Inline reference content explaining diff interpretation]
 ```
 
-Not just the filename - explain what guidance the reference provides.
+Not just the section name - explain what guidance the reference provides in the section header.
 
 ## Reference File Template
 
