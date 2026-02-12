@@ -43,7 +43,7 @@ Team Lead (yourself)
 - Does NOT fix minor issues
 - Reports completion to Team Lead
 
-For detailed review criteria, see [references/review-criteria.md](references/review-criteria.md).
+For detailed review criteria, read `${CLAUDE_PLUGIN_ROOT}/skills/review-commit/references/review-criteria.md`.
 
 ## Step 3: Iterative Review Loop
 

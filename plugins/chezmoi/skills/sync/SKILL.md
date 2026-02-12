@@ -23,7 +23,9 @@ Run: !`chezmoi update -v`
 
 適用されたファイルをユーザーに報告。
 
-## References
+## Reference Files (read as needed)
 
-- Diff の読み方: [references/diff-interpretation-guide.md](references/diff-interpretation-guide.md)
-- エラー対処: [references/error-handling.md](references/error-handling.md)
+If you need guidance:
+
+- **Diff interpretation**: Read `${CLAUDE_PLUGIN_ROOT}/skills/sync/references/diff-interpretation-guide.md`
+- **Error handling**: Read `${CLAUDE_PLUGIN_ROOT}/skills/sync/references/error-handling.md`
