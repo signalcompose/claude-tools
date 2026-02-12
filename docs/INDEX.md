@@ -12,6 +12,8 @@ SignalComposeが提供するClaude Codeプラグインのマーケットプレ�
 | [architecture.md](./architecture.md) | リポジトリ構成・プラグイン管理方式 |
 | [development-guide.md](./development-guide.md) | プラグイン開発ガイド |
 | [onboarding.md](./onboarding.md) | 新規コントリビューター向けガイド |
+| [progressive-disclosure.md](./progressive-disclosure.md) | Progressive Disclosure標準パターン |
+| [skill-template.md](./skill-template.md) | スキル作成テンプレート |
 
 ## Research
 
