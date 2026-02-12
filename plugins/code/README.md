@@ -100,6 +100,28 @@ Enable the pre-commit hook to enforce code review:
 - ✅ **専門的レビューagentを使用**
 - ✅ **ハッシュマッチングの複雑さなし**
 
+### Fixer Agent Commits
+
+レビュープロセス中、fixerエージェントは問題を解決するために複数回コミットする可能性があります：
+
+1. **review-in-progressマーカー** をレビュー開始時に作成
+2. Fixerエージェントはコミット前に **fixer-commitマーカー** を作成
+3. Pre-commitフックがfixer-commitマーカーを検出してコミットを自動承認
+4. フックがマーカーを自動削除（ワンタイムユース）
+5. 各修正が再レビューをトリガーし、品質基準を満たすまで反復
+6. 最終承認後にreview-in-progressマーカーを削除
+
+**技術的詳細**:
+- **マーカー方式を採用**: Git pre-commitフックは別プロセスで実行されるため、環境変数は使用不可
+- **一時ファイルベース**: `/tmp/claude/fixer-commit-${REPO_HASH}` でfixerを識別
+- **自動クリーンアップ**: フックがコミット時にマーカーを削除
+
+**セキュリティ対策**:
+- review-in-progressマーカーは1時間後に自動失効（古いレビューのクリーンアップ）
+- fixer-commitマーカーはワンタイムユース（コミット後即削除）
+- PR レビュー + CI が最終的な品質ゲート
+- GitHub ブランチ保護がマージ要件を強制
+
 ### Pre-commit Hook
 
 Pre-commit hookは単に`/code:review-commit`が実行されたかチェック（フラグファイル）。
@@ -149,7 +171,6 @@ plugins/code/
 │   └── review-commit/
 │       └── SKILL.md        # Review skill definition
 ├── scripts/
-│   ├── approve-review.sh           # (Legacy) Hash-based approval
 │   ├── check-code-review.sh        # PreToolUse hook (checks review flag)
 │   ├── check-pr-created.sh         # PostToolUse hook (tracks PR creation)
 │   └── enforce-code-review-rules.sh # UserPromptSubmit hook (enforces review policy)

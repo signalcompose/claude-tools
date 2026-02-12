@@ -42,6 +42,73 @@ fi
 REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
 REVIEW_FLAG="/tmp/claude/review-approved-${REPO_HASH}"
 
+# Calculate review-in-progress marker path
+REVIEW_MARKER="/tmp/claude/review-in-progress-${REPO_HASH}"
+
+# Calculate fixer-commit marker path
+FIXER_COMMIT_MARKER="/tmp/claude/fixer-commit-${REPO_HASH}"
+
+# Safety: Check review marker age (prevent stale markers)
+if [[ -f "$REVIEW_MARKER" ]]; then
+    if [[ "$(uname)" == "Darwin" ]]; then
+        # macOS
+        MARKER_AGE=$(($(date +%s) - $(stat -f %m "$REVIEW_MARKER")))
+    else
+        # Linux
+        MARKER_AGE=$(($(date +%s) - $(stat -c %Y "$REVIEW_MARKER")))
+    fi
+    MAX_AGE=$((60 * 60))  # 1 hour
+
+    if [[ $MARKER_AGE -gt $MAX_AGE ]]; then
+        echo "⚠️  Review marker is stale (${MARKER_AGE}s old), removing..." >&2
+        rm -f "$REVIEW_MARKER"
+    fi
+fi
+
+# Detect fixer agent commits during active review
+if [[ -f "$REVIEW_MARKER" ]]; then
+    # Review is in progress
+    # Use flock for atomic marker check-and-delete to prevent race conditions
+    FIXER_ALLOWED=0
+    (
+        flock -x 200
+        if [[ -f "$FIXER_COMMIT_MARKER" ]]; then
+            # Fixer agent committing during review - allow
+            echo "📝 Review in progress: allowing fixer agent commit" >&2
+
+            # Only remove marker if running as git hook (not PreToolUse hook)
+            # PreToolUse hook has INPUT (JSON from stdin), git hook has empty INPUT
+            if [[ -z "$INPUT" ]]; then
+                rm -f "$FIXER_COMMIT_MARKER"
+            fi
+            exit 0
+        fi
+        exit 1
+    ) 200>"${FIXER_COMMIT_MARKER}.lock"
+    FIXER_ALLOWED=$?
+
+    # Cleanup lock file
+    rm -f "${FIXER_COMMIT_MARKER}.lock"
+
+    # If flock block exited 0, the marker was present - allow commit
+    if [[ $FIXER_ALLOWED -eq 0 ]]; then
+        exit 0
+    else
+        # Manual commit during review - block
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
+        echo "⛔ Review In Progress - Manual Commits Blocked" >&2
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
+        echo "" >&2
+        echo "A code review is currently in progress." >&2
+        echo "Please wait for the review team to complete." >&2
+        echo "" >&2
+        echo "The fixer agent is working on resolving issues." >&2
+        echo "Manual commits during review could cause conflicts." >&2
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
+        exit 2
+    fi
+fi
+
 # Check if review approval flag exists
 if [[ -f "$REVIEW_FLAG" ]]; then
     # Review approved - remove flag and allow commit
