@@ -26,7 +26,7 @@ is_sandbox_enabled() {
 
     # Priority 1: Check settings.local.json
     if [ -f "$SETTINGS_LOCAL" ]; then
-        local sandbox_enabled=$(jq -r '.sandbox.enabled // "null"' "$SETTINGS_LOCAL" 2>/dev/null)
+        local sandbox_enabled=$(jq -r '.sandbox.enabled // "null"' "$SETTINGS_LOCAL" 2>/dev/null || echo "null")
         if [ "$sandbox_enabled" = "true" ]; then
             return 0  # Sandbox enabled
         elif [ "$sandbox_enabled" = "false" ]; then
@@ -36,13 +36,15 @@ is_sandbox_enabled() {
 
     # Priority 2: Check settings.json
     if [ -f "$SETTINGS_GLOBAL" ]; then
-        local sandbox_enabled=$(jq -r '.sandbox.enabled // "null"' "$SETTINGS_GLOBAL" 2>/dev/null)
+        local sandbox_enabled=$(jq -r '.sandbox.enabled // "null"' "$SETTINGS_GLOBAL" 2>/dev/null || echo "null")
         if [ "$sandbox_enabled" = "true" ]; then
             return 0  # Sandbox enabled
         fi
     fi
 
     # Default: Assume disabled if not specified
+    # Rationale: Prioritize CVI notifications over sandbox detection failures
+    # If sandbox state is unknown, allow CVI checks to run to avoid missing notifications
     return 1
 }
 
