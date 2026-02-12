@@ -73,14 +73,22 @@ if [[ -f "$REVIEW_MARKER" ]]; then
     (
         flock -x 200
         if [[ -f "$FIXER_COMMIT_MARKER" ]]; then
-            # Fixer agent committing during review - allow and remove marker
+            # Fixer agent committing during review - allow
             echo "📝 Review in progress: allowing fixer agent commit" >&2
-            rm -f "$FIXER_COMMIT_MARKER"
+
+            # Only remove marker if running as git hook (not PreToolUse hook)
+            # PreToolUse hook has INPUT (JSON from stdin), git hook has empty INPUT
+            if [[ -z "$INPUT" ]]; then
+                rm -f "$FIXER_COMMIT_MARKER"
+            fi
             exit 0
         fi
         exit 1
     ) 200>"${FIXER_COMMIT_MARKER}.lock"
     FIXER_ALLOWED=$?
+
+    # Cleanup lock file
+    rm -f "${FIXER_COMMIT_MARKER}.lock"
 
     # If flock block exited 0, the marker was present - allow commit
     if [[ $FIXER_ALLOWED -eq 0 ]]; then

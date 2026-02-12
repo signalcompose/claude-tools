@@ -26,8 +26,14 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
 REVIEW_MARKER="/tmp/claude/review-in-progress-${REPO_HASH}"
 
-mkdir -p /tmp/claude
-touch "$REVIEW_MARKER"
+mkdir -p /tmp/claude || {
+    echo "Error: Cannot create /tmp/claude directory" >&2
+    exit 1
+}
+touch "$REVIEW_MARKER" || {
+    echo "Error: Cannot create review marker" >&2
+    exit 1
+}
 echo "Review started at $(date)" > "$REVIEW_MARKER"
 ```
 
@@ -92,6 +98,17 @@ IF iteration = 5 AND (critical_count > 0 OR important_count > 0):
   → Report failure to user
   → Do NOT create flag
   → Exit
+```
+
+**If review fails (iteration limit reached)**:
+```bash
+# Remove review-in-progress marker (review failed)
+REPO_ROOT=$(git rev-parse --show-toplevel)
+REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
+REVIEW_MARKER="/tmp/claude/review-in-progress-${REPO_HASH}"
+rm -f "$REVIEW_MARKER"
+
+echo "⚠️ Review failed after 5 iterations. Manual intervention required."
 ```
 
 **Success condition**: `critical_count = 0` AND `important_count = 0`
