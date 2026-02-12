@@ -19,22 +19,22 @@ This wizard guides through 5 phases:
 
 ### Phase 1: Environment Check
 
-Load and follow: !`cat ${CLAUDE_PLUGIN_ROOT}/skills/setup/references/phase-1-environment.md`
+Read `${CLAUDE_PLUGIN_ROOT}/skills/setup/references/phase-1-environment.md` for environment check instructions.
 
 ### Phase 2: Detect Existing Setup
 
-Load and follow: !`cat ${CLAUDE_PLUGIN_ROOT}/skills/setup/references/phase-2-detect-existing.md`
+Read `${CLAUDE_PLUGIN_ROOT}/skills/setup/references/phase-2-detect-existing.md` for existing setup detection instructions.
 
 ### Phase 3: Mode Selection
 
-Load and follow: !`cat ${CLAUDE_PLUGIN_ROOT}/skills/setup/references/phase-3-mode-selection.md`
+Read `${CLAUDE_PLUGIN_ROOT}/skills/setup/references/phase-3-mode-selection.md` for mode selection instructions.
 
 ### Phase 4: Setup Guide
 
 Based on selection:
-- **New setup (first machine)**: !`cat ${CLAUDE_PLUGIN_ROOT}/skills/setup/references/phase-4a-new-setup.md`
-- **Clone existing (second+ machine)**: !`cat ${CLAUDE_PLUGIN_ROOT}/skills/setup/references/phase-4b-clone-existing.md`
+- **New setup (first machine)**: Read `${CLAUDE_PLUGIN_ROOT}/skills/setup/references/phase-4a-new-setup.md` for new setup instructions.
+- **Clone existing (second+ machine)**: Read `${CLAUDE_PLUGIN_ROOT}/skills/setup/references/phase-4b-clone-existing.md` for clone existing instructions.
 
 ### Phase 5: Verification
 
-Load and follow: !`cat ${CLAUDE_PLUGIN_ROOT}/skills/setup/references/phase-5-verification.md`
+Read `${CLAUDE_PLUGIN_ROOT}/skills/setup/references/phase-5-verification.md` for verification instructions.

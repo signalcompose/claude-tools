@@ -22,5 +22,5 @@ Run: !`chezmoi update -v`
 
 If detailed diff interpretation or error handling guidance is needed:
 
-Diff guide: !`cat ${CLAUDE_PLUGIN_ROOT}/skills/sync/references/diff-interpretation-guide.md`
-Error handling: !`cat ${CLAUDE_PLUGIN_ROOT}/skills/sync/references/error-handling.md`
+- **Diff guide**: Read `${CLAUDE_PLUGIN_ROOT}/skills/sync/references/diff-interpretation-guide.md` for diff interpretation guidance.
+- **Error handling**: Read `${CLAUDE_PLUGIN_ROOT}/skills/sync/references/error-handling.md` for error handling instructions.

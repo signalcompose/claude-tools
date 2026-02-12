@@ -10,7 +10,7 @@ Detect changed dotfiles, commit and push to remote.
 
 Use `chezmoi diff --reverse` to get git-like diff output. Read it exactly like a normal `git diff`.
 
-For detailed examples: !`cat ${CLAUDE_PLUGIN_ROOT}/skills/commit/references/diff-interpretation.md`
+For detailed examples, read `${CLAUDE_PLUGIN_ROOT}/skills/commit/references/diff-interpretation.md` for diff interpretation guidance.
 
 ## Execution
 
@@ -26,7 +26,7 @@ Present detected changes and ask for confirmation before proceeding.
 
 Add files with `chezmoi add`, then commit and push from `~/.local/share/chezmoi`.
 
-For detailed execution steps and error handling: !`cat ${CLAUDE_PLUGIN_ROOT}/skills/commit/references/commit-workflow.md`
+For detailed execution steps and error handling, read `${CLAUDE_PLUGIN_ROOT}/skills/commit/references/commit-workflow.md` for commit workflow instructions.
 
 ## Flow
 

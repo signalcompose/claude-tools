@@ -30,12 +30,12 @@ zshrc (7 lines)          External script (~150 lines)
 
 ### Step 1: Environment Detection & Migration Check
 
-Load and follow: !`cat ${CLAUDE_PLUGIN_ROOT}/skills/shell-sync-setup/references/migration-check.md`
+Read `${CLAUDE_PLUGIN_ROOT}/skills/shell-sync-setup/references/migration-check.md` for environment detection and migration check instructions.
 
 ### Step 2: Installation
 
-Load and follow: !`cat ${CLAUDE_PLUGIN_ROOT}/skills/shell-sync-setup/references/loader-code.md`
+Read `${CLAUDE_PLUGIN_ROOT}/skills/shell-sync-setup/references/loader-code.md` for loader installation instructions.
 
 ### Step 3: Verification
 
-Load and follow: !`cat ${CLAUDE_PLUGIN_ROOT}/skills/shell-sync-setup/references/troubleshooting.md`
+Read `${CLAUDE_PLUGIN_ROOT}/skills/shell-sync-setup/references/troubleshooting.md` for verification and troubleshooting instructions.

@@ -1,9 +1,11 @@
 ---
 name: shell-sync-setup
 description: |
-  Install shell startup sync checker for chezmoi dotfiles.
-  Use when: "set up shell sync", "install chezmoi checker",
-  "シェル同期チェッカー設定", "起動時チェック設定".
+  Install shell startup sync checker that monitors chezmoi dotfiles.
+  Use when: "set up shell sync", "install chezmoi checker", "enable startup check",
+  "シェル同期チェッカー設定", "起動時チェック設定", "自動同期チェック".
+  Capabilities: Detects remote updates and local changes at shell startup,
+  compatible with all zsh environments (plain zsh, oh-my-zsh, Powerlevel10k).
 user-invocable: false
 ---
 
