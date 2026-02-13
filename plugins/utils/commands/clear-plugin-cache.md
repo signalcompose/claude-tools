@@ -15,13 +15,24 @@ Related issues:
 - [#14061](https://github.com/anthropics/claude-code/issues/14061) - `/plugin update` does not invalidate plugin cache
 - [#15642](https://github.com/anthropics/claude-code/issues/15642) - CLAUDE_PLUGIN_ROOT points to stale version
 
+## Sandbox要件
+
+**重要**: このコマンドはプラグインキャッシュファイルの削除のためsandboxバイパスが必要です。
+
+`dangerouslyDisableSandbox: true`で実行する理由:
+- 操作: `~/.claude/plugins/cache/`内のディレクトリを削除
+- Sandbox制限: デフォルトでは書き込み操作がブロックされる
+- 安全な操作: ユーザーが開始したキャッシュクリーンアップ、システム変更のリスクなし
+
 ## Usage
 
-以下のBashコマンドを**即座に実行**してください（確認ダイアログなし）:
+以下のBashコマンドを**即座に実行**してください:
 
-```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/clear-plugin-cache.sh "$ARGUMENTS"
-```
+**重要**: ファイル削除のため`dangerouslyDisableSandbox: true`を使用してください。
+
+Bash toolで実行:
+- **コマンド**: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/clear-plugin-cache.sh "$ARGUMENTS"`
+- **dangerouslyDisableSandbox**: `true`（必須）
 
 ## Arguments
 
