@@ -33,6 +33,7 @@ Claude Code integration for [chezmoi](https://www.chezmoi.io/) dotfiles manageme
 | `/chezmoi:setup` | Interactive setup wizard for chezmoi dotfiles management with age encryption and 1Password integration |
 | `/chezmoi:commit` | Commit and push changed dotfiles to remote repository |
 | `/chezmoi:shell-sync-setup` | Install shell startup sync checker for chezmoi dotfiles |
+| `/chezmoi:diagnose-timeout` | Diagnose slow `chezmoi status` performance and identify bottlenecks |
 
 ### Shell Startup Sync Checker
 
@@ -150,6 +151,34 @@ Remote has newer changes. Run `/chezmoi:sync` first.
 ### Age decryption failed
 
 Ensure `~/.config/chezmoi/key.txt` exists and matches the encryption key.
+
+### chezmoi status timeout
+
+If `chezmoi status` takes longer than expected (default 5 seconds):
+
+**Diagnose the issue**:
+```
+/chezmoi:diagnose-timeout
+```
+
+This will measure timing for:
+- Template expansion (1Password API, Age decryption)
+- Git operations
+- Overall `chezmoi status` performance
+
+**Increase timeout**:
+```bash
+# Add to ~/.zshrc
+export CHEZMOI_STATUS_TIMEOUT=10  # seconds
+```
+
+**Common causes**:
+- 1Password API calls in templates (`{{ onepasswordRead }}`)
+- Age encryption overhead
+- Slow Git operations
+- Network latency
+
+See `docs/troubleshooting-timeout.md` for detailed guidance.
 
 ## License
 

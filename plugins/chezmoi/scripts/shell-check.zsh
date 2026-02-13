@@ -55,6 +55,7 @@ function _chezmoi_check_sync() {
   local has_local_changes=false
   local fetch_failed=false
   local network_offline=false
+  local has_status_timeout=false
 
   # Network check and git fetch with timeout (portable: uses curl)
   if curl -s --connect-timeout 2 --max-time 3 https://github.com >/dev/null 2>&1; then
@@ -101,13 +102,14 @@ function _chezmoi_check_sync() {
     network_offline=true
   fi
 
-  # Check local changes with timeout
+  # Check local changes with timeout (configurable via CHEZMOI_STATUS_TIMEOUT)
+  local timeout_seconds=${CHEZMOI_STATUS_TIMEOUT:-5}
   local chezmoi_output chezmoi_exit
   local -a chezmoi_status_cmd=(chezmoi status)
   if command -v timeout &>/dev/null; then
-    chezmoi_status_cmd=(timeout 5 chezmoi status)
+    chezmoi_status_cmd=(timeout $timeout_seconds chezmoi status)
   elif command -v gtimeout &>/dev/null; then
-    chezmoi_status_cmd=(gtimeout 5 chezmoi status)
+    chezmoi_status_cmd=(gtimeout $timeout_seconds chezmoi status)
   fi
 
   chezmoi_output=$("${chezmoi_status_cmd[@]}" 2>&1)
@@ -116,14 +118,16 @@ function _chezmoi_check_sync() {
   if [[ $chezmoi_exit -eq 0 ]]; then
     [[ -n "$chezmoi_output" ]] && has_local_changes=true
   elif [[ $chezmoi_exit -eq 124 ]]; then
-    print -P "%F{yellow}⚠%f chezmoi status timed out (>5s)"
+    print -P "%F{yellow}⚠%f chezmoi status timed out (>${timeout_seconds}s)"
+    print -P "   → Run: %F{green}/chezmoi:diagnose-timeout%f to investigate"
+    has_status_timeout=true
   else
     print -P "%F{yellow}⚠%f chezmoi status failed (exit $chezmoi_exit)"
     [[ -n "$chezmoi_output" ]] && print "   ${chezmoi_output:0:80}"
   fi
 
   # Display status
-  if $has_remote_updates || $has_local_changes || $fetch_failed || $network_offline; then
+  if $has_remote_updates || $has_local_changes || $fetch_failed || $network_offline || $has_status_timeout; then
     print ""
     print -P "%F{yellow}━━━ [chezmoi] Dotfiles Status ━━━%f"
     $network_offline && {
@@ -139,6 +143,10 @@ function _chezmoi_check_sync() {
     $has_local_changes && {
       print -P "  %F{magenta}●%f Local changes detected"
       print -P "    → Run: %F{green}chezmoi add <file>%f then %F{green}git commit%f"
+    }
+    $has_status_timeout && {
+      print -P "  %F{yellow}⚠%f Sync status unknown (timeout)"
+      print -P "    → Increase timeout: %F{green}export CHEZMOI_STATUS_TIMEOUT=10%f"
     }
     print -P "%F{yellow}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%f"
   else
