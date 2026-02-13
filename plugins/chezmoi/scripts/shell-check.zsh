@@ -59,19 +59,19 @@ function _chezmoi_check_sync() {
   # Network check and git fetch with timeout (portable: uses curl)
   if curl -s --connect-timeout 2 --max-time 3 https://github.com >/dev/null 2>&1; then
     # Git fetch with timeout (use gtimeout on macOS if available)
-    local timeout_cmd=""
+    local -a timeout_cmd=()
     if command -v timeout &>/dev/null; then
-      timeout_cmd="timeout 10"
+      timeout_cmd=(timeout 10)
     elif command -v gtimeout &>/dev/null; then
-      timeout_cmd="gtimeout 10"
+      timeout_cmd=(gtimeout 10)
     fi
 
     # Detect default branch (fallback to main)
     local default_branch=$(git -C "$CHEZMOI_DIR" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
     [[ -z "$default_branch" ]] && default_branch="main"
 
-    if [[ -n "$timeout_cmd" ]]; then
-      $timeout_cmd git -C "$CHEZMOI_DIR" fetch origin "$default_branch" --quiet 2>&1 || fetch_failed=true
+    if [[ ${#timeout_cmd[@]} -gt 0 ]]; then
+      "${timeout_cmd[@]}" git -C "$CHEZMOI_DIR" fetch origin "$default_branch" --quiet 2>&1 || fetch_failed=true
     else
       # No timeout available, run with risk of hanging (but curl check passed)
       git -C "$CHEZMOI_DIR" fetch origin "$default_branch" --quiet 2>&1 || fetch_failed=true
