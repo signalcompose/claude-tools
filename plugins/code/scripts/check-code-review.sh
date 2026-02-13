@@ -23,6 +23,12 @@ if [[ ! "$COMMAND" =~ git[[:space:]]+commit ]]; then
     exit 0
 fi
 
+# Skip if --no-verify flag is present (emergency bypass)
+if [[ "$COMMAND" =~ (^|[[:space:]])--no-verify([[:space:]]|$) ]]; then
+    echo "⚠️  Code review skipped (--no-verify flag detected)" >&2
+    exit 0
+fi
+
 # Extract target directory if command contains "cd <path> &&"
 TARGET_DIR=""
 if [[ "$COMMAND" =~ ^cd[[:space:]]+([^[:space:]&]+)[[:space:]]*\&\& ]]; then
@@ -76,11 +82,9 @@ if [[ -f "$REVIEW_MARKER" ]]; then
             # Fixer agent committing during review - allow
             echo "📝 Review in progress: allowing fixer agent commit" >&2
 
-            # Only remove marker if running as git hook (not PreToolUse hook)
-            # PreToolUse hook has INPUT (JSON from stdin), git hook has empty INPUT
-            if [[ -z "$INPUT" ]]; then
-                rm -f "$FIXER_COMMIT_MARKER"
-            fi
+            # Remove marker after successful check
+            # (next commit will go through normal review flow)
+            rm -f "$FIXER_COMMIT_MARKER"
             exit 0
         fi
         exit 1
