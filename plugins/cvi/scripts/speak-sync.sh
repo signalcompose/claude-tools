@@ -40,38 +40,71 @@ if [ "$CVI_ENABLED" = "off" ]; then
 fi
 
 # Function: Detect if sandbox is enabled
-# Returns: 0 if sandbox enabled, 1 if disabled or unknown
+# Returns: 0 if sandbox explicitly enabled in config
+#          1 if disabled, unknown, or detection failed
+# Note: Unknown states default to "disabled" to prioritize CVI functionality
+# Error handling: All failures are treated as "unknown" and logged
 is_sandbox_enabled() {
+    # Hardcoded paths (as of Claude Code 2026-02-14)
     local SETTINGS_LOCAL="$HOME/.claude/settings.local.json"
     local SETTINGS_GLOBAL="$HOME/.claude/settings.json"
 
-    # Priority 1: Check settings.local.json
+    # Priority 1: Check settings.local.json (user-specific overrides)
     if [ -f "$SETTINGS_LOCAL" ]; then
-        # Check if jq is available
+        # Check if jq is available for JSON parsing
         if command -v jq &> /dev/null; then
-            local sandbox_enabled=$(jq -r '.sandbox.enabled // "null"' "$SETTINGS_LOCAL" 2>/dev/null || echo "null")
-            if [ "$sandbox_enabled" = "true" ]; then
-                return 0  # Sandbox enabled
-            elif [ "$sandbox_enabled" = "false" ]; then
-                return 1  # Sandbox explicitly disabled
+            # Use jq to extract sandbox.enabled (defaults to "null" if key missing)
+            # Capture both output and potential errors
+            local jq_output
+            local jq_exit_code
+            jq_output=$(jq -r '.sandbox.enabled // "null"' "$SETTINGS_LOCAL" 2>&1)
+            jq_exit_code=$?
+
+            if [ $jq_exit_code -ne 0 ]; then
+                log_error "jq failed to parse $SETTINGS_LOCAL: $jq_output"
+                # Continue to next fallback (settings.json)
+            elif [ "$jq_output" = "true" ]; then
+                return 0
+            elif [ "$jq_output" = "false" ]; then
+                return 1
             fi
+        else
+            log_error "jq command not found - cannot parse settings.local.json"
         fi
     fi
 
-    # Priority 2: Check settings.json
+    # Priority 2: Check settings.json (global defaults)
     if [ -f "$SETTINGS_GLOBAL" ]; then
-        # Check if jq is available
+        # Check if jq is available for JSON parsing
         if command -v jq &> /dev/null; then
-            local sandbox_enabled=$(jq -r '.sandbox.enabled // "null"' "$SETTINGS_GLOBAL" 2>/dev/null || echo "null")
-            if [ "$sandbox_enabled" = "true" ]; then
-                return 0  # Sandbox enabled
+            # Use jq to extract sandbox.enabled (defaults to "null" if key missing)
+            # Capture both output and potential errors
+            local jq_output
+            local jq_exit_code
+            jq_output=$(jq -r '.sandbox.enabled // "null"' "$SETTINGS_GLOBAL" 2>&1)
+            jq_exit_code=$?
+
+            if [ $jq_exit_code -ne 0 ]; then
+                log_error "jq failed to parse $SETTINGS_GLOBAL: $jq_output"
+                # Fall through to default
+            elif [ "$jq_output" = "true" ]; then
+                return 0
+            elif [ "$jq_output" = "false" ]; then
+                return 1
             fi
+        else
+            log_error "jq command not found - cannot parse settings.json"
         fi
     fi
 
-    # Default: Assume disabled if not specified
+    # Default: Return 1 (disabled) for all unknown states:
+    #   - Config files don't exist
+    #   - Config exists but sandbox.enabled key is absent (jq returns "null")
+    #   - jq is unavailable (cannot parse JSON)
+    #   - jq failed to parse JSON (malformed files)
     # Rationale: Prioritize CVI notifications over sandbox detection failures
-    # If sandbox state is unknown, allow CVI to run to avoid missing notifications
+    # Risk: False negatives are acceptable (CVI runs in sandbox and may fail),
+    #       but false positives (blocking CVI when sandbox is disabled) hurt UX
     return 1
 }
 
