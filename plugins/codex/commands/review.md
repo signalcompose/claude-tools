@@ -22,6 +22,8 @@ If this fails, inform the user to install Codex CLI:
 
 2. **Execute Code Review**
 
+**IMPORTANT**: The codex CLI requires access to macOS system configuration APIs that are blocked by Claude Code's sandbox. You MUST use `dangerouslyDisableSandbox: true` when executing this script. Without this, codex CLI will crash with exit code 101.
+
 Run the review with the provided arguments:
 
 ```bash
