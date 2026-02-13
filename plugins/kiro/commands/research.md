@@ -22,11 +22,15 @@ If this fails, inform the user to install Kiro CLI:
 
 2. **Execute Research Query**
 
+**IMPORTANT**: The Kiro CLI requires write access to `~/.kiro` and Application Support directories that are blocked by Claude Code's sandbox. You MUST use `dangerouslyDisableSandbox: true` when executing this script. Without this, the Kiro CLI will fail with "readonly database" errors.
+
 Run the research with the provided arguments:
 
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/scripts/kiro-ask.sh "$ARGUMENTS"
 ```
+
+When calling the Bash tool, set `dangerouslyDisableSandbox: true` to allow database write operations.
 
 3. **Summarize Results**
 
