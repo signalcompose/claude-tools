@@ -39,6 +39,50 @@ if [ "$CVI_ENABLED" = "off" ]; then
     exit 0
 fi
 
+# Function: Detect if sandbox is enabled
+# Returns: 0 if sandbox enabled, 1 if disabled or unknown
+is_sandbox_enabled() {
+    local SETTINGS_LOCAL="$HOME/.claude/settings.local.json"
+    local SETTINGS_GLOBAL="$HOME/.claude/settings.json"
+
+    # Priority 1: Check settings.local.json
+    if [ -f "$SETTINGS_LOCAL" ]; then
+        # Check if jq is available
+        if command -v jq &> /dev/null; then
+            local sandbox_enabled=$(jq -r '.sandbox.enabled // "null"' "$SETTINGS_LOCAL" 2>/dev/null || echo "null")
+            if [ "$sandbox_enabled" = "true" ]; then
+                return 0  # Sandbox enabled
+            elif [ "$sandbox_enabled" = "false" ]; then
+                return 1  # Sandbox explicitly disabled
+            fi
+        fi
+    fi
+
+    # Priority 2: Check settings.json
+    if [ -f "$SETTINGS_GLOBAL" ]; then
+        # Check if jq is available
+        if command -v jq &> /dev/null; then
+            local sandbox_enabled=$(jq -r '.sandbox.enabled // "null"' "$SETTINGS_GLOBAL" 2>/dev/null || echo "null")
+            if [ "$sandbox_enabled" = "true" ]; then
+                return 0  # Sandbox enabled
+            fi
+        fi
+    fi
+
+    # Default: Assume disabled if not specified
+    # Rationale: Prioritize CVI notifications over sandbox detection failures
+    # If sandbox state is unknown, allow CVI to run to avoid missing notifications
+    return 1
+}
+
+# Skip audio commands if sandbox is enabled
+if is_sandbox_enabled; then
+    # Sandbox is enabled, skip audio playback
+    # Output expected format for hook compatibility
+    echo "Speaking: $MSG"
+    exit 0
+fi
+
 # Load configuration from file
 if [ -f "$CONFIG_FILE" ]; then
     SPEECH_RATE=$(grep "^SPEECH_RATE=" "$CONFIG_FILE" | cut -d'=' -f2- || echo "")
