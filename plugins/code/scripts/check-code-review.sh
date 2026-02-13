@@ -23,6 +23,12 @@ if [[ ! "$COMMAND" =~ git[[:space:]]+commit ]]; then
     exit 0
 fi
 
+# Skip if --no-verify flag is present (emergency bypass)
+if [[ "$COMMAND" =~ (^|[[:space:]])--no-verify([[:space:]]|$) ]]; then
+    echo "⚠️  Code review skipped (--no-verify flag detected)" >&2
+    exit 0
+fi
+
 # Extract target directory if command contains "cd <path> &&"
 TARGET_DIR=""
 if [[ "$COMMAND" =~ ^cd[[:space:]]+([^[:space:]&]+)[[:space:]]*\&\& ]]; then
