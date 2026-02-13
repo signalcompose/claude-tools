@@ -28,13 +28,12 @@ echo -e "${CYAN}1. Template expansion${NC}"
 TEMPLATE_START=$(date +%s.%N)
 chezmoi execute-template < /dev/null >/dev/null 2>&1 || true
 TEMPLATE_END=$(date +%s.%N)
-TEMPLATE_TIME=$(echo "$TEMPLATE_END - $TEMPLATE_START" | bc)
-TEMPLATE_TIME_FORMATTED=$(printf "%.2f" "$TEMPLATE_TIME")
+TEMPLATE_TIME=$(awk "BEGIN {printf \"%.2f\", $TEMPLATE_END - $TEMPLATE_START}")
 
-echo -e "   Time: ${TEMPLATE_TIME_FORMATTED}s"
-if (( $(echo "$TEMPLATE_TIME > 2.0" | bc -l) )); then
+echo -e "   Time: ${TEMPLATE_TIME}s"
+if (( $(awk "BEGIN {print ($TEMPLATE_TIME > 2.0)}") )); then
   echo -e "   ${YELLOW}→ High${NC} (includes 1Password API, Age decryption)"
-elif (( $(echo "$TEMPLATE_TIME > 1.0" | bc -l) )); then
+elif (( $(awk "BEGIN {print ($TEMPLATE_TIME > 1.0)}") )); then
   echo -e "   ${YELLOW}→ Medium${NC}"
 else
   echo -e "   ${GREEN}→ Normal${NC}"
@@ -46,13 +45,12 @@ echo -e "${CYAN}2. Git status${NC}"
 GIT_START=$(date +%s.%N)
 git -C "$CHEZMOI_DIR" status --short >/dev/null 2>&1 || true
 GIT_END=$(date +%s.%N)
-GIT_TIME=$(echo "$GIT_END - $GIT_START" | bc)
-GIT_TIME_FORMATTED=$(printf "%.2f" "$GIT_TIME")
+GIT_TIME=$(awk "BEGIN {printf \"%.2f\", $GIT_END - $GIT_START}")
 
-echo -e "   Time: ${GIT_TIME_FORMATTED}s"
-if (( $(echo "$GIT_TIME > 1.0" | bc -l) )); then
+echo -e "   Time: ${GIT_TIME}s"
+if (( $(awk "BEGIN {print ($GIT_TIME > 1.0)}") )); then
   echo -e "   ${YELLOW}→ High${NC} (check repository size)"
-elif (( $(echo "$GIT_TIME > 0.5" | bc -l) )); then
+elif (( $(awk "BEGIN {print ($GIT_TIME > 0.5)}") )); then
   echo -e "   ${YELLOW}→ Medium${NC}"
 else
   echo -e "   ${GREEN}→ Normal${NC}"
@@ -64,15 +62,14 @@ echo -e "${CYAN}3. chezmoi status (total)${NC}"
 STATUS_START=$(date +%s.%N)
 chezmoi status >/dev/null 2>&1 || true
 STATUS_END=$(date +%s.%N)
-STATUS_TIME=$(echo "$STATUS_END - $STATUS_START" | bc)
-STATUS_TIME_FORMATTED=$(printf "%.2f" "$STATUS_TIME")
+STATUS_TIME=$(awk "BEGIN {printf \"%.2f\", $STATUS_END - $STATUS_START}")
 
-echo -e "   Time: ${STATUS_TIME_FORMATTED}s"
+echo -e "   Time: ${STATUS_TIME}s"
 echo -e "   Timeout threshold: ${TIMEOUT_THRESHOLD}s"
 
-if (( $(echo "$STATUS_TIME > $TIMEOUT_THRESHOLD" | bc -l) )); then
+if (( $(awk "BEGIN {print ($STATUS_TIME > $TIMEOUT_THRESHOLD)}") )); then
   echo -e "   ${RED}→ Exceeds timeout${NC}"
-elif (( $(echo "$STATUS_TIME > ($TIMEOUT_THRESHOLD * 0.8)" | bc -l) )); then
+elif (( $(awk "BEGIN {print ($STATUS_TIME > ($TIMEOUT_THRESHOLD * 0.8))}") )); then
   echo -e "   ${YELLOW}→ Close to timeout${NC}"
 else
   echo -e "   ${GREEN}→ Within timeout${NC}"
@@ -93,11 +90,11 @@ echo -e "${YELLOW}━━━ Analysis ━━━━━━━━━━━━━━�
 echo ""
 
 BOTTLENECK=""
-if (( $(echo "$TEMPLATE_TIME > 2.0" | bc -l) )); then
+if (( $(awk "BEGIN {print ($TEMPLATE_TIME > 2.0)}") )); then
   BOTTLENECK="Template expansion (1Password/Age)"
-elif (( $(echo "$GIT_TIME > 1.0" | bc -l) )); then
+elif (( $(awk "BEGIN {print ($GIT_TIME > 1.0)}") )); then
   BOTTLENECK="Git operations"
-elif (( $(echo "$STATUS_TIME > $TIMEOUT_THRESHOLD" | bc -l) )); then
+elif (( $(awk "BEGIN {print ($STATUS_TIME > $TIMEOUT_THRESHOLD)}") )); then
   BOTTLENECK="Overall chezmoi status (unknown cause)"
 else
   BOTTLENECK="None (performance is good)"
@@ -108,16 +105,16 @@ echo ""
 
 # Recommendations
 echo -e "${CYAN}Recommendations:${NC}"
-if (( $(echo "$STATUS_TIME > $TIMEOUT_THRESHOLD" | bc -l) )); then
+if (( $(awk "BEGIN {print ($STATUS_TIME > $TIMEOUT_THRESHOLD)}") )); then
   echo -e "  • Increase timeout: ${GREEN}export CHEZMOI_STATUS_TIMEOUT=$((TIMEOUT_THRESHOLD + 5))${NC}"
 fi
 
-if (( $(echo "$TEMPLATE_TIME > 2.0" | bc -l) )); then
+if (( $(awk "BEGIN {print ($TEMPLATE_TIME > 2.0)}") )); then
   echo -e "  • Optimize 1Password API calls (cache results, reduce usage)"
   echo -e "  • Consider reducing Age-encrypted files"
 fi
 
-if (( $(echo "$GIT_TIME > 1.0" | bc -l) )); then
+if (( $(awk "BEGIN {print ($GIT_TIME > 1.0)}") )); then
   echo -e "  • Check repository size: ${GREEN}du -sh $CHEZMOI_DIR/.git${NC}"
   echo -e "  • Consider git gc: ${GREEN}git -C $CHEZMOI_DIR gc${NC}"
 fi
