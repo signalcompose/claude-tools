@@ -39,6 +39,69 @@ if [ "$CVI_ENABLED" = "off" ]; then
     exit 0
 fi
 
+# Read sandbox.enabled from a single JSON settings file.
+# Args: $1 = file path
+# Prints: "true", "false", or "unknown"
+_read_sandbox_setting() {
+    local file="$1"
+
+    [ -f "$file" ] || { echo "unknown"; return; }
+
+    if ! command -v jq &> /dev/null; then
+        log_error "jq command not found - cannot parse $(basename "$file")"
+        echo "unknown"
+        return
+    fi
+
+    local jq_output
+    if ! jq_output=$(jq -r '.sandbox.enabled // "null"' "$file" 2>&1); then
+        log_error "jq failed to parse $file: $jq_output"
+        echo "unknown"
+        return
+    fi
+
+    if [ "$jq_output" = "true" ] || [ "$jq_output" = "false" ]; then
+        echo "$jq_output"
+    else
+        echo "unknown"
+    fi
+}
+
+# Detect if sandbox is enabled in Claude Code settings.
+# Returns: 0 if sandbox explicitly enabled, 1 otherwise.
+# Priority: settings.local.json > settings.json > default (disabled).
+# Unknown states default to "disabled" to prioritize CVI functionality.
+# Rationale: False negatives (CVI runs in sandbox and may fail) are acceptable,
+#            but false positives (blocking CVI when sandbox is off) hurt UX.
+is_sandbox_enabled() {
+    local settings_files=(
+        "$HOME/.claude/settings.local.json"
+        "$HOME/.claude/settings.json"
+    )
+
+    local result
+    for file in "${settings_files[@]}"; do
+        result=$(_read_sandbox_setting "$file")
+        if [ "$result" = "true" ]; then
+            return 0
+        elif [ "$result" = "false" ]; then
+            return 1
+        fi
+        # "unknown" -> continue to next file
+    done
+
+    # Default: disabled (no definitive setting found)
+    return 1
+}
+
+# Skip audio commands if sandbox is enabled
+if is_sandbox_enabled; then
+    # Sandbox is enabled, skip audio playback
+    # Output expected format for hook compatibility
+    echo "Speaking: $MSG"
+    exit 0
+fi
+
 # Load configuration from file
 if [ -f "$CONFIG_FILE" ]; then
     SPEECH_RATE=$(grep "^SPEECH_RATE=" "$CONFIG_FILE" | cut -d'=' -f2- || echo "")
