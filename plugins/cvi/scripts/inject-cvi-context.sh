@@ -1,14 +1,24 @@
 #!/bin/bash
 # SessionStart hook: Inject CVI-specific context and English Practice mode
+set -o pipefail
 
 CONFIG_FILE="$HOME/.cvi/config"
 
 # Read config values
 if [ -f "$CONFIG_FILE" ]; then
-    CVI_ENABLED=$(grep "^CVI_ENABLED=" "$CONFIG_FILE" | cut -d'=' -f2)
-    VOICE_LANG=$(grep "^VOICE_LANG=" "$CONFIG_FILE" | cut -d'=' -f2)
-    ENGLISH_PRACTICE=$(grep "^ENGLISH_PRACTICE=" "$CONFIG_FILE" | cut -d'=' -f2)
+    if [ ! -r "$CONFIG_FILE" ]; then
+        echo "⚠️  WARNING: Config file ${CONFIG_FILE} exists but is not readable. Using defaults." >&2
+    else
+        CVI_ENABLED=$(grep "^CVI_ENABLED=" "$CONFIG_FILE" | cut -d'=' -f2)
+        VOICE_LANG=$(grep "^VOICE_LANG=" "$CONFIG_FILE" | cut -d'=' -f2)
+        ENGLISH_PRACTICE=$(grep "^ENGLISH_PRACTICE=" "$CONFIG_FILE" | cut -d'=' -f2)
+    fi
 fi
+
+# Normalize config values (lowercase, trim whitespace)
+CVI_ENABLED=$(echo "$CVI_ENABLED" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+VOICE_LANG=$(echo "$VOICE_LANG" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+ENGLISH_PRACTICE=$(echo "$ENGLISH_PRACTICE" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
 
 # Set defaults
 CVI_ENABLED=${CVI_ENABLED:-on}
