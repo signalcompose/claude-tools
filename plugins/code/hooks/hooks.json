@@ -18,18 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-code-review.sh"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-pr-created.sh"
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-pr-review-gate.sh"
           }
         ]
       }
