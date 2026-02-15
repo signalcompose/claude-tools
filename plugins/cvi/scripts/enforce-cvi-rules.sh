@@ -1,34 +1,59 @@
 #!/bin/bash
 # UserPromptSubmit hook: Enforce CVI rules based on config
+set -o pipefail
 
 CONFIG_FILE="$HOME/.cvi/config"
 SETTINGS_FILE="$HOME/.claude/settings.json"
 
 # Read CVI config values
 if [ -f "$CONFIG_FILE" ]; then
-    CVI_ENABLED=$(grep "^CVI_ENABLED=" "$CONFIG_FILE" | cut -d'=' -f2)
-    VOICE_LANG=$(grep "^VOICE_LANG=" "$CONFIG_FILE" | cut -d'=' -f2)
-    ENGLISH_PRACTICE=$(grep "^ENGLISH_PRACTICE=" "$CONFIG_FILE" | cut -d'=' -f2)
-else
-    CVI_ENABLED="on"
-    VOICE_LANG="ja"
-    ENGLISH_PRACTICE="off"
+    if [ ! -r "$CONFIG_FILE" ]; then
+        echo "⚠️  WARNING: Config file ${CONFIG_FILE} exists but is not readable. Using defaults." >&2
+    else
+        CVI_ENABLED=$(grep "^CVI_ENABLED=" "$CONFIG_FILE" | cut -d'=' -f2)
+        VOICE_LANG=$(grep "^VOICE_LANG=" "$CONFIG_FILE" | cut -d'=' -f2)
+        ENGLISH_PRACTICE=$(grep "^ENGLISH_PRACTICE=" "$CONFIG_FILE" | cut -d'=' -f2)
+    fi
+fi
+
+# Normalize config values (lowercase, trim whitespace)
+CVI_ENABLED=$(echo "$CVI_ENABLED" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+VOICE_LANG=$(echo "$VOICE_LANG" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+ENGLISH_PRACTICE=$(echo "$ENGLISH_PRACTICE" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+
+# Set defaults
+CVI_ENABLED=${CVI_ENABLED:-on}
+VOICE_LANG=${VOICE_LANG:-ja}
+ENGLISH_PRACTICE=${ENGLISH_PRACTICE:-off}
+
+# Read response language from settings.json (used by ENGLISH_PRACTICE and CVI rules)
+if [ -f "$SETTINGS_FILE" ]; then
+    RESPONSE_LANG=$(grep '"language"' "$SETTINGS_FILE" | sed 's/.*: *"\([^"]*\)".*/\1/')
+    if [ -z "$RESPONSE_LANG" ]; then
+        echo "⚠️  WARNING: Could not parse 'language' from ${SETTINGS_FILE}. Defaulting to 'japanese'." >&2
+    fi
+fi
+RESPONSE_LANG=${RESPONSE_LANG:-japanese}
+
+# English Practice mode (independent of CVI_ENABLED)
+if [ "$ENGLISH_PRACTICE" = "on" ]; then
+    cat << EOF
+🔴 ENGLISH PRACTICE MODE IS ON
+   📌 THIS ONLY AFFECTS USER INPUT - NOT CLAUDE'S RESPONSE LANGUAGE
+   When user input contains Japanese:
+   → Show English equivalent: > "English translation"
+   → Say: "your turn"
+   → Wait for user to repeat in English
+   → Then execute (responding in ${RESPONSE_LANG})
+
+   ⚠️  NEVER switch response language based on user's input language
+EOF
 fi
 
 # Exit early if CVI is disabled
 if [ "$CVI_ENABLED" = "off" ]; then
     exit 0
 fi
-
-# Read response language from settings.json
-if [ -f "$SETTINGS_FILE" ]; then
-    RESPONSE_LANG=$(grep '"language"' "$SETTINGS_FILE" | sed 's/.*: *"\([^"]*\)".*/\1/')
-fi
-RESPONSE_LANG=${RESPONSE_LANG:-japanese}
-
-# Set defaults
-VOICE_LANG=${VOICE_LANG:-ja}
-ENGLISH_PRACTICE=${ENGLISH_PRACTICE:-off}
 
 # Determine voice language display
 if [ "$VOICE_LANG" = "en" ]; then
@@ -77,22 +102,6 @@ cat << EOF
    → Skill tool result replaces [VOICE] tag
    → Single source of truth - no duplication
 EOF
-
-# English Practice mode rules
-if [ "$ENGLISH_PRACTICE" = "on" ]; then
-    cat << EOF
-
-3. ENGLISH PRACTICE MODE: ON
-   📌 THIS ONLY AFFECTS USER INPUT - NOT CLAUDE'S RESPONSE LANGUAGE
-   When user input contains Japanese:
-   → Show English equivalent: > "English translation"
-   → Say: "your turn"
-   → Wait for user to repeat in English
-   → Then execute (responding in ${RESPONSE_LANG})
-
-   ⚠️  NEVER switch response language based on user's input language
-EOF
-fi
 
 # BOTTOM SLICE - Final verification checklist
 cat << EOF

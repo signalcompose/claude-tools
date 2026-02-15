@@ -1,43 +1,33 @@
 #!/bin/bash
-# SessionStart hook: Inject CVI-specific context (voice settings only)
+# SessionStart hook: Inject CVI-specific context and English Practice mode
+set -o pipefail
 
 CONFIG_FILE="$HOME/.cvi/config"
 
 # Read config values
 if [ -f "$CONFIG_FILE" ]; then
-    CVI_ENABLED=$(grep "^CVI_ENABLED=" "$CONFIG_FILE" | cut -d'=' -f2)
-    VOICE_LANG=$(grep "^VOICE_LANG=" "$CONFIG_FILE" | cut -d'=' -f2)
-    ENGLISH_PRACTICE=$(grep "^ENGLISH_PRACTICE=" "$CONFIG_FILE" | cut -d'=' -f2)
+    if [ ! -r "$CONFIG_FILE" ]; then
+        echo "⚠️  WARNING: Config file ${CONFIG_FILE} exists but is not readable. Using defaults." >&2
+    else
+        CVI_ENABLED=$(grep "^CVI_ENABLED=" "$CONFIG_FILE" | cut -d'=' -f2)
+        VOICE_LANG=$(grep "^VOICE_LANG=" "$CONFIG_FILE" | cut -d'=' -f2)
+        ENGLISH_PRACTICE=$(grep "^ENGLISH_PRACTICE=" "$CONFIG_FILE" | cut -d'=' -f2)
+    fi
 fi
+
+# Normalize config values (lowercase, trim whitespace)
+CVI_ENABLED=$(echo "$CVI_ENABLED" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+VOICE_LANG=$(echo "$VOICE_LANG" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+ENGLISH_PRACTICE=$(echo "$ENGLISH_PRACTICE" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
 
 # Set defaults
 CVI_ENABLED=${CVI_ENABLED:-on}
 VOICE_LANG=${VOICE_LANG:-ja}
 ENGLISH_PRACTICE=${ENGLISH_PRACTICE:-off}
 
-# Exit silently if CVI is disabled
-if [ "$CVI_ENABLED" = "off" ]; then
-    exit 0
-fi
-
-# Determine language display
-if [ "$VOICE_LANG" = "en" ]; then
-    VOICE_EXAMPLE="Task completed successfully."
-    VOICE_LANG_UPPER="ENGLISH"
-else
-    VOICE_EXAMPLE="タスクが完了しました。"
-    VOICE_LANG_UPPER="JAPANESE"
-fi
-
-# Output CVI context
-echo "🔴 CRITICAL REMINDER: [VOICE] tag MUST use language: ${VOICE_LANG}"
-echo "   → Use ${VOICE_LANG_UPPER} in [VOICE] tag"
-echo "   → Example: [VOICE]${VOICE_EXAMPLE}[/VOICE]"
-
-# English Practice mode
+# English Practice mode (independent of CVI_ENABLED)
 if [ "$ENGLISH_PRACTICE" = "on" ]; then
     cat << 'EOF'
-
 🔴 ENGLISH PRACTICE MODE IS ON
    📌 IMPORTANT: This mode ONLY affects USER prompts
    → When user gives Japanese instruction:
@@ -56,6 +46,25 @@ if [ "$ENGLISH_PRACTICE" = "on" ]; then
    → When user asks "How do you say X in English?", answer the question
 EOF
 fi
+
+# Exit early if CVI is disabled (English Practice output above is independent)
+if [ "$CVI_ENABLED" = "off" ]; then
+    exit 0
+fi
+
+# Determine language display
+if [ "$VOICE_LANG" = "en" ]; then
+    VOICE_EXAMPLE="Task completed successfully."
+    VOICE_LANG_UPPER="ENGLISH"
+else
+    VOICE_EXAMPLE="タスクが完了しました。"
+    VOICE_LANG_UPPER="JAPANESE"
+fi
+
+# Output CVI context
+echo "🔴 CRITICAL REMINDER: [VOICE] tag MUST use language: ${VOICE_LANG}"
+echo "   → Use ${VOICE_LANG_UPPER} in [VOICE] tag"
+echo "   → Example: [VOICE]${VOICE_EXAMPLE}[/VOICE]"
 
 # Mandatory response format
 cat << EOF
