@@ -15,6 +15,7 @@ echo ""
 
 # Step 1: chezmoi status
 echo "🔄 Modified files:"
+STATUS_FAILED=false
 STATUS=$(chezmoi status 2>&1)
 STATUS_EXIT=$?
 if [ $STATUS_EXIT -ne 0 ]; then
