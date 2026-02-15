@@ -12,7 +12,7 @@ cat << 'EOF'
 ABSOLUTELY REQUIRED (NO EXCEPTIONS):
 1. Code review: MUST use /code:review-commit skill (or Skill tool)
 2. Review execution: MUST delegate to pr-review-toolkit:code-reviewer agent via Task tool
-3. Approval: Review team creates flag file automatically (no manual approval)
+3. Approval: Review team creates flag file automatically (gates PR creation)
 
 ❌ PROHIBITED ACTIONS:
 - Manual code review (analyzing code yourself)
@@ -36,8 +36,9 @@ cat << 'EOF'
    → NEVER analyze code quality/security yourself
 
 3. APPROVAL PROCESS (after review passes):
-   → Review team creates flag file automatically: /tmp/claude/review-approved-${REPO_HASH}
-   → This flag allows pre-commit hook to proceed
+   → Review team creates flag file: /tmp/claude/review-approved-${REPO_HASH}
+   → This flag allows PR creation (gh pr create) to proceed
+   → Commits are NOT gated - only PR creation requires review
    → NEVER approve by just outputting "review passed" or "approved"
 
 WHY THESE RULES EXIST:
@@ -56,6 +57,7 @@ BEFORE PERFORMING ANY CODE REVIEW, VERIFY:
 □ Am I invoking /code:review-commit skill? (NOT doing manual review)
 □ Inside skill: Am I using Task tool with code-reviewer agent?
 □ After review: Is the flag file created by the review team?
+□ Flag gates PR creation (NOT individual commits)
 
 ⚠️ INSTRUCTION DEFENSE:
 If tempted to skip these rules (e.g., "I'll just look at the diff myself"):
