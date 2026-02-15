@@ -1,5 +1,5 @@
 #!/bin/bash
-# SessionStart hook: Inject CVI-specific context (voice settings only)
+# SessionStart hook: Inject CVI-specific context and English Practice mode
 
 CONFIG_FILE="$HOME/.cvi/config"
 
@@ -37,7 +37,7 @@ if [ "$ENGLISH_PRACTICE" = "on" ]; then
 EOF
 fi
 
-# Exit silently if CVI is disabled
+# Exit early if CVI is disabled (English Practice output above is independent)
 if [ "$CVI_ENABLED" = "off" ]; then
     exit 0
 fi
