@@ -15,8 +15,13 @@ echo ""
 
 # Step 1: chezmoi status
 echo "🔄 Modified files:"
-STATUS=$(chezmoi status 2>/dev/null)
-if [ -z "$STATUS" ]; then
+STATUS=$(chezmoi status 2>&1)
+STATUS_EXIT=$?
+if [ $STATUS_EXIT -ne 0 ]; then
+  echo "  ⚠️ chezmoi status failed (exit code: $STATUS_EXIT)"
+  echo "$STATUS" | sed 's/^/  /'
+  STATUS_FAILED=true
+elif [ -z "$STATUS" ]; then
   echo "  (no changes)"
 else
   echo "$STATUS" | sed 's/^/  /'
@@ -39,7 +44,10 @@ if [ -d "$CHEZMOI_DIR/.git" ]; then
   BEHIND=$(git rev-list --count @..@{u} 2>/dev/null || echo "0")
 
   echo "💡 Next steps:"
-  if [ -n "$STATUS" ] && [ "$BEHIND" -gt 0 ]; then
+  if [ "$STATUS_FAILED" = true ]; then
+    echo "  - ⚠️ chezmoi status failed. Check if 1Password desktop app is running"
+    echo "  - Or run: chezmoi status (manually to see full error)"
+  elif [ -n "$STATUS" ] && [ "$BEHIND" -gt 0 ]; then
     echo "  - Run /chezmoi:sync to pull latest changes"
     echo "  - Then run /chezmoi:commit to push your changes"
   elif [ -n "$STATUS" ]; then
