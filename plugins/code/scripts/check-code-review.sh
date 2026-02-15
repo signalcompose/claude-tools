@@ -137,14 +137,24 @@ echo "  3. Iterate until code quality meets standards" >&2
 echo "  4. Approve commit when ready (up to 5 iterations)" >&2
 
 # Diagnostic: check for hash mismatch (flag exists with different hash)
-if [[ -d /tmp/claude ]]; then
-    EXISTING_FLAGS=$(ls /tmp/claude/review-approved-* 2>/dev/null)
-    if [[ -n "$EXISTING_FLAGS" ]]; then
+if [[ ! -d /tmp/claude ]]; then
+    echo "" >&2
+    echo "⚠️  Diagnostic: /tmp/claude directory does not exist" >&2
+elif [[ ! -r /tmp/claude ]]; then
+    echo "" >&2
+    echo "⚠️  Diagnostic: /tmp/claude is not readable" >&2
+    echo "   Check permissions: ls -ld /tmp/claude" >&2
+else
+    shopt -s nullglob
+    EXISTING_FLAGS=(/tmp/claude/review-approved-*)
+    shopt -u nullglob
+
+    if [[ ${#EXISTING_FLAGS[@]} -gt 0 ]]; then
         echo "" >&2
-        echo "⚠️  Diagnostic: found review flag(s) with different hash:" >&2
-        while IFS= read -r flag; do
+        echo "⚠️  Diagnostic: found ${#EXISTING_FLAGS[@]} review flag(s) with different hash:" >&2
+        for flag in "${EXISTING_FLAGS[@]}"; do
             echo "   $(basename "$flag")" >&2
-        done <<< "$EXISTING_FLAGS"
+        done
         echo "   Expected: $(basename "$REVIEW_FLAG")" >&2
         echo "   Hash algorithm: shasum -a 256 | cut -c1-16" >&2
     fi
