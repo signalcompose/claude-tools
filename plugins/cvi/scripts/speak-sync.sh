@@ -54,7 +54,7 @@ _read_sandbox_setting() {
     fi
 
     local jq_output
-    if ! jq_output=$(jq -r '.sandbox.enabled // "null"' "$file" 2>&1); then
+    if ! jq_output=$(jq -r '.sandbox.enabled | if . == null then "null" else tostring end' "$file" 2>&1); then
         log_error "jq failed to parse $file: $jq_output"
         echo "unknown"
         return
