@@ -120,7 +120,7 @@ if [[ -f "$REVIEW_FLAG" ]]; then
     exit 0
 fi
 
-# Review not completed - block commit with helpful message
+# Review not completed - block commit with diagnostic message
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
 echo "⛔ Code Review Required" >&2
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
@@ -135,6 +135,21 @@ echo "  1. Analyze your changes for issues" >&2
 echo "  2. Automatically fix critical/important problems" >&2
 echo "  3. Iterate until code quality meets standards" >&2
 echo "  4. Approve commit when ready (up to 5 iterations)" >&2
+
+# Diagnostic: check for hash mismatch (flag exists with different hash)
+if [[ -d /tmp/claude ]]; then
+    EXISTING_FLAGS=$(ls /tmp/claude/review-approved-* 2>/dev/null)
+    if [[ -n "$EXISTING_FLAGS" ]]; then
+        echo "" >&2
+        echo "⚠️  Diagnostic: found review flag(s) with different hash:" >&2
+        while IFS= read -r flag; do
+            echo "   $(basename "$flag")" >&2
+        done <<< "$EXISTING_FLAGS"
+        echo "   Expected: $(basename "$REVIEW_FLAG")" >&2
+        echo "   Hash algorithm: shasum -a 256 | cut -c1-16" >&2
+    fi
+fi
+
 echo "" >&2
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
 exit 2  # Exit code 2 blocks the tool call
