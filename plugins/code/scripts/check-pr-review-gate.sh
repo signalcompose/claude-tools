@@ -18,7 +18,7 @@ if [[ ! "$COMMAND" =~ gh[[:space:]]+pr[[:space:]]+create ]]; then
 fi
 
 # Shell comment bypass: gh pr create ... # skip-review
-if [[ "$COMMAND" =~ \#[[:space:]]*skip-review ]]; then
+if [[ "$COMMAND" =~ \#[[:space:]]*skip-review[[:space:]]*$ ]]; then
     echo "⚠️  Code review skipped (# skip-review detected)" >&2
     exit 0
 fi
