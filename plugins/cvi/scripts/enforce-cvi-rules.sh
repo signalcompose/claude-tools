@@ -15,12 +15,7 @@ else
     ENGLISH_PRACTICE="off"
 fi
 
-# Exit early if CVI is disabled
-if [ "$CVI_ENABLED" = "off" ]; then
-    exit 0
-fi
-
-# Read response language from settings.json
+# Read response language from settings.json (needed for ENGLISH_PRACTICE)
 if [ -f "$SETTINGS_FILE" ]; then
     RESPONSE_LANG=$(grep '"language"' "$SETTINGS_FILE" | sed 's/.*: *"\([^"]*\)".*/\1/')
 fi
@@ -29,6 +24,26 @@ RESPONSE_LANG=${RESPONSE_LANG:-japanese}
 # Set defaults
 VOICE_LANG=${VOICE_LANG:-ja}
 ENGLISH_PRACTICE=${ENGLISH_PRACTICE:-off}
+
+# English Practice mode (independent of CVI_ENABLED)
+if [ "$ENGLISH_PRACTICE" = "on" ]; then
+    cat << EOF
+🔴 ENGLISH PRACTICE MODE IS ON
+   📌 THIS ONLY AFFECTS USER INPUT - NOT CLAUDE'S RESPONSE LANGUAGE
+   When user input contains Japanese:
+   → Show English equivalent: > "English translation"
+   → Say: "your turn"
+   → Wait for user to repeat in English
+   → Then execute (responding in ${RESPONSE_LANG})
+
+   ⚠️  NEVER switch response language based on user's input language
+EOF
+fi
+
+# Exit early if CVI is disabled
+if [ "$CVI_ENABLED" = "off" ]; then
+    exit 0
+fi
 
 # Determine voice language display
 if [ "$VOICE_LANG" = "en" ]; then
@@ -77,22 +92,6 @@ cat << EOF
    → Skill tool result replaces [VOICE] tag
    → Single source of truth - no duplication
 EOF
-
-# English Practice mode rules
-if [ "$ENGLISH_PRACTICE" = "on" ]; then
-    cat << EOF
-
-3. ENGLISH PRACTICE MODE: ON
-   📌 THIS ONLY AFFECTS USER INPUT - NOT CLAUDE'S RESPONSE LANGUAGE
-   When user input contains Japanese:
-   → Show English equivalent: > "English translation"
-   → Say: "your turn"
-   → Wait for user to repeat in English
-   → Then execute (responding in ${RESPONSE_LANG})
-
-   ⚠️  NEVER switch response language based on user's input language
-EOF
-fi
 
 # BOTTOM SLICE - Final verification checklist
 cat << EOF
