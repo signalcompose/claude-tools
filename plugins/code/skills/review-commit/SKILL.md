@@ -1,13 +1,13 @@
 ---
 name: review-commit
 description: |
-  Review working directory changes for code quality, security, and best practices before committing.
-  Use when: "review my code", "check before commit", "code review",
-  "コードレビュー", "コミット前チェック".
+  Review working directory changes for code quality, security, and best practices before creating a PR.
+  Use when: "review my code", "check before PR", "code review",
+  "コードレビュー", "PR作成前チェック".
 user-invocable: false
 ---
 
-# Code Review for Commit
+# Code Review
 
 Iterative team-based code review with quality assurance loop.
 

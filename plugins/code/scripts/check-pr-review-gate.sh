@@ -2,15 +2,51 @@
 # PreToolUse hook: Block PR creation unless code review is approved
 # Exit 0: Allow, Exit 2: Block
 
-# Read JSON from stdin
-INPUT=$(cat)
+SEPARATOR="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Extract the command from tool_input.command
-if command -v jq &> /dev/null; then
-    COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
-else
-    COMMAND=$(echo "$INPUT" | grep -o '"command"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
-fi
+# --- Helper functions ---
+
+extract_command() {
+    local input="$1"
+    if command -v jq &> /dev/null; then
+        echo "$input" | jq -r '.tool_input.command // empty' 2>/dev/null
+    else
+        echo "$input" | grep -o '"command"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/'
+    fi
+}
+
+print_diagnostics() {
+    local expected_flag="$1"
+
+    if [[ ! -d /tmp/claude ]]; then
+        echo "⚠️  Diagnostic: /tmp/claude directory does not exist" >&2
+        return
+    fi
+
+    if [[ ! -r /tmp/claude ]]; then
+        echo "⚠️  Diagnostic: /tmp/claude is not readable" >&2
+        echo "   Check permissions: ls -ld /tmp/claude" >&2
+        return
+    fi
+
+    shopt -s nullglob
+    local existing_flags=(/tmp/claude/review-approved-*)
+    shopt -u nullglob
+
+    if [[ ${#existing_flags[@]} -gt 0 ]]; then
+        echo "⚠️  Diagnostic: found ${#existing_flags[@]} review flag(s) for other repositories:" >&2
+        for flag in "${existing_flags[@]}"; do
+            echo "   $(basename "$flag")" >&2
+        done
+        echo "   Expected: $(basename "$expected_flag")" >&2
+        echo "   Hash algorithm: shasum -a 256 | cut -c1-16" >&2
+    fi
+}
+
+# --- Main ---
+
+INPUT=$(cat)
+COMMAND=$(extract_command "$INPUT")
 
 # Only process gh pr create commands
 if [[ ! "$COMMAND" =~ gh[[:space:]]+pr[[:space:]]+create ]]; then
@@ -23,64 +59,47 @@ if [[ "$COMMAND" =~ \#[[:space:]]*skip-review[[:space:]]*$ ]]; then
     exit 0
 fi
 
-# Calculate repository-specific flag file path
+# Repository-specific flag file path
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "unknown")
 REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
 REVIEW_FLAG="/tmp/claude/review-approved-${REPO_HASH}"
 
-# Check if review approval flag exists
+# Approved: consume flag and allow PR creation
 if [[ -f "$REVIEW_FLAG" ]]; then
     rm -f "$REVIEW_FLAG"
+    cat >&2 <<EOF
 
-    # Suggest PR review after creation (integrates check-pr-created.sh functionality)
-    echo "" >&2
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
-    echo "✅ Code review approved. PR creation allowed." >&2
-    echo "" >&2
-    echo "💡 After PR is created, consider running:" >&2
-    echo "   /pr-review-toolkit:review-pr" >&2
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
+${SEPARATOR}
+✅ Code review approved. PR creation allowed.
+
+💡 After PR is created, consider running:
+   /pr-review-toolkit:review-pr
+${SEPARATOR}
+EOF
     exit 0
 fi
 
-# No approval flag - block PR creation
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
-echo "⛔ Code Review Required Before PR Creation" >&2
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
-echo "" >&2
-echo "Run code review before creating a PR:" >&2
-echo "  /code:review-commit" >&2
-echo "" >&2
-echo "The review team will:" >&2
-echo "  1. Analyze your changes for issues" >&2
-echo "  2. Automatically fix critical/important problems" >&2
-echo "  3. Iterate until code quality meets standards" >&2
-echo "  4. Create approval flag when ready" >&2
+# Not approved: block PR creation
+cat >&2 <<EOF
+${SEPARATOR}
+⛔ Code Review Required Before PR Creation
+${SEPARATOR}
 
-# Diagnostic: check for hash mismatch
-if [[ ! -d /tmp/claude ]]; then
-    echo "" >&2
-    echo "⚠️  Diagnostic: /tmp/claude directory does not exist" >&2
-elif [[ ! -r /tmp/claude ]]; then
-    echo "" >&2
-    echo "⚠️  Diagnostic: /tmp/claude is not readable" >&2
-    echo "   Check permissions: ls -ld /tmp/claude" >&2
-else
-    shopt -s nullglob
-    EXISTING_FLAGS=(/tmp/claude/review-approved-*)
-    shopt -u nullglob
+Run code review before creating a PR:
+  /code:review-commit
 
-    if [[ ${#EXISTING_FLAGS[@]} -gt 0 ]]; then
-        echo "" >&2
-        echo "⚠️  Diagnostic: found ${#EXISTING_FLAGS[@]} review flag(s) with different hash:" >&2
-        for flag in "${EXISTING_FLAGS[@]}"; do
-            echo "   $(basename "$flag")" >&2
-        done
-        echo "   Expected: $(basename "$REVIEW_FLAG")" >&2
-        echo "   Hash algorithm: shasum -a 256 | cut -c1-16" >&2
-    fi
-fi
+The review team will:
+  1. Analyze your changes for issues
+  2. Automatically fix critical/important problems
+  3. Iterate until code quality meets standards
+  4. Create approval flag when ready
 
-echo "" >&2
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
+EOF
+
+print_diagnostics "$REVIEW_FLAG"
+
+cat >&2 <<EOF
+
+${SEPARATOR}
+EOF
 exit 2
