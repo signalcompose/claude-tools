@@ -192,6 +192,7 @@ plugins/code/
 │   ├── check-pr-review-gate.sh      # PreToolUse hook (checks review flag)
 │   └── enforce-code-review-rules.sh # UserPromptSubmit hook (enforces review policy)
 ├── tests/
+│   ├── check-code-review.bats       # Hook behavior tests (BATS)
 │   └── validate-skills.bats         # Structural validation tests (BATS)
 ├── hooks/
 │   └── hooks.json            # Optional hook configuration
