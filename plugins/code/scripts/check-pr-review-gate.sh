@@ -48,8 +48,9 @@ print_diagnostics() {
 INPUT=$(cat)
 COMMAND=$(extract_command "$INPUT")
 
-# Only process gh pr create commands
-if [[ ! "$COMMAND" =~ gh[[:space:]]+pr[[:space:]]+create ]]; then
+# Only process gh pr create commands (match first line only to avoid false positives from heredoc body)
+FIRST_LINE=$(echo "$COMMAND" | head -1)
+if [[ ! "$FIRST_LINE" =~ ^[[:space:]]*gh[[:space:]]+pr[[:space:]]+create ]]; then
     exit 0
 fi
 
