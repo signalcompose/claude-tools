@@ -1,9 +1,9 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "claude-tools",
-  "description": "Claude Code plugins by SignalCompose",
+  "description": "Claude Code plugins by Signal compose",
   "owner": {
-    "name": "SignalCompose",
+    "name": "Signal compose",
     "email": "contact@signalcompose.com"
   },
   "plugins": [
