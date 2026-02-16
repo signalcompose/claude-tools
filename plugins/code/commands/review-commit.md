@@ -1,5 +1,5 @@
 ---
-description: Review working directory changes for code quality, security, and best practices before committing
+description: Review working directory changes for code quality, security, and best practices before creating a PR
 ---
 
 # Code Review for Commit

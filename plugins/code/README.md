@@ -45,7 +45,7 @@ This will:
 2. Create review team (reviewer + fixer)
 3. Review code iteratively until quality is achieved
 4. Auto-fix critical/important issues
-5. Set approval flag for commit
+5. Set approval flag for PR creation
 
 ### With PR Creation Gate (Optional)
 
