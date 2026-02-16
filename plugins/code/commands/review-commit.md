@@ -1,5 +1,5 @@
 ---
-description: Review working directory changes for code quality, security, and best practices before committing
+description: Review working directory changes for code quality, security, and best practices before creating a PR
 ---
 
 # Code Review for Commit
@@ -29,7 +29,7 @@ description: Review working directory changes for code quality, security, and be
 - すべてのcritical問題が解決
 - すべてのimportant問題が解決
 - 専門的なpr-review-toolkit:code-reviewer agentによるコード品質検証
-- ハッシュマッチングの複雑さなし
+- シンプルなフラグ方式で承認管理
 
 ## 例
 
@@ -50,4 +50,4 @@ git commit -m "feat: add new feature"
 ## 関連項目
 
 - スキル実装: skills/review-commit/SKILL.md
-- Pre-commit hook: scripts/check-code-review.sh
+- PR作成ゲートフック: scripts/check-pr-review-gate.sh

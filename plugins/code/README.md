@@ -8,7 +8,7 @@ Code quality tools for Claude Code: commit review, PR team review, and refactori
 - **PR Team Review**: 4つの専門エージェントによる並行PRレビュー + CI統合
 - **Refactoring Team**: 分析→ユーザー承認→実行のリファクタリングワークフロー
 - **Quality Assurance**: critical/important問題の完全解決を保証
-- **Pre-commit Hook**: レビュー実行をチェック（フラグベース）
+- **PR Creation Gate**: PR作成前にレビュー実行をチェック（PreToolUseフック）
 
 ## Requirements
 
@@ -45,11 +45,11 @@ This will:
 2. Create review team (reviewer + fixer)
 3. Review code iteratively until quality is achieved
 4. Auto-fix critical/important issues
-5. Set approval flag for commit
+5. Set approval flag for PR creation
 
-### With Pre-commit Hook (Optional)
+### With PR Creation Gate (Optional)
 
-Enable the pre-commit hook to enforce code review:
+Enable the PreToolUse hook to enforce code review before PR creation:
 
 1. Add to your project's `.claude/settings.json`:
 
@@ -62,7 +62,7 @@ Enable the pre-commit hook to enforce code review:
         "hooks": [
           {
             "type": "command",
-            "command": "bash /path/to/check-code-review.sh"
+            "command": "bash /path/to/check-pr-review-gate.sh"
           }
         ]
       }
@@ -72,9 +72,10 @@ Enable the pre-commit hook to enforce code review:
 ```
 
 2. With the hook enabled:
-   - Direct `git commit` will be blocked
-   - Run `/code:review-commit` first
-   - After approval, `git commit` proceeds
+   - `gh pr create` will be blocked until review is approved
+   - Run `/code:review-commit` first to review and approve
+   - After approval, `gh pr create` proceeds
+   - Other commands (`git commit`, `gh pr view`, etc.) are not affected
 
 ## コードレビューワークフロー
 
@@ -98,38 +99,22 @@ Enable the pre-commit hook to enforce code review:
 
 ### 品質保証
 
-従来のハッシュベース承認とは異なり、このアプローチは：
+フラグベースの承認フロー：
 - ✅ **問題を修正**（フラグ立てるだけではない）
 - ✅ **品質達成まで反復**
 - ✅ **専門的レビューagentを使用**
-- ✅ **ハッシュマッチングの複雑さなし**
+- ✅ **シンプルなフラグ方式**（`/tmp/claude/review-approved-${REPO_HASH}`）
 
-### Fixer Agent Commits
+### PR Creation Gate (PreToolUse Hook)
 
-レビュープロセス中、fixerエージェントは問題を解決するために複数回コミットする可能性があります：
+`check-pr-review-gate.sh` はPreToolUseフックとして動作し、`gh pr create` コマンドのみをゲートします。
 
-1. **review-in-progressマーカー** をレビュー開始時に作成
-2. Fixerエージェントはコミット前に **fixer-commitマーカー** を作成
-3. Pre-commitフックがfixer-commitマーカーを検出してコミットを自動承認
-4. フックがマーカーを自動削除（ワンタイムユース）
-5. 各修正が再レビューをトリガーし、品質基準を満たすまで反復
-6. 最終承認後にreview-in-progressマーカーを削除
-
-**技術的詳細**:
-- **マーカー方式を採用**: Git pre-commitフックは別プロセスで実行されるため、環境変数は使用不可
-- **一時ファイルベース**: `/tmp/claude/fixer-commit-${REPO_HASH}` でfixerを識別
-- **自動クリーンアップ**: フックがコミット時にマーカーを削除
-
-**セキュリティ対策**:
-- review-in-progressマーカーは1時間後に自動失効（古いレビューのクリーンアップ）
-- fixer-commitマーカーはワンタイムユース（コミット後即削除）
-- PR レビュー + CI が最終的な品質ゲート
-- GitHub ブランチ保護がマージ要件を強制
-
-### Pre-commit Hook
-
-Pre-commit hookは単に`/code:review-commit`が実行されたかチェック（フラグファイル）。
-ハッシュ検証不要—品質はレビューループで保証される。
+**動作**:
+- `gh pr create` 実行時にレビュー承認フラグ（`/tmp/claude/review-approved-${REPO_HASH}`）を確認
+- フラグが存在すればPR作成を許可し、フラグを消費（ワンタイムユース）
+- フラグが存在しなければPR作成をブロック（exit 2）
+- `# skip-review` コメントでバイパス可能
+- `git commit` やその他のコマンドには影響しない
 
 ### 無限ループ防止
 
@@ -192,7 +177,7 @@ plugins/code/
 │   ├── check-pr-review-gate.sh      # PreToolUse hook (checks review flag)
 │   └── enforce-code-review-rules.sh # UserPromptSubmit hook (enforces review policy)
 ├── tests/
-│   ├── check-code-review.bats       # Hook behavior tests (BATS)
+│   ├── check-code-review.bats       # PR review gate hook tests (BATS)
 │   └── validate-skills.bats         # Structural validation tests (BATS)
 ├── hooks/
 │   └── hooks.json            # Optional hook configuration
@@ -204,9 +189,9 @@ plugins/code/
 
 ## Troubleshooting
 
-### "Code review required before commit"
+### "Code Review Required"
 
-Run `/code:review-commit` to review staged changes before committing.
+`gh pr create` がブロックされた場合、`/code:review-commit` を実行してレビューを完了してください。
 
 ### "Review completed with warnings"
 

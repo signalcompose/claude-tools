@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Tests for check-code-review.sh (flag-based workflow)
+# Tests for check-pr-review-gate.sh (flag-based PR creation gate)
 
 setup() {
     # Create temporary test directory
@@ -11,24 +11,26 @@ setup() {
     git config user.email "test@example.com"
     git config user.name "Test User"
 
-    # Export test variables
-    export SCRIPT_PATH="/Users/yamato/Src/proj_claude-tools/claude-tools/plugins/code/scripts/check-code-review.sh"
+    # Resolve script path relative to test file location
+    export SCRIPT_PATH="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)/scripts/check-pr-review-gate.sh"
 
-    # Create test file
+    # Create test file and initial commit
     echo "initial content" > test.txt
     git add test.txt
     git commit -q -m "Initial commit"
+
+    # Calculate repo hash
+    REPO_ROOT=$(git rev-parse --show-toplevel)
+    REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
+    export REVIEW_FLAG="/tmp/claude/review-approved-${REPO_HASH}"
+
+    mkdir -p /tmp/claude
 }
 
 teardown() {
-    # Clean up markers
-    if [[ -n "$TEST_DIR" && -d "$TEST_DIR" ]]; then
-        REPO_ROOT=$(cd "$TEST_DIR" && git rev-parse --show-toplevel 2>/dev/null || echo "$TEST_DIR")
-        REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
-        rm -f "/tmp/claude/review-approved-${REPO_HASH}"
-        rm -f "/tmp/claude/review-in-progress-${REPO_HASH}"
-        rm -f "/tmp/claude/fixer-commit-${REPO_HASH}"
-        rm -f "/tmp/claude/fixer-commit-${REPO_HASH}.lock"
+    # Clean up flags
+    if [[ -n "$REVIEW_FLAG" ]]; then
+        rm -f "$REVIEW_FLAG"
     fi
 
     # Clean up test directory
@@ -39,207 +41,110 @@ teardown() {
 }
 
 # ============================================================================
-# 1. Review-In-Progress Marker Lifecycle (Criticality 10/10)
+# 1. PR Creation Gate (Core Behavior)
 # ============================================================================
 
-@test "review-in-progress marker blocks manual commits" {
-    # Setup: Create review marker
-    REPO_ROOT=$(git rev-parse --show-toplevel)
-    REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
-    REVIEW_MARKER="/tmp/claude/review-in-progress-${REPO_HASH}"
+@test "gh pr create without approval flag is blocked" {
+    # No review flag created
+    INPUT='{"tool_input":{"command":"gh pr create --title '\''test'\''"}}'
 
-    mkdir -p /tmp/claude
-    touch "$REVIEW_MARKER"
-    echo "Review started at $(date)" > "$REVIEW_MARKER"
-
-    # Modify file
-    echo "modified" > test.txt
-
-    # Prepare JSON input (simulating PreToolUse hook)
-    INPUT=$(cat <<'EOF'
-{
-  "tool_input": {
-    "command": "git commit -m 'test commit'"
-  }
-}
-EOF
-)
-
-    # Run hook with INPUT
     run bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
 
-    # Verify: Blocked with exit code 2
+    # Verify: Blocked with exit code 2 and helpful message
     [ "$status" -eq 2 ]
-    [[ "$output" =~ "Review In Progress - Manual Commits Blocked" ]]
+    [[ "$output" =~ "Code Review Required" ]]
+    [[ "$output" =~ "/code:review-commit" ]]
 }
 
-@test "stale review-in-progress marker (>1 hour) is removed" {
-    REPO_ROOT=$(git rev-parse --show-toplevel)
-    REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
-    REVIEW_MARKER="/tmp/claude/review-in-progress-${REPO_HASH}"
-
-    mkdir -p /tmp/claude
-    touch "$REVIEW_MARKER"
-
-    # Set marker timestamp to 2 hours ago
-    if [[ "$(uname)" == "Darwin" ]]; then
-        # macOS
-        touch -t $(date -v-2H +%Y%m%d%H%M.%S) "$REVIEW_MARKER"
-    else
-        # Linux
-        touch -d "2 hours ago" "$REVIEW_MARKER"
-    fi
-
-    # Modify file
-    echo "modified" > test.txt
-
-    # Prepare JSON input
-    INPUT='{"tool_input":{"command":"git commit -m '\''test'\''}}'
-
-    # Run hook
-    run bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
-
-    # Verify: Marker removed, commit blocked (no approval flag exists)
-    [ ! -f "$REVIEW_MARKER" ]
-    [ "$status" -eq 2 ]
-    [[ "$output" =~ "stale" ]]
-}
-
-@test "fresh review-in-progress marker (<1 hour) is not removed" {
-    REPO_ROOT=$(git rev-parse --show-toplevel)
-    REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
-    REVIEW_MARKER="/tmp/claude/review-in-progress-${REPO_HASH}"
-
-    mkdir -p /tmp/claude
-    touch "$REVIEW_MARKER"
-    echo "Review started at $(date)" > "$REVIEW_MARKER"
-
-    # Modify file
-    echo "modified" > test.txt
-
-    # Prepare JSON input
-    INPUT='{"tool_input":{"command":"git commit -m '\''test'\''}}'
-
-    # Run hook
-    run bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
-
-    # Verify: Marker still exists, commit blocked
-    [ -f "$REVIEW_MARKER" ]
-    [ "$status" -eq 2 ]
-}
-
-# ============================================================================
-# 2. Fixer-Commit Atomic Detection (Criticality 9/10)
-# ============================================================================
-
-@test "fixer-commit marker allows commit during review" {
-    REPO_ROOT=$(git rev-parse --show-toplevel)
-    REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
-    REVIEW_MARKER="/tmp/claude/review-in-progress-${REPO_HASH}"
-    FIXER_COMMIT_MARKER="/tmp/claude/fixer-commit-${REPO_HASH}"
-
-    mkdir -p /tmp/claude
-    touch "$REVIEW_MARKER"
-    touch "$FIXER_COMMIT_MARKER"
-
-    # Modify file
-    echo "fixed" > test.txt
-
-    # Prepare JSON input
-    INPUT='{"tool_input":{"command":"git commit -m '\''fix: resolve issue'\''}}'
-
-    # Run hook
-    run bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
-
-    # Verify: Commit allowed, marker NOT removed (PreToolUse context)
-    [ "$status" -eq 0 ]
-    [[ "$output" =~ "allowing fixer agent commit" ]]
-    [ -f "$FIXER_COMMIT_MARKER" ]  # Not removed in PreToolUse hook
-}
-
-@test "flock lock file is cleaned up after fixer commit check" {
-    REPO_ROOT=$(git rev-parse --show-toplevel)
-    REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
-    REVIEW_MARKER="/tmp/claude/review-in-progress-${REPO_HASH}"
-    FIXER_COMMIT_MARKER="/tmp/claude/fixer-commit-${REPO_HASH}"
-    LOCK_FILE="${FIXER_COMMIT_MARKER}.lock"
-
-    mkdir -p /tmp/claude
-    touch "$REVIEW_MARKER"
-    touch "$FIXER_COMMIT_MARKER"
-
-    # Modify file
-    echo "fixed" > test.txt
-
-    # Prepare JSON input
-    INPUT='{"tool_input":{"command":"git commit -m '\''fix'\''}}'
-
-    # Run hook
-    bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
-
-    # Verify: Lock file cleaned up
-    [ ! -f "$LOCK_FILE" ]
-}
-
-@test "manual commit during review without fixer marker is blocked" {
-    REPO_ROOT=$(git rev-parse --show-toplevel)
-    REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
-    REVIEW_MARKER="/tmp/claude/review-in-progress-${REPO_HASH}"
-
-    mkdir -p /tmp/claude
-    touch "$REVIEW_MARKER"
-    # No fixer-commit marker
-
-    # Modify file
-    echo "manual change" > test.txt
-
-    # Prepare JSON input
-    INPUT='{"tool_input":{"command":"git commit -m '\''manual'\''}}'
-
-    # Run hook
-    run bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
-
-    # Verify: Blocked with exit code 2
-    [ "$status" -eq 2 ]
-    [[ "$output" =~ "Manual Commits Blocked" ]]
-}
-
-# ============================================================================
-# 3. Flag-Based Approval Flow (Criticality 8/10)
-# ============================================================================
-
-@test "review-approved flag allows commit and is removed" {
-    REPO_ROOT=$(git rev-parse --show-toplevel)
-    REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
-    REVIEW_FLAG="/tmp/claude/review-approved-${REPO_HASH}"
-
-    mkdir -p /tmp/claude
+@test "gh pr create with approval flag is allowed and flag is consumed" {
+    # Create approval flag
     touch "$REVIEW_FLAG"
+    [ -f "$REVIEW_FLAG" ]
 
-    # Modify file
-    echo "approved change" > test.txt
+    INPUT='{"tool_input":{"command":"gh pr create --title '\''test'\''"}}'
 
-    # Prepare JSON input
-    INPUT='{"tool_input":{"command":"git commit -m '\''approved'\''}}'
-
-    # Run hook
     run bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
 
-    # Verify: Commit allowed, flag removed
+    # Verify: Allowed and flag consumed
     [ "$status" -eq 0 ]
     [ ! -f "$REVIEW_FLAG" ]
 }
 
-@test "review-approved flag is per-repository" {
+@test "gh pr create with --body flag and multiline input is handled" {
+    # No review flag
+    INPUT='{"tool_input":{"command":"gh pr create --title '\''feat: add feature'\'' --body '\''## Summary\nAdded new feature'\''"}}'
+
+    run bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
+
+    # Verify: Blocked (no flag)
+    [ "$status" -eq 2 ]
+}
+
+# ============================================================================
+# 2. Command Filtering (Non-PR Commands Bypass)
+# ============================================================================
+
+@test "git commit commands are not processed (bypass)" {
+    INPUT='{"tool_input":{"command":"git commit -m '\''test'\''"}}'
+
+    run bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
+
+    # Verify: Allowed (exit 0) — only gh pr create is gated
+    [ "$status" -eq 0 ]
+}
+
+@test "git status commands are not processed (bypass)" {
+    INPUT='{"tool_input":{"command":"git status"}}'
+
+    run bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
+
+    [ "$status" -eq 0 ]
+}
+
+@test "gh pr view commands are not processed (bypass)" {
+    INPUT='{"tool_input":{"command":"gh pr view 123"}}'
+
+    run bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
+
+    [ "$status" -eq 0 ]
+}
+
+@test "gh pr merge commands are not processed (bypass)" {
+    INPUT='{"tool_input":{"command":"gh pr merge 123 --merge"}}'
+
+    run bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
+
+    [ "$status" -eq 0 ]
+}
+
+# ============================================================================
+# 3. Skip-Review Bypass
+# ============================================================================
+
+@test "skip-review comment allows gh pr create without flag" {
+    # No review flag
+    INPUT='{"tool_input":{"command":"gh pr create --title '\''test'\'' # skip-review"}}'
+
+    run bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
+
+    # Verify: Allowed via bypass
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "skip-review" ]]
+}
+
+# ============================================================================
+# 4. Repository Isolation
+# ============================================================================
+
+@test "approval flag is per-repository" {
     # Create two repos
     REPO1=$(mktemp -d)
     REPO2=$(mktemp -d)
 
-    # Setup cleanup
     cleanup_repos() {
         cd /
         rm -rf "$REPO1" "$REPO2" 2>/dev/null || true
-        rm -f "/tmp/claude/review-approved-"* 2>/dev/null || true
+        rm -f /tmp/claude/review-approved-* 2>/dev/null || true
     }
     trap cleanup_repos EXIT
 
@@ -257,7 +162,7 @@ EOF
     mkdir -p /tmp/claude
     touch "$FLAG1"
 
-    # Repo 2
+    # Repo 2 — no flag
     cd "$REPO2"
     git init -q
     git config user.email "test@example.com"
@@ -268,50 +173,9 @@ EOF
     REPO2_ROOT=$(git rev-parse --show-toplevel)
     REPO2_HASH=$(echo "$REPO2_ROOT" | shasum -a 256 | cut -c1-16)
     FLAG2="/tmp/claude/review-approved-${REPO2_HASH}"
-    # No flag for repo2
 
-    # Verify: Flags are different paths
+    # Verify: Different hashes, only repo1 has flag
     [ "$FLAG1" != "$FLAG2" ]
     [ -f "$FLAG1" ]
     [ ! -f "$FLAG2" ]
-}
-
-@test "no approval flag blocks commit with helpful message" {
-    # No review-approved flag created
-
-    # Modify file
-    echo "unapproved change" > test.txt
-
-    # Prepare JSON input
-    INPUT='{"tool_input":{"command":"git commit -m '\''unapproved'\''}}'
-
-    # Run hook
-    run bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
-
-    # Verify: Blocked with helpful message
-    [ "$status" -eq 2 ]
-    [[ "$output" =~ "Code Review Required" ]]
-    [[ "$output" =~ "/code:review-commit" ]]
-}
-
-# ============================================================================
-# 4. Command Filtering
-# ============================================================================
-
-@test "gh commands are skipped (not processed)" {
-    INPUT='{"tool_input":{"command":"gh pr create --title '\''test'\''"}}'
-
-    run bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
-
-    # Verify: Allowed (exit 0)
-    [ "$status" -eq 0 ]
-}
-
-@test "non-git-commit commands are skipped" {
-    INPUT='{"tool_input":{"command":"git status"}}'
-
-    run bash -c "echo '$INPUT' | bash $SCRIPT_PATH"
-
-    # Verify: Allowed (exit 0)
-    [ "$status" -eq 0 ]
 }
