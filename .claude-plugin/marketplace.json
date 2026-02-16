@@ -30,7 +30,7 @@
     },
     {
       "name": "code",
-      "description": "Code review workflow integration for git commits",
+      "description": "Code quality tools: commit review, PR team review, and refactoring team",
       "source": "./plugins/code",
       "category": "developer-tools",
       "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/code"

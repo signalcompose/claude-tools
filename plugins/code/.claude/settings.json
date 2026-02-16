@@ -3,6 +3,11 @@
     "allow": [
       "Bash(git diff *)",
       "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(gh pr diff *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr checks *)",
+      "Bash(gh run view *)",
       "Bash(bash ${CLAUDE_PLUGIN_ROOT}/scripts/*)"
     ],
     "ask": [

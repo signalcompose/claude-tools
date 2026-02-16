@@ -1,10 +1,12 @@
 # code - Claude Code Plugin
 
-Claude Code integration for code review workflow before commits.
+Code quality tools for Claude Code: commit review, PR team review, and refactoring team.
 
 ## Features
 
 - **Team-based Code Review**: 反復的、自動修正レビューループ
+- **PR Team Review**: 4つの専門エージェントによる並行PRレビュー + CI統合
+- **Refactoring Team**: 分析→ユーザー承認→実行のリファクタリングワークフロー
 - **Quality Assurance**: critical/important問題の完全解決を保証
 - **Pre-commit Hook**: レビュー実行をチェック（フラグベース）
 
@@ -26,6 +28,8 @@ Claude Code integration for code review workflow before commits.
 | Command/Skill | Description |
 |---------------|-------------|
 | `/code:review-commit` | Review staged changes and approve for commit |
+| `/code:pr-review-team` | Team-based PR review with specialized agents |
+| `/code:refactor-team` | Team-based code refactoring with analysis |
 | `/code:trufflehog-scan` | Run TruffleHog security scan on current project |
 
 ## Usage
@@ -166,14 +170,30 @@ plugins/code/
 ├── .claude-plugin/
 │   └── plugin.json           # Plugin metadata
 ├── commands/
-│   └── trufflehog-scan.md    # Security scan command
+│   ├── review-commit.md       # Commit review command
+│   ├── pr-review-team.md      # PR team review command
+│   ├── refactor-team.md       # Refactoring team command
+│   └── trufflehog-scan.md     # Security scan command
 ├── skills/
-│   └── review-commit/
-│       └── SKILL.md        # Review skill definition
+│   ├── review-commit/
+│   │   ├── SKILL.md           # Review skill definition
+│   │   └── references/
+│   │       └── review-criteria.md
+│   ├── pr-review-team/
+│   │   ├── SKILL.md           # PR review team skill
+│   │   └── references/
+│   │       ├── ci-integration.md
+│   │       └── security-checklist.md
+│   └── refactor-team/
+│       ├── SKILL.md           # Refactoring team skill
+│       └── references/
+│           └── analysis-criteria.md
 ├── scripts/
-│   ├── check-code-review.sh        # PreToolUse hook (checks review flag)
-│   ├── check-pr-created.sh         # PostToolUse hook (tracks PR creation)
+│   ├── check-pr-review-gate.sh      # PreToolUse hook (checks review flag)
 │   └── enforce-code-review-rules.sh # UserPromptSubmit hook (enforces review policy)
+├── tests/
+│   ├── check-code-review.bats       # Hook behavior tests (BATS)
+│   └── validate-skills.bats         # Structural validation tests (BATS)
 ├── hooks/
 │   └── hooks.json            # Optional hook configuration
 ├── .claude/
