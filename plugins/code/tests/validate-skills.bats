@@ -25,7 +25,7 @@ has_frontmatter_field() {
 # Extract all ${CLAUDE_PLUGIN_ROOT} references from a file
 extract_plugin_root_refs() {
     local file="$1"
-    grep -oE '\$\{CLAUDE_PLUGIN_ROOT\}/[^ `"'"'"']+' "$file" 2>/dev/null || true
+    grep -oE '\$\{CLAUDE_PLUGIN_ROOT\}/[^ `"'"'"']+' "$file" 2>/dev/null | sed 's/[.,;:)]*$//' || true
 }
 
 # ============================================================================
@@ -120,13 +120,14 @@ extract_plugin_root_refs() {
         local skill_name
         skill_name=$(basename "$skill_dir")
 
-        # Extract body (after frontmatter)
+        # Extract body (after frontmatter) — uses awk for consistency with Test 5
         local body
-        body=$(sed -n '/^---$/,/^---$/!p' "$skill_file" | tail -n +1)
+        body=$(awk '/^---$/{n++; next} n>=2{print}' "$skill_file")
 
         # Check for markdown links like [text](relative/path)
         # Exclude http/https URLs and ${CLAUDE_PLUGIN_ROOT} references
-        if echo "$body" | grep -Pq '\[.+?\]\((?!https?://)(?!\$\{CLAUDE_PLUGIN_ROOT\}).+?\)'; then
+        # Note: Uses grep -E pipeline instead of grep -P (Perl regex unavailable on macOS BSD grep)
+        if echo "$body" | grep -E '\[.+\]\([^)]+\)' | grep -Ev '\]\(https?://' | grep -Ev '\]\(\$\{CLAUDE_PLUGIN_ROOT\}' | grep -q .; then
             echo "FAIL: $skill_name/SKILL.md contains markdown relative links (use \${CLAUDE_PLUGIN_ROOT} instead)"
             return 1
         fi

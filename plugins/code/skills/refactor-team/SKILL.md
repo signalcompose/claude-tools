@@ -37,10 +37,10 @@ Analyzer examines target files using criteria from `${CLAUDE_PLUGIN_ROOT}/skills
 
 Analysis output format:
 
-| # | Category | Description | Priority | Risk |
-|---|----------|-------------|----------|------|
-| 1 | DRY      | ...         | High     | Low  |
-| 2 | Naming   | ...         | Medium   | None |
+| # | Category | File:Line | Description | Priority | Risk |
+|---|----------|-----------|-------------|----------|------|
+| 1 | DRY      | src/a.ts:42 | ...       | High     | Low  |
+| 2 | Naming   | src/c.ts:8  | ...       | Medium   | None |
 
 ## Step 4: Present Proposals to User
 

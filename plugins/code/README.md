@@ -189,9 +189,10 @@ plugins/code/
 │       └── references/
 │           └── analysis-criteria.md
 ├── scripts/
-│   ├── check-code-review.sh        # PreToolUse hook (checks review flag)
-│   ├── check-pr-created.sh         # PostToolUse hook (tracks PR creation)
+│   ├── check-pr-review-gate.sh      # PreToolUse hook (checks review flag)
 │   └── enforce-code-review-rules.sh # UserPromptSubmit hook (enforces review policy)
+├── tests/
+│   └── validate-skills.bats         # Structural validation tests (BATS)
 ├── hooks/
 │   └── hooks.json            # Optional hook configuration
 ├── .claude/
