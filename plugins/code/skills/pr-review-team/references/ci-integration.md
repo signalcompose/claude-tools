@@ -16,8 +16,8 @@ Parse output for FAIL/PASS/PENDING status per check.
 
 For each failed check:
 ```bash
-# Get the run ID from the check name
-gh pr checks <PR番号> --json name,state,link --jq '.[] | select(.state == "FAILURE")'
+# Get failed checks using the bucket field (pass/fail/pending/skipping/cancel)
+gh pr checks <PR番号> --json name,bucket,link --jq '.[] | select(.bucket == "fail")'
 
 # Get failed log
 gh run view <run-id> --log-failed

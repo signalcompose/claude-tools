@@ -33,6 +33,7 @@ extract_plugin_root_refs() {
 # ============================================================================
 
 @test "all SKILL.md files have valid frontmatter with required fields" {
+    local validated_count=0
     for skill_dir in "$PLUGIN_ROOT"/skills/*/; do
         local skill_file="${skill_dir}SKILL.md"
         [ -f "$skill_file" ] || continue
@@ -42,7 +43,7 @@ extract_plugin_root_refs() {
 
         # Check frontmatter delimiters exist
         local delimiter_count
-        delimiter_count=$(grep -c '^---$' "$skill_file")
+        delimiter_count=$(grep -c '^---$' "$skill_file" || true)
         [ "$delimiter_count" -ge 2 ] || {
             echo "FAIL: $skill_name/SKILL.md missing frontmatter delimiters (found $delimiter_count, need >= 2)"
             return 1
@@ -55,7 +56,14 @@ extract_plugin_root_refs() {
                 return 1
             }
         done
+
+        validated_count=$((validated_count + 1))
     done
+
+    [ "$validated_count" -gt 0 ] || {
+        echo "FAIL: No SKILL.md files found to validate under $PLUGIN_ROOT/skills/"
+        return 1
+    }
 }
 
 # ============================================================================
@@ -63,6 +71,7 @@ extract_plugin_root_refs() {
 # ============================================================================
 
 @test "frontmatter name matches directory name for all skills" {
+    local validated_count=0
     for skill_dir in "$PLUGIN_ROOT"/skills/*/; do
         local skill_file="${skill_dir}SKILL.md"
         [ -f "$skill_file" ] || continue
@@ -77,7 +86,14 @@ extract_plugin_root_refs() {
             echo "FAIL: directory '$dir_name' != frontmatter name '$fm_name'"
             return 1
         }
+
+        validated_count=$((validated_count + 1))
     done
+
+    [ "$validated_count" -gt 0 ] || {
+        echo "FAIL: No SKILL.md files found to validate under $PLUGIN_ROOT/skills/"
+        return 1
+    }
 }
 
 # ============================================================================
@@ -85,6 +101,7 @@ extract_plugin_root_refs() {
 # ============================================================================
 
 @test "all CLAUDE_PLUGIN_ROOT references point to existing files" {
+    local validated_count=0
     for skill_dir in "$PLUGIN_ROOT"/skills/*/; do
         local skill_file="${skill_dir}SKILL.md"
         [ -f "$skill_file" ] || continue
@@ -105,7 +122,14 @@ extract_plugin_root_refs() {
                 return 1
             }
         done < <(extract_plugin_root_refs "$skill_file")
+
+        validated_count=$((validated_count + 1))
     done
+
+    [ "$validated_count" -gt 0 ] || {
+        echo "FAIL: No SKILL.md files found to validate under $PLUGIN_ROOT/skills/"
+        return 1
+    }
 }
 
 # ============================================================================
@@ -113,6 +137,7 @@ extract_plugin_root_refs() {
 # ============================================================================
 
 @test "SKILL.md files do not contain markdown relative links" {
+    local validated_count=0
     for skill_dir in "$PLUGIN_ROOT"/skills/*/; do
         local skill_file="${skill_dir}SKILL.md"
         [ -f "$skill_file" ] || continue
@@ -125,13 +150,20 @@ extract_plugin_root_refs() {
         body=$(awk '/^---$/{n++; next} n>=2{print}' "$skill_file")
 
         # Check for markdown links like [text](relative/path)
-        # Exclude http/https URLs and ${CLAUDE_PLUGIN_ROOT} references
+        # Exclude http/https URLs, ${CLAUDE_PLUGIN_ROOT} references, anchors, and mailto
         # Note: Uses grep -E pipeline instead of grep -P (Perl regex unavailable on macOS BSD grep)
-        if echo "$body" | grep -E '\[.+\]\([^)]+\)' | grep -Ev '\]\(https?://' | grep -Ev '\]\(\$\{CLAUDE_PLUGIN_ROOT\}' | grep -q .; then
+        if echo "$body" | grep -E '\[.+\]\([^)]+\)' | grep -Ev '\]\(https?://' | grep -Ev '\]\(\$\{CLAUDE_PLUGIN_ROOT\}' | grep -Ev '\]\(#' | grep -Ev '\]\(mailto:' | grep -q .; then
             echo "FAIL: $skill_name/SKILL.md contains markdown relative links (use \${CLAUDE_PLUGIN_ROOT} instead)"
             return 1
         fi
+
+        validated_count=$((validated_count + 1))
     done
+
+    [ "$validated_count" -gt 0 ] || {
+        echo "FAIL: No SKILL.md files found to validate under $PLUGIN_ROOT/skills/"
+        return 1
+    }
 }
 
 # ============================================================================
@@ -139,6 +171,7 @@ extract_plugin_root_refs() {
 # ============================================================================
 
 @test "SKILL.md body is within 120 lines" {
+    local validated_count=0
     for skill_dir in "$PLUGIN_ROOT"/skills/*/; do
         local skill_file="${skill_dir}SKILL.md"
         [ -f "$skill_file" ] || continue
@@ -154,5 +187,12 @@ extract_plugin_root_refs() {
             echo "FAIL: $skill_name/SKILL.md body has $body_lines lines (max 120)"
             return 1
         }
+
+        validated_count=$((validated_count + 1))
     done
+
+    [ "$validated_count" -gt 0 ] || {
+        echo "FAIL: No SKILL.md files found to validate under $PLUGIN_ROOT/skills/"
+        return 1
+    }
 }
