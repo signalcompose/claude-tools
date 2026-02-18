@@ -2,7 +2,7 @@
 
 # CVI Speak-Sync Script
 # Synchronous voice playback with configuration support
-# Based on speak.sh but executes 'say' in foreground for blocking behavior
+# Requires dangerouslyDisableSandbox: true for audio API access
 
 set -euo pipefail
 
@@ -36,69 +36,6 @@ CVI_ENABLED=${CVI_ENABLED:-on}
 # Exit early if disabled
 if [ "$CVI_ENABLED" = "off" ]; then
     echo "CVI is disabled. Enable with: /cvi:state on"
-    exit 0
-fi
-
-# Read sandbox.enabled from a single JSON settings file.
-# Args: $1 = file path
-# Prints: "true", "false", or "unknown"
-_read_sandbox_setting() {
-    local file="$1"
-
-    [ -f "$file" ] || { echo "unknown"; return; }
-
-    if ! command -v jq &> /dev/null; then
-        log_error "jq command not found - cannot parse $(basename "$file")"
-        echo "unknown"
-        return
-    fi
-
-    local jq_output
-    if ! jq_output=$(jq -r '.sandbox.enabled | if . == null then "null" else tostring end' "$file" 2>&1); then
-        log_error "jq failed to parse $file: $jq_output"
-        echo "unknown"
-        return
-    fi
-
-    if [ "$jq_output" = "true" ] || [ "$jq_output" = "false" ]; then
-        echo "$jq_output"
-    else
-        echo "unknown"
-    fi
-}
-
-# Detect if sandbox is enabled in Claude Code settings.
-# Returns: 0 if sandbox explicitly enabled, 1 otherwise.
-# Priority: settings.local.json > settings.json > default (disabled).
-# Unknown states default to "disabled" to prioritize CVI functionality.
-# Rationale: False negatives (CVI runs in sandbox and may fail) are acceptable,
-#            but false positives (blocking CVI when sandbox is off) hurt UX.
-is_sandbox_enabled() {
-    local settings_files=(
-        "$HOME/.claude/settings.local.json"
-        "$HOME/.claude/settings.json"
-    )
-
-    local result
-    for file in "${settings_files[@]}"; do
-        result=$(_read_sandbox_setting "$file")
-        if [ "$result" = "true" ]; then
-            return 0
-        elif [ "$result" = "false" ]; then
-            return 1
-        fi
-        # "unknown" -> continue to next file
-    done
-
-    # Default: disabled (no definitive setting found)
-    return 1
-}
-
-# Skip audio commands if sandbox is enabled
-if is_sandbox_enabled; then
-    # Sandbox is enabled, skip audio playback
-    # Output expected format for hook compatibility
-    echo "Speaking: $MSG"
     exit 0
 fi
 
@@ -162,41 +99,15 @@ osascript \
 # Play Glass sound to indicate completion (background - non-blocking)
 afplay /System/Library/Sounds/Glass.aiff &
 
-# Generate speech audio file (works in sandboxed/non-GUI contexts)
-# Using say -o instead of osascript to avoid GUI session dependency
-# Use /tmp/ directly (same pattern as notify-input.sh)
-TEMP_AUDIO="/tmp/claude_speak_$$.aiff"
-
-# Ensure cleanup on exit (including signals)
-trap 'rm -f "$TEMP_AUDIO"' EXIT
-
+# Speak text synchronously (foreground - waits for completion)
+# Note: requires dangerouslyDisableSandbox: true for audio API access
 if [ "$SELECTED_VOICE" = "system" ]; then
-    # Use system default (no -v flag)
-    # Use printf + pipe to prevent command injection (preserve security pattern)
-    if ! printf '%s' "$MSG" | say -r "$SPEECH_RATE" -o "$TEMP_AUDIO" -f -; then
-        log_error "say command failed (system voice, rate=$SPEECH_RATE)"
-        rm -f "$TEMP_AUDIO"
-        exit 1
-    fi
+    # Use system default voice (no -v flag)
+    say -r "$SPEECH_RATE" "$MSG"
 else
-    # Use specific voice
-    # Use printf + pipe to prevent command injection (preserve security pattern)
-    if ! printf '%s' "$MSG" | say -v "$SELECTED_VOICE" -r "$SPEECH_RATE" -o "$TEMP_AUDIO" -f -; then
-        log_error "say command failed (voice=$SELECTED_VOICE, rate=$SPEECH_RATE)"
-        rm -f "$TEMP_AUDIO"
-        exit 1
-    fi
+    # Use configured voice
+    say -r "$SPEECH_RATE" -v "$SELECTED_VOICE" "$MSG"
 fi
 
-# Play audio file synchronously (foreground - waits for completion)
-if ! afplay "$TEMP_AUDIO"; then
-    log_error "afplay command failed for $TEMP_AUDIO"
-    rm -f "$TEMP_AUDIO"
-    exit 1
-fi
-
-# Cleanup temporary file
-rm -f "$TEMP_AUDIO"
-
-# Only print after speech completes
+# Output expected format for hook compatibility
 echo "Speaking: $MSG"
