@@ -39,68 +39,43 @@ if [ "$CVI_ENABLED" = "off" ]; then
     exit 0
 fi
 
-# Read sandbox.enabled from a single JSON settings file.
-# Args: $1 = file path
-# Prints: "true", "false", or "unknown"
-_read_sandbox_setting() {
-    local file="$1"
+# Global tracker for temp script path (enables cleanup on SIGTERM/SIGINT)
+_CVI_TMP_SCRIPT=""
+trap 'rm -f "$_CVI_TMP_SCRIPT"' EXIT INT TERM
 
-    [ -f "$file" ] || { echo "unknown"; return; }
+# Speak text via osascript (bypasses Claude Code sandbox)
+# Falls back gracefully if osascript is unavailable (non-GUI contexts)
+_speak_via_osascript() {
+    local msg="$1"
+    local voice="$2"
+    local rate="$3"
 
-    if ! command -v jq &> /dev/null; then
-        log_error "jq command not found - cannot parse $(basename "$file")"
-        echo "unknown"
-        return
-    fi
+    command -v osascript &>/dev/null || return 1
 
-    local jq_output
-    if ! jq_output=$(jq -r '.sandbox.enabled | if . == null then "null" else tostring end' "$file" 2>&1); then
-        log_error "jq failed to parse $file: $jq_output"
-        echo "unknown"
-        return
-    fi
+    # Write say command to temp script for safe quoting of arbitrary text
+    _CVI_TMP_SCRIPT=$(mktemp "${TMPDIR:-/tmp}/cvi_speak_XXXXXX.sh") || return 1
 
-    if [ "$jq_output" = "true" ] || [ "$jq_output" = "false" ]; then
-        echo "$jq_output"
-    else
-        echo "unknown"
-    fi
-}
-
-# Detect if sandbox is enabled in Claude Code settings.
-# Returns: 0 if sandbox explicitly enabled, 1 otherwise.
-# Priority: settings.local.json > settings.json > default (disabled).
-# Unknown states default to "disabled" to prioritize CVI functionality.
-# Rationale: False negatives (CVI runs in sandbox and may fail) are acceptable,
-#            but false positives (blocking CVI when sandbox is off) hurt UX.
-is_sandbox_enabled() {
-    local settings_files=(
-        "$HOME/.claude/settings.local.json"
-        "$HOME/.claude/settings.json"
-    )
-
-    local result
-    for file in "${settings_files[@]}"; do
-        result=$(_read_sandbox_setting "$file")
-        if [ "$result" = "true" ]; then
-            return 0
-        elif [ "$result" = "false" ]; then
-            return 1
+    {
+        echo "#!/bin/bash"
+        if [ "$voice" = "system" ]; then
+            printf 'say -r %q %q\n' "$rate" "$msg"
+        else
+            printf 'say -r %q -v %q %q\n' "$rate" "$voice" "$msg"
         fi
-        # "unknown" -> continue to next file
-    done
+    } > "$_CVI_TMP_SCRIPT"
+    chmod +x "$_CVI_TMP_SCRIPT"
 
-    # Default: disabled (no definitive setting found)
-    return 1
+    # Use argv passing to avoid AppleScript string quoting issues with the path
+    osascript \
+        -e 'on run argv' \
+        -e '  do shell script (item 1 of argv)' \
+        -e 'end run' \
+        -- "$_CVI_TMP_SCRIPT" 2>/dev/null
+    local ret=$?
+    rm -f "$_CVI_TMP_SCRIPT"
+    _CVI_TMP_SCRIPT=""
+    return $ret
 }
-
-# Skip audio commands if sandbox is enabled
-if is_sandbox_enabled; then
-    # Sandbox is enabled, skip audio playback
-    # Output expected format for hook compatibility
-    echo "Speaking: $MSG"
-    exit 0
-fi
 
 # Load configuration from file
 if [ -f "$CONFIG_FILE" ]; then
@@ -160,43 +135,14 @@ osascript \
     -- "$MSG" "$SESSION_DIR" &
 
 # Play Glass sound to indicate completion (background - non-blocking)
-afplay /System/Library/Sounds/Glass.aiff &
+# Redirect errors to /dev/null: may fail silently in sandbox (acceptable)
+afplay /System/Library/Sounds/Glass.aiff &>/dev/null &
 
-# Generate speech audio file (works in sandboxed/non-GUI contexts)
-# Using say -o instead of osascript to avoid GUI session dependency
-# Use /tmp/ directly (same pattern as notify-input.sh)
-TEMP_AUDIO="/tmp/claude_speak_$$.aiff"
-
-# Ensure cleanup on exit (including signals)
-trap 'rm -f "$TEMP_AUDIO"' EXIT
-
-if [ "$SELECTED_VOICE" = "system" ]; then
-    # Use system default (no -v flag)
-    # Use printf + pipe to prevent command injection (preserve security pattern)
-    if ! printf '%s' "$MSG" | say -r "$SPEECH_RATE" -o "$TEMP_AUDIO" -f -; then
-        log_error "say command failed (system voice, rate=$SPEECH_RATE)"
-        rm -f "$TEMP_AUDIO"
-        exit 1
-    fi
-else
-    # Use specific voice
-    # Use printf + pipe to prevent command injection (preserve security pattern)
-    if ! printf '%s' "$MSG" | say -v "$SELECTED_VOICE" -r "$SPEECH_RATE" -o "$TEMP_AUDIO" -f -; then
-        log_error "say command failed (voice=$SELECTED_VOICE, rate=$SPEECH_RATE)"
-        rm -f "$TEMP_AUDIO"
-        exit 1
-    fi
+# Speak text via osascript (bypasses Claude Code sandbox)
+# Falls back gracefully to text-only if osascript is unavailable (e.g. SSH/headless)
+if ! _speak_via_osascript "$MSG" "$SELECTED_VOICE" "$SPEECH_RATE"; then
+    log_error "osascript failed, falling back to text-only"
 fi
 
-# Play audio file synchronously (foreground - waits for completion)
-if ! afplay "$TEMP_AUDIO"; then
-    log_error "afplay command failed for $TEMP_AUDIO"
-    rm -f "$TEMP_AUDIO"
-    exit 1
-fi
-
-# Cleanup temporary file
-rm -f "$TEMP_AUDIO"
-
-# Only print after speech completes
+# Output expected format for hook compatibility (always printed)
 echo "Speaking: $MSG"
