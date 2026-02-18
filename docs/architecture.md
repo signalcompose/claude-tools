@@ -14,7 +14,8 @@ claude-tools/
 │   ├── utils/             # Direct
 │   ├── codex/             # Direct
 │   ├── gemini/            # Direct
-│   └── kiro/              # Direct
+│   ├── kiro/              # Direct
+│   └── x-article/         # Direct
 ├── docs/
 │   ├── INDEX.md
 │   ├── specifications.md
@@ -40,6 +41,7 @@ claude-tools/
 | codex | Direct | plugins/codex | Codex統合 |
 | gemini | Direct | plugins/gemini | Gemini統合 |
 | kiro | Direct | plugins/kiro | Kiro統合 |
+| x-article | Direct | plugins/x-article | X Articles投稿自動化 |
 
 ## プラグイン管理方式
 
@@ -61,7 +63,22 @@ git subtree push --prefix=plugins/<plugin> https://github.com/signalcompose/<plu
 
 マーケットプレイス内に直接配置。シンプルだが独立管理はできない。
 
-**使用プラグイン**: chezmoi, code, utils, codex, gemini, kiro
+**使用プラグイン**: chezmoi, code, utils, codex, gemini, kiro, x-article
+
+## Cowork 向け配布（GitHub Releases）
+
+Cowork（社内ツール）向けには `.plugin` zip ファイルを GitHub Releases に配布。
+タグ命名規則 `{plugin-name}-v{semver}`（例: `x-article-v0.1.0`）で push すると CI が自動ビルド。
+
+```bash
+# Cowork 向けリリース例
+git tag x-article-v0.1.0
+git push origin x-article-v0.1.0
+# → .github/workflows/build-cowork-plugins.yml が起動
+# → plugins/x-article/ を zip 化して GitHub Releases に添付
+```
+
+**CI ワークフロー**: `.github/workflows/build-cowork-plugins.yml`
 
 ## データフロー
 
