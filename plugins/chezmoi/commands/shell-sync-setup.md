@@ -97,11 +97,11 @@ else
 fi
 
 # Check external script availability
-SCRIPT_PATH="$HOME/.claude/plugins/marketplaces/claude-tools/plugins/chezmoi/scripts/shell-check.zsh"
-if [[ -f "$SCRIPT_PATH" ]]; then
-  echo "✅ External script: Found"
+_s=(~/.claude/plugins/cache/claude-tools/chezmoi/*/scripts/shell-check.zsh(N.om))
+if (( ${#_s} )); then
+  echo "✅ External script: Found (${_s[1]})"
 else
-  echo "⚠️ External script: Not found at expected path"
+  echo "⚠️ External script: Not found in plugin cache"
   echo "   Make sure chezmoi plugin is installed from claude-tools marketplace"
 fi
 
@@ -129,7 +129,7 @@ if [[ -n "$ZSHRC_SOURCE" ]]; then
   # Check for old embedded style
   elif grep -q "_chezmoi_check_sync" "$ZSHRC_SOURCE" 2>/dev/null; then
     echo "⚠️ Found OLD embedded code (~150 lines in zshrc)"
-    echo "   Recommend migrating to new loader style (7 lines)"
+    echo "   Recommend migrating to new loader style (8 lines)"
     INSTALL_TYPE="migrate"
   else
     echo "ℹ️  No existing installation found"
@@ -144,15 +144,16 @@ echo "   Install type: $INSTALL_TYPE"
 #### For New Installation
 
 ```
-The following loader will be added to your zshrc (7 lines):
+The following loader will be added to your zshrc (8 lines):
 
 ┌─────────────────────────────────────────────────────────────────┐
 │ # >>> chezmoi shell sync checker start >>>                      │
 │ # Loader for chezmoi shell sync checker                         │
 │ # Source: https://github.com/signalcompose/claude-tools         │
-│ if [[ -f ~/.claude/plugins/.../shell-check.zsh ]]; then         │
-│   source ~/.claude/plugins/.../shell-check.zsh                  │
-│ fi                                                              │
+│ () {                                                            │
+│   local _s=(~/.claude/plugins/cache/.../shell-check.zsh(N.om)) │
+│   (( ${#_s} )) && source "${_s[1]}"                             │
+│ }                                                               │
 │ # <<< chezmoi shell sync checker end <<<                        │
 └─────────────────────────────────────────────────────────────────┘
 
@@ -195,9 +196,10 @@ Proceed with migration?
 # >>> chezmoi shell sync checker start >>>
 # Loader for chezmoi shell sync checker
 # Source: https://github.com/signalcompose/claude-tools
-if [[ -f ~/.claude/plugins/marketplaces/claude-tools/plugins/chezmoi/scripts/shell-check.zsh ]]; then
-  source ~/.claude/plugins/marketplaces/claude-tools/plugins/chezmoi/scripts/shell-check.zsh
-fi
+() {
+  local _s=(~/.claude/plugins/cache/claude-tools/chezmoi/*/scripts/shell-check.zsh(N.om))
+  (( ${#_s} )) && source "${_s[1]}"
+}
 # <<< chezmoi shell sync checker end <<<
 ```
 
@@ -247,11 +249,11 @@ if grep -q "shell-check.zsh" "$ZSHRC_SOURCE" 2>/dev/null; then
   echo "✅ Loader successfully installed"
 
   # Verify external script exists
-  SCRIPT_PATH="$HOME/.claude/plugins/marketplaces/claude-tools/plugins/chezmoi/scripts/shell-check.zsh"
-  if [[ -f "$SCRIPT_PATH" ]]; then
-    echo "✅ External script found"
+  _s=(~/.claude/plugins/cache/claude-tools/chezmoi/*/scripts/shell-check.zsh(N.om))
+  if (( ${#_s} )); then
+    echo "✅ External script found (${_s[1]})"
   else
-    echo "⚠️ External script not found"
+    echo "⚠️ External script not found in plugin cache"
     echo "   The loader will silently skip until plugin is installed"
   fi
 else
