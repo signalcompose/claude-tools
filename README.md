@@ -1,7 +1,7 @@
 # claude-tools
 
-[![GitHub Sponsors](https://img.shields.io/github/sponsors/signalcompose?style=social&label=Sponsor%20Signal%20compose)](https://github.com/sponsors/signalcompose)
-[![GitHub Sponsors](https://img.shields.io/github/sponsors/dropcontrol?style=social&label=Sponsor%20dropcontrol)](https://github.com/sponsors/dropcontrol)
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub_Sponsors-Signal_compose-EA4AAA?style=for-the-badge&logo=github)](https://github.com/sponsors/signalcompose)
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub_Sponsors-dropcontrol-EA4AAA?style=for-the-badge&logo=github)](https://github.com/sponsors/dropcontrol)
 
 Claude Code plugins by Signal compose
 
