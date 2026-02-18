@@ -1,0 +1,53 @@
+name: Build Cowork Plugins
+
+on:
+  push:
+    tags:
+      - '*-v*'   # x-article-v0.1.0, code-v1.0.0 など
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # GitHub Releases 作成に必要
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract plugin name and version
+        id: meta
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG##*-v}"
+          PLUGIN="${TAG%-v${VERSION}}"
+          echo "plugin=${PLUGIN}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify plugin directory
+        env:
+          PLUGIN: ${{ steps.meta.outputs.plugin }}
+        run: |
+          if [ ! -d "plugins/${PLUGIN}" ]; then
+            echo "Error: plugins/${PLUGIN} not found"
+            exit 1
+          fi
+
+      - name: Create plugin zip
+        env:
+          PLUGIN: ${{ steps.meta.outputs.plugin }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          cd plugins
+          zip -r "../${PLUGIN}-${VERSION}.zip" \
+            "${PLUGIN}/" \
+            --exclude "*/.git/*" --exclude "*/__pycache__/*" --exclude "*/.DS_Store"
+
+      - name: Upload to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        env:
+          PLUGIN: ${{ steps.meta.outputs.plugin }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        with:
+          name: "${{ steps.meta.outputs.plugin }} v${{ steps.meta.outputs.version }}"
+          files: ${{ steps.meta.outputs.plugin }}-${{ steps.meta.outputs.version }}.zip
+          prerelease: ${{ contains(steps.meta.outputs.version, 'alpha') || contains(steps.meta.outputs.version, 'beta') }}

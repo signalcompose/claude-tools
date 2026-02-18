@@ -62,6 +62,13 @@
       "source": "./plugins/kiro",
       "category": "developer-tools",
       "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/kiro"
+    },
+    {
+      "name": "x-article",
+      "description": "X (Twitter) Articles publishing workflow automation",
+      "source": "./plugins/x-article",
+      "category": "productivity",
+      "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/x-article"
     }
   ]
 }
