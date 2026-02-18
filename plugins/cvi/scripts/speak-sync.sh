@@ -2,7 +2,7 @@
 
 # CVI Speak-Sync Script
 # Synchronous voice playback with configuration support
-# Based on speak.sh but executes 'say' in foreground for blocking behavior
+# Requires dangerouslyDisableSandbox: true for audio API access
 
 set -euo pipefail
 
@@ -38,44 +38,6 @@ if [ "$CVI_ENABLED" = "off" ]; then
     echo "CVI is disabled. Enable with: /cvi:state on"
     exit 0
 fi
-
-# Global tracker for temp script path (enables cleanup on SIGTERM/SIGINT)
-_CVI_TMP_SCRIPT=""
-trap 'rm -f "$_CVI_TMP_SCRIPT"' EXIT INT TERM
-
-# Speak text via osascript (bypasses Claude Code sandbox)
-# Falls back gracefully if osascript is unavailable (non-GUI contexts)
-_speak_via_osascript() {
-    local msg="$1"
-    local voice="$2"
-    local rate="$3"
-
-    command -v osascript &>/dev/null || return 1
-
-    # Write say command to temp script for safe quoting of arbitrary text
-    _CVI_TMP_SCRIPT=$(mktemp "${TMPDIR:-/tmp}/cvi_speak_XXXXXX.sh") || return 1
-
-    {
-        echo "#!/bin/bash"
-        if [ "$voice" = "system" ]; then
-            printf 'say -r %q %q\n' "$rate" "$msg"
-        else
-            printf 'say -r %q -v %q %q\n' "$rate" "$voice" "$msg"
-        fi
-    } > "$_CVI_TMP_SCRIPT"
-    chmod +x "$_CVI_TMP_SCRIPT"
-
-    # Use argv passing to avoid AppleScript string quoting issues with the path
-    osascript \
-        -e 'on run argv' \
-        -e '  do shell script (item 1 of argv)' \
-        -e 'end run' \
-        -- "$_CVI_TMP_SCRIPT" 2>/dev/null
-    local ret=$?
-    rm -f "$_CVI_TMP_SCRIPT"
-    _CVI_TMP_SCRIPT=""
-    return $ret
-}
 
 # Load configuration from file
 if [ -f "$CONFIG_FILE" ]; then
@@ -135,14 +97,17 @@ osascript \
     -- "$MSG" "$SESSION_DIR" &
 
 # Play Glass sound to indicate completion (background - non-blocking)
-# Redirect errors to /dev/null: may fail silently in sandbox (acceptable)
-afplay /System/Library/Sounds/Glass.aiff &>/dev/null &
+afplay /System/Library/Sounds/Glass.aiff &
 
-# Speak text via osascript (bypasses Claude Code sandbox)
-# Falls back gracefully to text-only if osascript is unavailable (e.g. SSH/headless)
-if ! _speak_via_osascript "$MSG" "$SELECTED_VOICE" "$SPEECH_RATE"; then
-    log_error "osascript failed, falling back to text-only"
+# Speak text synchronously (foreground - waits for completion)
+# Note: requires dangerouslyDisableSandbox: true for audio API access
+if [ "$SELECTED_VOICE" = "system" ]; then
+    # Use system default voice (no -v flag)
+    say -r "$SPEECH_RATE" "$MSG"
+else
+    # Use configured voice
+    say -r "$SPEECH_RATE" -v "$SELECTED_VOICE" "$MSG"
 fi
 
-# Output expected format for hook compatibility (always printed)
+# Output expected format for hook compatibility
 echo "Speaking: $MSG"
