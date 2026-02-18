@@ -1,10 +1,13 @@
 # claude-tools
 
-Claude Code plugins by SignalCompose
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub_Sponsors-Signal_compose-EA4AAA?style=for-the-badge&logo=github)](https://github.com/sponsors/signalcompose)
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub_Sponsors-dropcontrol-EA4AAA?style=for-the-badge&logo=github)](https://github.com/sponsors/dropcontrol)
+
+Claude Code plugins by Signal compose
 
 ## Overview
 
-This repository serves as a marketplace for Claude Code plugins developed by SignalCompose. Plugins are managed as Git subtrees or directly within the repository.
+This repository serves as a marketplace for Claude Code plugins developed by Signal compose. Plugins are managed as Git subtrees or directly within the repository.
 
 > **Official Documentation**: See [Claude Code Plugins Documentation](https://code.claude.com/docs/en/plugins) for details on the plugin system.
 
@@ -20,6 +23,7 @@ This repository serves as a marketplace for Claude Code plugins developed by Sig
 | [codex](./plugins/codex) | OpenAI Codex CLI integration for research and code review | developer-tools | Available |
 | [gemini](./plugins/gemini) | Google Gemini CLI integration for web search | productivity | Available |
 | [kiro](./plugins/kiro) | AWS Kiro CLI integration for AWS expert assistance | developer-tools | Available |
+| [x-article](./plugins/x-article) | X (Twitter) Articles publishing workflow automation | productivity | Available |
 
 ## Quick Start
 
