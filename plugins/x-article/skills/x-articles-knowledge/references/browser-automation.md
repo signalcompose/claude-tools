@@ -53,8 +53,8 @@ async function pasteToEditor(html, editorEl) {
   });
   editorEl.dispatchEvent(event);
 
-  // 4. ペースト後の安定待機
-  await new Promise(r => setTimeout(r, 200));
+  // 4. ペースト後の安定待機（DraftJS の DOM 更新を待つ。分割ペースト時は 600ms 以上推奨）
+  await new Promise(r => setTimeout(r, 600));
 }
 ```
 
@@ -79,6 +79,39 @@ if (children.length > 0) {
   children[children.length - 1].remove();
 }
 ```
+
+---
+
+## MCP 接続失敗時のリトライ手順
+
+Claude in Chrome MCP は初回接続時に「No Chrome extension connected」エラーが発生することがある。
+
+### リトライ手順（3段階）
+
+**Stage 1: 単純リトライ（まずこれ）**
+```
+# 拡張の初期化タイミング問題の場合は単純リトライで解決することが多い
+1. `tabs_context_mcp` を再度実行する
+2. 成功したら次のステップへ
+```
+
+**Stage 2: 新規タブグループで再接続**
+```
+# セッションをまたいでタブグループが不整合の場合
+1. `tabs_context_mcp` の `createIfEmpty: true` オプションで新規タブグループを作成
+2. 新しいタブグループIDで `tabs_context_mcp` を再実行
+```
+
+**Stage 3: switch_browser → ユーザー案内（最終手段）**
+```
+# Stage 1・2 で解決しない場合
+1. `switch_browser` を呼んでブラウザを切り替える
+2. ユーザーに Chrome 拡張の「Connect」ボタンを押してもらうよう案内する
+3. `tabs_context_mcp` を再実行する
+4. それでも失敗する場合は「MCP 全滅時の手動案内」セクションへ
+```
+
+**新規セッションのベストプラクティス**: 新しいセッションを開始するときは常に `tabs_context_mcp(createIfEmpty: true)` で新規タブグループを作成すること。前セッションのタブグループが残存していると接続の不整合が起きやすい。
 
 ---
 

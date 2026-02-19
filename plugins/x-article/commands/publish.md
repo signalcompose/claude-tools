@@ -14,8 +14,18 @@ argument-hint: "[markdown-file-path]"
 
 ## Step 2: ドラフトの読み込みと変換
 
+**このコマンドは単独のセッションで実行できる**（下書きフェーズとの分離が可能）。
+
 引数でファイルパスが指定された場合はそのファイルを読み込む。
 指定がない場合は、現在のディレクトリにある `draft-*.md` ファイルを探してユーザーに選択を促す。
+
+```
+# 推奨: ファイルパスを明示的に渡す
+/x-article:publish /path/to/draft-topic-20260219-1430.md
+
+# 引数なしも可（カレントディレクトリの draft-*.md を検索）
+/x-article:publish
+```
 
 マークダウンを X Articles 用 HTML に変換する（article-structure.md のルールに従う）:
 - テーブル → テキスト形式
