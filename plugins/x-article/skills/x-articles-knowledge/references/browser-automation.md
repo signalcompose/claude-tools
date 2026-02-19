@@ -34,6 +34,9 @@ function moveCursorToEnd(el) {
 
 ## DataTransfer + ClipboardEvent フルコード
 
+> **注**: `draftjs-editor.md` の `pasteHtmlToEditor(html)` も同じパターンの実装。
+> あちらは editorEl を内部で取得するシンプル版。用途に合わせて使い分けること。
+
 ```javascript
 async function pasteToEditor(html, editorEl) {
   // 1. カーソルを末尾に移動
@@ -72,6 +75,9 @@ async function pasteToEditor(html, editorEl) {
 ```javascript
 // 重複ブロックの削除（DraftJS）
 // ※ MCP のコード実行で動かす場合
+// ⚠️ 警告: DOM 直接操作は DraftJS の内部状態（EditorState）と乖離する可能性がある。
+//    削除後は必ずスクリーンショットで表示を確認し、エディタが不安定になった場合は
+//    ページをリロードして再ペーストすること。
 const editorEl = document.querySelector('[contenteditable="true"]');
 const children = Array.from(editorEl.children);
 // 最後の子要素（重複分）を削除
