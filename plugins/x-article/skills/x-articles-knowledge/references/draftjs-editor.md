@@ -31,7 +31,8 @@ document.querySelector('[contenteditable]').dispatchEvent(event);
 ### DataTransfer + ClipboardEvent（唯一の安定手法）
 
 ```javascript
-function pasteHtmlToEditor(html) {
+// ※ javascript_tool で実行する場合は (async () => { ... })() で包むこと
+async function pasteHtmlToEditor(html) {
   const editorEl = document.querySelector('[contenteditable="true"]');
   if (!editorEl) throw new Error('エディタが見つかりません');
 
@@ -54,6 +55,9 @@ function pasteHtmlToEditor(html) {
     clipboardData: dt,
   });
   editorEl.dispatchEvent(pasteEvent);
+
+  // DraftJS の DOM 更新を待つ（600ms 以上）
+  await new Promise(r => setTimeout(r, 600));
 }
 ```
 
@@ -142,8 +146,8 @@ HTML の `<hr>` をペーストしても DraftJS は仕切り線として認識�
 |------|------|
 | 1セクション ≤ 3000文字 | セクション単位でそのままペースト |
 | 1セクション > 3000文字 | セクション内を段落グループ（500〜1000文字）で分割 |
-| 連続セクション合計 ≤ 5000文字 | Section 2 以降をまとめて1回でペーストしてもOK |
-| 連続セクション合計 > 5000文字 | 2〜3セクションずつに分割してペースト |
+| 連続セクション合計 ≤ 3000文字 | Section 2 以降をまとめて1回でペーストしてもOK |
+| 連続セクション合計 > 3000文字 | 2〜3セクションずつに分割してペースト |
 
 ### 分割時の注意
 
