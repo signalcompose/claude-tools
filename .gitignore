@@ -8,6 +8,9 @@
 # Playwright MCP
 .playwright-mcp/
 
+# x-article workspace (generated drafts, screenshots, etc.)
+/x-article/
+
 # OS files
 .DS_Store
 Thumbs.db
