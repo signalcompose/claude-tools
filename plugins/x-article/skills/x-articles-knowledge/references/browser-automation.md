@@ -34,6 +34,9 @@ function moveCursorToEnd(el) {
 
 ## DataTransfer + ClipboardEvent フルコード
 
+> **注**: `draftjs-editor.md` の `pasteHtmlToEditor(html)` も同じパターンの実装。
+> あちらは editorEl を内部で取得するシンプル版。用途に合わせて使い分けること。
+
 ```javascript
 async function pasteToEditor(html, editorEl) {
   // 1. カーソルを末尾に移動
@@ -53,8 +56,8 @@ async function pasteToEditor(html, editorEl) {
   });
   editorEl.dispatchEvent(event);
 
-  // 4. ペースト後の安定待機
-  await new Promise(r => setTimeout(r, 200));
+  // 4. ペースト後の安定待機（DraftJS の DOM 更新を待つ。分割ペースト時は 600ms 以上推奨）
+  await new Promise(r => setTimeout(r, 600));
 }
 ```
 
@@ -72,6 +75,9 @@ async function pasteToEditor(html, editorEl) {
 ```javascript
 // 重複ブロックの削除（DraftJS）
 // ※ MCP のコード実行で動かす場合
+// ⚠️ 警告: DOM 直接操作は DraftJS の内部状態（EditorState）と乖離する可能性がある。
+//    削除後は必ずスクリーンショットで表示を確認し、エディタが不安定になった場合は
+//    ページをリロードして再ペーストすること。
 const editorEl = document.querySelector('[contenteditable="true"]');
 const children = Array.from(editorEl.children);
 // 最後の子要素（重複分）を削除
@@ -79,6 +85,39 @@ if (children.length > 0) {
   children[children.length - 1].remove();
 }
 ```
+
+---
+
+## MCP 接続失敗時のリトライ手順
+
+Claude in Chrome MCP は初回接続時に「No Chrome extension connected」エラーが発生することがある。
+
+### リトライ手順（3段階）
+
+**Stage 1: 単純リトライ（まずこれ）**
+```
+# 拡張の初期化タイミング問題の場合は単純リトライで解決することが多い
+1. `tabs_context_mcp` を再度実行する
+2. 成功したら次のステップへ
+```
+
+**Stage 2: 新規タブグループで再接続**
+```
+# セッションをまたいでタブグループが不整合の場合
+1. `tabs_context_mcp` の `createIfEmpty: true` オプションで新規タブグループを作成
+2. 新しいタブグループIDで `tabs_context_mcp` を再実行
+```
+
+**Stage 3: switch_browser → ユーザー案内（最終手段）**
+```
+# Stage 1・2 で解決しない場合
+1. `switch_browser` を呼んでブラウザを切り替える
+2. ユーザーに Chrome 拡張の「Connect」ボタンを押してもらうよう案内する
+3. `tabs_context_mcp` を再実行する
+4. それでも失敗する場合は「MCP 全滅時の手動案内」セクションへ
+```
+
+**新規セッションのベストプラクティス**: 新しいセッションを開始するときは常に `tabs_context_mcp(createIfEmpty: true)` で新規タブグループを作成すること。前セッションのタブグループが残存していると接続の不整合が起きやすい。
 
 ---
 

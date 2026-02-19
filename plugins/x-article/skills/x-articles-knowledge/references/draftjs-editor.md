@@ -4,12 +4,35 @@ X Articles のエディタは DraftJS ベースで構築されており、通常
 
 ---
 
+## javascript_tool での async/await の扱い
+
+`javascript_tool`（Claude in Chrome MCP のコード実行）は**トップレベルの `await` をサポートしない**。
+
+```javascript
+// ❌ SyntaxError: await is only valid in async functions
+await new Promise(r => setTimeout(r, 100));
+document.querySelector('[contenteditable]').dispatchEvent(event);
+```
+
+```javascript
+// ✅ async IIFE（Immediately Invoked Function Expression）で包む
+(async () => {
+  await new Promise(r => setTimeout(r, 100));
+  document.querySelector('[contenteditable]').dispatchEvent(event);
+})();
+```
+
+**このドキュメント内のすべてのコードスニペットを `javascript_tool` で実行する場合は、必ず `(async () => { ... })()` で包むこと。**
+
+---
+
 ## 成功したペーストパターン
 
 ### DataTransfer + ClipboardEvent（唯一の安定手法）
 
 ```javascript
-function pasteHtmlToEditor(html) {
+// ※ javascript_tool で実行する場合は (async () => { ... })() で包むこと
+async function pasteHtmlToEditor(html) {
   const editorEl = document.querySelector('[contenteditable="true"]');
   if (!editorEl) throw new Error('エディタが見つかりません');
 
@@ -32,6 +55,9 @@ function pasteHtmlToEditor(html) {
     clipboardData: dt,
   });
   editorEl.dispatchEvent(pasteEvent);
+
+  // DraftJS の DOM 更新を待つ（600ms 以上）
+  await new Promise(r => setTimeout(r, 600));
 }
 ```
 
@@ -61,8 +87,79 @@ function pasteHtmlToEditor(html) {
 | `<a>` | ✅ リンク（href 属性も保持） |
 | `<pre>`, `<code>` | ⚠️ エディタ UI では挿入不可（手動操作が必要） |
 | `<table>` | ❌ X Articles は表未サポート |
-| `<hr>` | ❌ セパレーターは手動挿入必要 |
+| `<hr>` | ⚠️ HTML ペースト不可。ツールバーの「挿入」メニューからブラウザ自動化で挿入可能（下記参照） |
 | `<img>` | ❌ 画像は別途ファイルアップロード UI を使用 |
+
+---
+
+## セパレーター（仕切り線）の挿入
+
+HTML の `<hr>` をペーストしても DraftJS は仕切り線として認識しない。ツールバーの「挿入」メニュー経由でブラウザ自動化が可能。
+
+### 挿入手順（ブラウザ自動化）
+
+1. **スクリーンショットを撮ってツールバーを確認**する（UIが変わる可能性があるため毎回確認推奨）
+2. ツールバー内の「挿入」または「＋」ボタンを探してクリック
+3. 表示されたメニューから「区切り線」「Divider」「Separator」等をクリック
+
+```javascript
+// 汎用的なツールバーボタン探索パターン
+// ※ X Articles の UI 変更に追従するため、テキスト検索を使う
+(async () => {
+  // ツールバー内のボタンをすべて列挙してデバッグ確認
+  const buttons = Array.from(document.querySelectorAll('[role="button"], button'));
+  const insertBtn = buttons.find(b =>
+    b.textContent.trim().match(/^(Insert|挿入|\+)$/) ||
+    b.getAttribute('aria-label')?.match(/insert|separator|divider/i)
+  );
+  if (!insertBtn) {
+    console.log('利用可能なボタン:', buttons.map(b => b.textContent.trim() || b.getAttribute('aria-label')));
+    throw new Error('「挿入」ボタンが見つかりません。スクリーンショットで UI を確認してください');
+  }
+  insertBtn.click();
+  await new Promise(r => setTimeout(r, 500));
+
+  // メニューからセパレーターを探す
+  const menuItems = Array.from(document.querySelectorAll('[role="menuitem"], [role="option"]'));
+  const separatorItem = menuItems.find(item =>
+    item.textContent.match(/separator|divider|区切り/i)
+  );
+  if (!separatorItem) throw new Error('セパレーターメニュー項目が見つかりません');
+  separatorItem.click();
+  await new Promise(r => setTimeout(r, 300));
+})();
+```
+
+**ポイント**: テキストマッチで要素を探すことで、X Articles の DOM 構造変更に対してある程度耐性を持たせている。セレクターが合わない場合はスクリーンショットを撮ってボタンの実際の aria-label やテキストを確認すること。
+
+**フォールバック**: 自動化が難しい場合は `[ここに仕切りを手動挿入]` フラグをドラフトに残し、ユーザーに手動挿入を依頼する。
+
+---
+
+## ペースト分割戦略
+
+長文記事では適切な単位でペーストを分割しないと DraftJS が不安定になる。
+
+### 推奨分割方針
+
+| 条件 | 方針 |
+|------|------|
+| 1セクション ≤ 3000文字 | セクション単位でそのままペースト |
+| 1セクション > 3000文字 | セクション内を段落グループ（500〜1000文字）で分割 |
+| 連続セクション合計 ≤ 3000文字 | Section 2 以降をまとめて1回でペーストしてもOK |
+| 連続セクション合計 > 3000文字 | 2〜3セクションずつに分割してペースト |
+
+### 分割時の注意
+
+- **各ペーストの間に 600ms 以上の待機**を入れること（DraftJS の DOM 更新待ち）
+- 分割ペーストでも Section 2 以降のルール（`\u200B` プレフィックス）は**変わらず必要**
+- 1ペーストあたりの目安: **2〜3セクション** または **3000文字以内**
+
+### 長文記事（10セクション以上）のベストプラクティス
+
+1. 事前にセクションをリストアップして文字数を計算する
+2. グループ分けを決めてから連続ペーストを開始する
+3. 各グループのペースト後にスクリーンショットで確認してから次へ進む
 
 ---
 
@@ -100,11 +197,12 @@ editorEl.focus();
 Section 1 は単独でペーストし、Section 2 以降はゼロ幅スペース `\u200B` のダミー先頭ブロックを使って**まとめて1回でペースト**する:
 
 ```javascript
+// ※ javascript_tool で実行する場合は (async () => { ... })() で包むこと
 // Section 1（最初）: 通常ペースト
-pasteHTML('<h2>For English Readers</h2><p>This article...</p><p>TL;DR...</p>');
+await pasteHtmlToEditor('<h2>For English Readers</h2><p>This article...</p><p>TL;DR...</p>');
 
 // Section 2 以降: \u200B のダミー先頭ブロック + 残り全セクション1回でペースト
-pasteHTML('<p>\u200B</p><h2>テストセクション</h2><p>これは...</p><h2>まとめ</h2><p>パブリッシュ...</p>');
+await pasteHtmlToEditor('<p>\u200B</p><h2>テストセクション</h2><p>これは...</p><h2>まとめ</h2><p>パブリッシュ...</p>');
 ```
 
 **動作原理**:
