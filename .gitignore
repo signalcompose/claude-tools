@@ -4,6 +4,9 @@
 # Claude Code
 .claude/review-approved
 
+# x-article workspace (generated drafts, screenshots, etc.)
+/x-article/
+
 # OS files
 .DS_Store
 Thumbs.db
