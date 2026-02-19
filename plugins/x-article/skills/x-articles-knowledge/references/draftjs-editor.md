@@ -197,11 +197,12 @@ editorEl.focus();
 Section 1 は単独でペーストし、Section 2 以降はゼロ幅スペース `\u200B` のダミー先頭ブロックを使って**まとめて1回でペースト**する:
 
 ```javascript
+// ※ javascript_tool で実行する場合は (async () => { ... })() で包むこと
 // Section 1（最初）: 通常ペースト
-pasteHTML('<h2>For English Readers</h2><p>This article...</p><p>TL;DR...</p>');
+await pasteHtmlToEditor('<h2>For English Readers</h2><p>This article...</p><p>TL;DR...</p>');
 
 // Section 2 以降: \u200B のダミー先頭ブロック + 残り全セクション1回でペースト
-pasteHTML('<p>\u200B</p><h2>テストセクション</h2><p>これは...</p><h2>まとめ</h2><p>パブリッシュ...</p>');
+await pasteHtmlToEditor('<p>\u200B</p><h2>テストセクション</h2><p>これは...</p><h2>まとめ</h2><p>パブリッシュ...</p>');
 ```
 
 **動作原理**:
