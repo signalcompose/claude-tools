@@ -68,4 +68,19 @@ Report summary:
 - Items proposed / approved / completed / failed
 - Commits created
 
-Send `shutdown_request` to all agents via SendMessage, then TeamDelete.
+### Shutdown Procedure
+
+Send `shutdown_request` to all agents individually via SendMessage (one message per agent):
+- analyzer, refactorer
+
+Wait up to 30 seconds for `shutdown_response` from each agent.
+
+Then call TeamDelete.
+
+**If TeamDelete fails** (agents did not respond to shutdown):
+1. Note the team name used in the TeamCreate step
+2. Force-delete team directories using Bash with `dangerouslyDisableSandbox: true`:
+   ```bash
+   rm -rf ~/.claude/teams/<team-name>/ ~/.claude/tasks/<team-name>/
+   ```
+3. Inform user: "Team force-deleted. If agent polling continues, restart Claude Code."
