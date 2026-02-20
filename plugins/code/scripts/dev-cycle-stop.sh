@@ -36,17 +36,14 @@ STAGE=$(jq -r '.stage // empty' "$STATE_FILE")
 # Stage transition map
 case "$STAGE" in
   sprint)
-    NEXT_SKILL="/code:audit-compliance"
     NEXT_SKILL_ID="code:audit-compliance"
     NEXT_STAGE="audit"
     ;;
   audit)
-    NEXT_SKILL="/code:shipping-pr"
     NEXT_SKILL_ID="code:shipping-pr"
     NEXT_STAGE="ship"
     ;;
   ship)
-    NEXT_SKILL="/code:retrospective"
     NEXT_SKILL_ID="code:retrospective"
     NEXT_STAGE="retrospective"
     ;;

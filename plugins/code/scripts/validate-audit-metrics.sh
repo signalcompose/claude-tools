@@ -16,7 +16,11 @@ echo ""
 
 # Run test:coverage once and capture output for both test count and coverage
 echo "[1/3] Running tests with coverage..."
-TEST_OUTPUT=$(npm run test:coverage 2>&1)
+TEST_OUTPUT=$(npm run test:coverage 2>&1) || {
+  echo "❌ npm run test:coverage failed. Cannot validate metrics."
+  echo "   Fix tests first, then re-run this script."
+  exit 1
+}
 
 # 1. Test count validation
 echo "[2/3] Checking test count..."
@@ -56,7 +60,7 @@ else
 fi
 echo ""
 
-# 4. Files modified count (from git diff) - non-critical
+# Bonus: Files modified count (from git diff) - non-critical
 echo "[Bonus] Checking files modified..."
 BASE_BRANCH=$(git merge-base HEAD main 2>/dev/null || git rev-parse HEAD~10)
 ACTUAL_FILES=$(git diff --stat "$BASE_BRANCH" 2>/dev/null | tail -1 | grep -Eo '^[[:space:]]*[0-9]+' | grep -Eo '[0-9]+' || echo "0")

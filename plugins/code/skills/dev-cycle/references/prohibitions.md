@@ -10,9 +10,9 @@ The following actions are **absolutely prohibited**. Violations result in HIGH F
    - The main agent must NOT read diff and judge "no issues" itself
    - Always delegate to `pr-review-toolkit:code-reviewer` Agent
 
-3. **Skipping `/shipping-pr` skill**
+3. **Skipping `/code:shipping-pr` skill**
    - Ad-hoc `git push` + PR creation is prohibited
-   - Final shipping (push + PR creation) must go through `/shipping-pr`
+   - Final shipping (push + PR creation) must go through `/code:shipping-pr`
    - Mid-sprint intermediate commits (per-agent commits, etc.) are exempt
 
 4. **Pre-commit hook circumvention**

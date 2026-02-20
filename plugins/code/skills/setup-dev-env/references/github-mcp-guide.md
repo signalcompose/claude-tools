@@ -51,7 +51,7 @@ After creating `.mcp.json`, restart Claude Code to load the MCP server.
 
 ## Step 5: Verify
 
-Run `/setup-dev-env` to confirm GitHub MCP is working (Check 5 should show PASS).
+Run `/code:setup-dev-env` to confirm GitHub MCP is working (Check 5 should show PASS).
 
 Alternatively, ask Claude Code to run `mcp__github__get_me` — it should return your GitHub user info.
 

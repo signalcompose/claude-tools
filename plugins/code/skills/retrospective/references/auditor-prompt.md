@@ -22,23 +22,23 @@
    - Use `mcp__github__issue_read` to check `created_at` vs first commit timestamp
 
 5. **PROCESS**:
-   - Was `/shipping-pr` skill used? (not ad-hoc push + PR)
+   - Was `/code:shipping-pr` skill used? (not ad-hoc push + PR)
    - Was `pr-review-toolkit:code-reviewer` Agent used for review? (not manual)
    - Was `approve-review.sh` used for approval? (no manual hash creation)
    - Were pre-commit hooks respected? (no `--no-verify`)
 
    **Detection methods**:
    - **Git log**: Check commit messages, file timestamps, branch operations
-   - **Conversation transcript**: Check for skill invocations (`/shipping-pr`, `/sprint-impl`, etc.)
+   - **Conversation transcript**: Check for skill invocations (`/code:shipping-pr`, `/code:sprint-impl`, etc.)
      - Location: Try `.claude/history/`, `/tmp/claude/conversation-*.txt` (if available)
-     - Look for patterns: "Skill invoked: /shipping-pr", "Spawning code-reviewer agent", etc.
+     - Look for patterns: "Skill invoked: /code:shipping-pr", "Spawning code-reviewer agent", etc.
      - If unavailable: Fall back to git log evidence only
 
    **IMPORTANT**: Git log alone CANNOT detect skill invocations. Check conversation transcript when available to verify process compliance accurately.
 
    **Examples**:
-   - ✅ PASS: Conversation shows "/shipping-pr invoked", git log shows review-approved-* hash file
-   - ❌ FAIL: No "/shipping-pr" in conversation, git log shows manual commits + PR
+   - ✅ PASS: Conversation shows "/code:shipping-pr invoked", git log shows review-approved-* hash file
+   - ❌ FAIL: No "/code:shipping-pr" in conversation, git log shows manual commits + PR
    - ⚠️ PARTIAL: Conversation unavailable, git log shows review-approved-* (inference only)
 
 ## Output Format
