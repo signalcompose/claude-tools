@@ -36,14 +36,11 @@ if [[ "$STOP_HOOK_ACTIVE" == "true" ]]; then
   exit 0
 fi
 
-# Validate state file JSON before parsing (corrupt state → remove and allow stop)
-if ! jq empty "$STATE_FILE" 2>/dev/null; then
-  rm -f "$STATE_FILE"
-  exit 0
-fi
-
-# Read stage from state file
-STAGE=$(jq -r '.stage // empty' "$STATE_FILE")
+# Read stage with TOCTOU safety: concurrent hooks may delete the file between
+# the existence check above and this jq call. 2>/dev/null + || exit 0 ensures
+# we fail open (allow stop) if the file disappears or contains invalid JSON.
+STAGE=$(jq -r '.stage // empty' "$STATE_FILE" 2>/dev/null) || exit 0
+[[ -n "$STAGE" ]] || exit 0
 
 # Stage transition map
 case "$STAGE" in
