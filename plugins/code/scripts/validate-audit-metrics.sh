@@ -39,24 +39,32 @@ echo ""
 
 # 2. Coverage validation
 echo "[3/3] Checking coverage..."
-ACTUAL_COVERAGE=$(echo "$TEST_OUTPUT" | grep 'All files' | awk '{print $4}' | tr -d '%' || echo "0")
-REPORTED_COVERAGE=$(grep -Eo 'Coverage[^:]*:[[:space:]]*[0-9]+\.[0-9]+' "$REPORT_DIR"/*-audit-report.md 2>/dev/null | head -1 | grep -Eo '[0-9]+\.[0-9]+' || echo "0")
+ACTUAL_COVERAGE=$(echo "$TEST_OUTPUT" | grep 'All files' | awk '{print $4}' | tr -d '%')
+ACTUAL_COVERAGE="${ACTUAL_COVERAGE:-0}"
+REPORTED_COVERAGE=$(grep -Eo 'Coverage[^:]*:[[:space:]]*[0-9]+\.[0-9]+' "$REPORT_DIR"/*-audit-report.md 2>/dev/null | head -1 | grep -Eo '[0-9]+\.[0-9]+')
+REPORTED_COVERAGE="${REPORTED_COVERAGE:-0}"
 
 if [ "$ACTUAL_COVERAGE" = "0" ] || [ "$REPORTED_COVERAGE" = "0" ]; then
   echo "⚠️  Could not extract coverage (Actual=$ACTUAL_COVERAGE%, Reported=$REPORTED_COVERAGE%)"
 else
-  # Allow ±0.1% tolerance for floating point
-  # Use awk -v for safe variable passing (prevents injection)
-  DIFF=$(awk -v a="$ACTUAL_COVERAGE" -v b="$REPORTED_COVERAGE" 'BEGIN {print a - b}' 2>/dev/null || echo "0")
-  DIFF_ABS=$(awk -v d="$DIFF" 'BEGIN {print (d < 0) ? -d : d}' 2>/dev/null || echo "0")
-  THRESHOLD=$(awk -v d="$DIFF_ABS" 'BEGIN {print (d > 0.1) ? 1 : 0}' 2>/dev/null || echo "0")
-
-  if [ "$THRESHOLD" = "1" ]; then
-    echo "❌ Coverage mismatch: Actual=$ACTUAL_COVERAGE%, Reported=$REPORTED_COVERAGE%"
-    EXIT_CODE=1
+  # Validate numeric before awk math
+  if ! echo "$ACTUAL_COVERAGE" | grep -qE '^[0-9]+(\.[0-9]+)?$' || \
+     ! echo "$REPORTED_COVERAGE" | grep -qE '^[0-9]+(\.[0-9]+)?$'; then
+    echo "⚠️  Non-numeric coverage values (Actual=$ACTUAL_COVERAGE, Reported=$REPORTED_COVERAGE)"
   else
-    echo "✅ Coverage matches: $ACTUAL_COVERAGE%"
-  fi
+    # Allow ±0.1% tolerance for floating point
+    # Use awk -v for safe variable passing (prevents injection)
+    DIFF=$(awk -v a="$ACTUAL_COVERAGE" -v b="$REPORTED_COVERAGE" 'BEGIN {print a - b}' || echo "0")
+    DIFF_ABS=$(awk -v d="$DIFF" 'BEGIN {print (d < 0) ? -d : d}' || echo "0")
+    THRESHOLD=$(awk -v d="$DIFF_ABS" 'BEGIN {print (d > 0.1) ? 1 : 0}' || echo "0")
+
+    if [ "$THRESHOLD" = "1" ]; then
+      echo "❌ Coverage mismatch: Actual=$ACTUAL_COVERAGE%, Reported=$REPORTED_COVERAGE%"
+      EXIT_CODE=1
+    else
+      echo "✅ Coverage matches: $ACTUAL_COVERAGE%"
+    fi
+  fi  # end numeric check
 fi
 echo ""
 

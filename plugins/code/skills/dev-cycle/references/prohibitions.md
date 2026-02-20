@@ -4,7 +4,8 @@ The following actions are **absolutely prohibited**. Violations result in HIGH F
 
 1. **Manual review-approval hash creation**
    - NEVER directly write to `/tmp/claude/review-approved-*` files
-   - Approval must always go through `approve-review.sh` script
+   - The flag file is created automatically by the `pr-review-toolkit:code-reviewer` Agent upon approval
+   - Manual creation (`echo "$HASH" > /tmp/claude/review-approved-*`) is a violation
 
 2. **Manual code review**
    - The main agent must NOT read diff and judge "no issues" itself

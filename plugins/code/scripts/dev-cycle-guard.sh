@@ -18,11 +18,17 @@ fi
 
 # Read user message from hook input (stdin JSON: {"message": "..."})
 HOOK_INPUT=$(cat)
-USER_MSG=$(echo "$HOOK_INPUT" | python3 -c \
-  "import json,sys; d=json.load(sys.stdin); print(d.get('message',''))" 2>/dev/null || echo "")
+
+# Parse message: use python3 if available, else grep-based fallback
+if command -v python3 &>/dev/null; then
+  USER_MSG=$(echo "$HOOK_INPUT" | python3 -c \
+    "import json,sys; d=json.load(sys.stdin); print(d.get('message',''))" 2>/dev/null || echo "")
+else
+  USER_MSG=$(echo "$HOOK_INPUT" | grep -oE '"message"\s*:\s*"[^"]*"' | sed 's/^"message"[[:space:]]*:[[:space:]]*"//;s/"$//' || echo "")
+fi
 
 # Skip if user explicitly invoked /code:dev-cycle
-if echo "$USER_MSG" | grep -qiE "dev.?cycle|code:dev|/dev"; then
+if echo "$USER_MSG" | grep -qiE "dev.?cycle|code:dev"; then
   exit 0
 fi
 

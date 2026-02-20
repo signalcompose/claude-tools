@@ -125,7 +125,7 @@ If context is exhausted mid-cycle, resume using the appropriate individual skill
 Detection logic (run at start if resuming):
 
 ```bash
-gh pr list --head $(git branch --show-current) --json url
+# Check PR existence: use GitHub MCP tool mcp__github__list_pull_requests (head="<current-branch>")
 git diff --stat $(git merge-base HEAD main)...HEAD
 git log --oneline -5
 ```

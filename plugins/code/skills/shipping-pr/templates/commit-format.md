@@ -1,9 +1,11 @@
 # Commit Format
 
-## Conventional Commits (title: English, body: Japanese)
+## Conventional Commits (title: English, body: user's configured language)
+
+See `${CLAUDE_PLUGIN_ROOT}/skills/_shared/output-rules.md` for language configuration.
 
 ```bash
-git commit -m "<type>(<scope>): <English summary>" -m "<Japanese description>
+git commit -m "<type>(<scope>): <English summary>" -m "<description in user's configured language>
 
 <details of what was implemented/fixed>
 
@@ -25,5 +27,5 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 
 ## Rules
 
-- If pre-commit hook blocks: re-run approve script, then retry commit
+- If pre-commit hook blocks: fix the root cause, then retry commit (see prohibitions.md rule 4)
 - Never use `--no-verify` flag

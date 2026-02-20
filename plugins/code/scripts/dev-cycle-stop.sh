@@ -23,10 +23,22 @@ fi
 
 # Read hook input from stdin (Claude Code provides stop_hook_active)
 HOOK_INPUT=$(cat)
+
+# Validate JSON before parsing (malformed input → allow stop)
+if ! echo "$HOOK_INPUT" | jq empty 2>/dev/null; then
+  exit 0
+fi
+
 STOP_HOOK_ACTIVE=$(echo "$HOOK_INPUT" | jq -r '.stop_hook_active // false')
 
 # Guard: if stop_hook_active is true, allow stop to prevent infinite loop
 if [[ "$STOP_HOOK_ACTIVE" == "true" ]]; then
+  exit 0
+fi
+
+# Validate state file JSON before parsing (corrupt state → remove and allow stop)
+if ! jq empty "$STATE_FILE" 2>/dev/null; then
+  rm -f "$STATE_FILE"
   exit 0
 fi
 
@@ -53,7 +65,9 @@ case "$STAGE" in
     exit 0
     ;;
   *)
-    # Unknown stage — allow stop (don't block on corrupted state)
+    # Unknown stage — log, clean up, and allow stop (don't block on corrupted state)
+    echo "[dev-cycle-stop] Unknown stage '${STAGE}' in state file — allowing stop" >&2
+    rm -f "$STATE_FILE"
     exit 0
     ;;
 esac

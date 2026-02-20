@@ -87,7 +87,7 @@ Structurally similar code (e.g., MCP tool registrations) is acceptable.
 **Check**: Was the formal code review and shipping workflow followed?
 
 1. **Code review**: Was `pr-review-toolkit:code-reviewer` Agent used? (manual review NOT acceptable)
-2. **Review approval**: Was `approve-review.sh` used? (manual hash creation is a **violation**)
+2. **Review approval**: Was the review flag file created by the `code-reviewer` Agent? (manual `echo "$HASH" > /tmp/claude/review-approved-*` is a **violation**)
 3. **Shipping workflow**: Was `code:shipping-pr` skill invoked? (ad-hoc push + PR NOT acceptable)
 4. **No hook circumvention**: Was `--no-verify` avoided?
 
@@ -141,7 +141,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/validate-audit-metrics.sh"
 
 ## Important Notes
 
-- This is a **read-only audit** — it does not fix issues, only reports them
+- This audit reads code and reports findings — it does not modify source code or tests. An audit report is generated at `docs/research/`.
 - Use GitHub MCP (not `gh` CLI) for issue verification
 - For DRY analysis, read source files directly (not just diffs)
 - Be honest about findings — do not downplay violations
