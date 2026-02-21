@@ -8,7 +8,7 @@ argument-hint: ""
 `.x-article/` ディレクトリの内容を一覧表示する。
 
 ```bash
-ls -lh .x-article/ 2>/dev/null || echo "x-article/ ディレクトリが存在しません"
+ls -lh .x-article/ 2>/dev/null || echo ".x-article/ ディレクトリが存在しません"
 ```
 
 ディレクトリが存在しない、または空の場合は「クリーンアップ対象のファイルはありません」と報告して終了する。
