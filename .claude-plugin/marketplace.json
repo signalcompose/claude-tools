@@ -30,7 +30,7 @@
     },
     {
       "name": "code",
-      "description": "Code quality tools: commit review, PR team review, and refactoring team",
+      "description": "Code quality tools and autonomous dev lifecycle (sprint, audit, ship, retro)",
       "source": "./plugins/code",
       "category": "developer-tools",
       "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/code"

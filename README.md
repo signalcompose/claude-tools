@@ -18,7 +18,7 @@ This repository serves as a marketplace for Claude Code plugins developed by Sig
 | [CVI](./plugins/cvi) | Claude Voice Integration - Voice notifications for Claude Code on macOS | productivity | Available |
 | [YPM](./plugins/ypm) | Your Project Manager - Project management for Claude Code | productivity | Available |
 | [chezmoi](./plugins/chezmoi) | Dotfiles management integration using chezmoi | productivity | Available |
-| [code](./plugins/code) | Code review workflow integration for git commits | developer-tools | Available |
+| [code](./plugins/code) | Code quality tools and autonomous dev lifecycle (sprint, audit, ship, retro) | developer-tools | Available |
 | [utils](./plugins/utils) | Utility commands for plugin management (cache clearing, etc.) | developer-tools | Available |
 | [codex](./plugins/codex) | OpenAI Codex CLI integration for research and code review | developer-tools | Available |
 | [gemini](./plugins/gemini) | Google Gemini CLI integration for web search | productivity | Available |
@@ -139,6 +139,7 @@ Due to a known Claude Code bug ([#14061](https://github.com/anthropics/claude-co
 ## Documentation
 
 - [docs/INDEX.md](./docs/INDEX.md) - Documentation index
+- [docs/dev-cycle-guide.md](./docs/dev-cycle-guide.md) - Dev Cycle usage guide and permissions philosophy
 - [docs/specifications.md](./docs/specifications.md) - Marketplace and plugin specifications
 - [docs/architecture.md](./docs/architecture.md) - Architecture overview
 - [docs/development-guide.md](./docs/development-guide.md) - Plugin development guide

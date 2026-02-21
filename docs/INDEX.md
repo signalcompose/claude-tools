@@ -8,6 +8,7 @@ SignalComposeが提供するClaude Codeプラグインのマーケットプレ�
 
 | Document | Description |
 |----------|-------------|
+| [dev-cycle-guide.md](./dev-cycle-guide.md) | Dev Cycleの使い方・パーミッション設計思想 |
 | [specifications.md](./specifications.md) | マーケットプレイス・プラグイン仕様 |
 | [architecture.md](./architecture.md) | リポジトリ構成・プラグイン管理方式 |
 | [development-guide.md](./development-guide.md) | プラグイン開発ガイド |
