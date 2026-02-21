@@ -19,12 +19,6 @@ Managed automatically by `code:retrospective` — manual edits are preserved.
 - **Finding**: No GitHub Issue was created for the two-tier PDCA feature branch. Commit messages contain zero issue references. The ISSUE principle applies to all changes, not just code.
 - **Action**: Always create a GitHub Issue before starting work, even for documentation-only changes. Reference the issue number in commit messages.
 
-### [2026-02-21] Phase 5 learnings injection lacks concrete example
-- **Source**: Researcher
-- **Category**: architecture
-- **Finding**: sprint-impl Phase 6 has a concrete example of learnings injection (`## Project Learnings` section), but Phase 5 (sequential-only sprints) has no equivalent example, making the injection path ambiguous.
-- **Action**: Add a concrete example to Phase 5 showing how learnings are applied during sequential implementation, similar to Phase 6's example format.
-
 ### [2026-02-21] audit-compliance asymmetry with learnings check
 - **Source**: Researcher
 - **Category**: architecture
@@ -35,3 +29,7 @@ Managed automatically by `code:retrospective` — manual edits are preserved.
 
 <!-- Items promoted to Resolved by code:retrospective when evidence of fix is found -->
 
+### [2026-02-21] Phase 5 learnings injection lacks concrete example (resolved: 2026-02-21)
+- **Original finding**: sprint-impl Phase 6 has a concrete example of learnings injection (`## Project Learnings` section), but Phase 5 (sequential-only sprints) has no equivalent example, making the injection path ambiguous.
+- **Action taken**: Added concrete example to Phase 5 showing how learnings are applied during sequential implementation.
+- **Resolution**: sprint-impl/SKILL.md Phase 5 now includes example guidance for applying Active Learnings during sequential tasks.

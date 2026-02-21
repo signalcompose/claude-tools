@@ -85,6 +85,8 @@ If the spec does not exist, **STOP and create it**. Do NOT proceed.
 Execute sequential/foundational tasks directly (no Team Agent overhead):
 - Directory structure, shared type definitions, core interfaces
 - If Active Learnings were loaded in Phase 1 and Phase 4 determined all tasks are sequential (no parallel tasks identified), apply learnings directly during sequential implementation
+   - Before each task, review the "Action" field of each active learning and apply relevant ones
+   - Example: If an active learning says "Always create a GitHub Issue before starting work", create the issue before implementing
 
 Run `npx tsc --noEmit` after each foundational step.
 **Commit foundational work immediately** before spawning parallel agents.
