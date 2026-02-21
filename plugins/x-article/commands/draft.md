@@ -46,7 +46,7 @@ draft-{トピックの英語スラッグ}-{YYYYMMDD}-{HHmm}.md
 
 タイムスタンプは現在時刻を使用すること。
 
-**保存先**: `./x-article/` ディレクトリ（存在しない場合は作成する）。
+**保存先**: `.x-article/` ディレクトリ（存在しない場合は作成する）。
 Write ツールには絶対パスが必要なため、`pwd` で取得したカレントディレクトリを先頭に付けて絶対パスを構築すること（例: `pwd` が `/Users/yamato/proj` なら `/Users/yamato/proj/x-article/draft-xxx.md`）。
 このディレクトリは `.gitignore` 済みのワークスペースであり、`/x-article:cleanup` で一括削除できる。
 
