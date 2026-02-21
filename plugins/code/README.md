@@ -5,6 +5,7 @@ Code quality tools and autonomous development lifecycle for Claude Code.
 ## Features
 
 - **Dev Cycle**: 自律型の開発ライフサイクル（実装→監査→PR作成→振り返り）を1コマンドで実行
+- **Context Budget Management**: 200Kコンテキスト環境でのステージ間予算チェック（3層防御）
 - **Sprint Implementation**: 並列チームエージェントによる計画駆動の実装スプリント
 - **Compliance Audit**: DDD/TDD/DRY/ISSUE/PROCESS の5原則コンプライアンス監査
 - **Team-based Code Review**: 反復的、自動修正レビューループ
@@ -73,6 +74,19 @@ Code quality tools and autonomous development lifecycle for Claude Code.
 - GitHub Issue URL: `https://github.com/owner/repo/issues/42`
 - インライン説明: `ユーザー認証機能を追加する`
 - 空（`docs/plans/` から次のフェーズを自動検出）
+
+#### コンテキスト予算管理
+
+200Kコンテキスト環境では、4ステージの合計消費量が75-120%に達する場合があります。
+予算管理機構が各ステージ遷移時にコンテキスト残量をチェックし、不足時は安全に停止します。
+
+| 遷移先 | 必要残量 | 不足時 |
+|-------|---------|-------|
+| audit | >= 50% | 停止→次セッションで `/code:audit-compliance` |
+| ship | >= 30% | 停止→次セッションで `/code:shipping-pr` |
+| retrospective | >= 15% | 停止→次セッションで `/code:retrospective` |
+
+停止時の再開方法は停止メッセージに表示されます。
 
 **詳細ガイド**: [Dev Cycle Guide](../../docs/dev-cycle-guide.md)
 
@@ -239,6 +253,7 @@ plugins/code/
 │   ├── dev-cycle/
 │   │   ├── SKILL.md             # Dev cycle orchestration skill
 │   │   └── references/
+│   │       ├── context-budget.md
 │   │       ├── main-agent-guide.md
 │   │       ├── prohibitions.md
 │   │       └── package-security-audit.md
@@ -284,8 +299,9 @@ plugins/code/
 │       └── serena-integration.md # Context saving patterns
 ├── scripts/
 │   ├── check-pr-review-gate.sh       # PreToolUse hook
+│   ├── dev-cycle-context-monitor.sh  # PostToolUse hook (context budget tracking)
 │   ├── dev-cycle-guard.sh            # UserPromptSubmit hook (dev-cycle reminder)
-│   ├── dev-cycle-stop.sh             # Stop hook (auto-chain stages)
+│   ├── dev-cycle-stop.sh             # Stop hook (auto-chain stages + budget gate)
 │   ├── enforce-code-review-rules.sh  # UserPromptSubmit hook
 │   └── validate-audit-metrics.sh     # Audit metrics validation
 ├── tests/
@@ -327,6 +343,22 @@ cat .claude/dev-cycle.state.json
 # 例: audit ステージから再開
 /code:audit-compliance
 ```
+
+### Dev Cycle がコンテキスト予算不足で停止した
+
+`"status": "stopped"` かつ `"stopped_reason": "context_budget"` の場合:
+
+```bash
+# 状態確認
+cat .claude/dev-cycle.state.json
+# → skipped_stages でスキップされたステージを確認
+
+# 新しいセッションで再開
+# state ファイルのリセットは Claude が自動実行
+/code:audit-compliance  # または停止メッセージに表示されたコマンド
+```
+
+新セッションではコンテキストが100%利用可能なため、残りステージを安全に実行できます。
 
 ### Setup check で FAIL が出る
 

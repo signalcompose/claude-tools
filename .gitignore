@@ -4,6 +4,7 @@
 # Claude Code
 .claude/review-approved
 .claude/plans/
+.claude/.context-budget.json
 
 # Playwright MCP
 .playwright-mcp/
