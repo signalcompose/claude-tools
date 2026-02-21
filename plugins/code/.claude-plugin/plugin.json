@@ -1,6 +1,6 @@
 {
   "name": "code",
-  "description": "Code quality tools: commit review, PR team review, and refactoring team",
+  "description": "Code quality tools and autonomous dev lifecycle (sprint, audit, ship, retro)",
   "author": {
     "name": "Signal compose",
     "email": "contact@signalcompose.com"

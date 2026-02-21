@@ -21,7 +21,7 @@ Code quality tools and autonomous development lifecycle for Claude Code.
 - macOS or Linux
 - Node.js >= 20.0.0
 - Git installed and configured
-- GitHub MCP Server (recommended for full dev-cycle)
+- GitHub MCP Server (required for dev-cycle workflows)
 - jq (optional, for better JSON parsing in hooks)
 
 ## Installation
@@ -283,6 +283,7 @@ plugins/code/
 │       └── serena-integration.md # Context saving patterns
 ├── scripts/
 │   ├── check-pr-review-gate.sh       # PreToolUse hook
+│   ├── dev-cycle-guard.sh            # UserPromptSubmit hook (dev-cycle reminder)
 │   ├── dev-cycle-stop.sh             # Stop hook (auto-chain stages)
 │   ├── enforce-code-review-rules.sh  # UserPromptSubmit hook
 │   └── validate-audit-metrics.sh     # Audit metrics validation
