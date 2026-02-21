@@ -1,14 +1,14 @@
 ---
-description: x-article ワークスペース（./x-article/）の内容をゴミ箱に移動する
+description: x-article ワークスペース（.x-article/）の内容をゴミ箱に移動する
 argument-hint: ""
 ---
 
 ## Step 1: ワークスペースの確認
 
-`./x-article/` ディレクトリの内容を一覧表示する。
+`.x-article/` ディレクトリの内容を一覧表示する。
 
 ```bash
-ls -lh ./x-article/ 2>/dev/null || echo "x-article/ ディレクトリが存在しません"
+ls -lh .x-article/ 2>/dev/null || echo ".x-article/ ディレクトリが存在しません"
 ```
 
 ディレクトリが存在しない、または空の場合は「クリーンアップ対象のファイルはありません」と報告して終了する。
@@ -33,17 +33,17 @@ ls -lh ./x-article/ 2>/dev/null || echo "x-article/ ディレクトリが存在�
 
 ```bash
 if command -v trash &>/dev/null; then
-  trash ./x-article/
+  trash .x-article/
 else
   echo "trash コマンドが見つかりません。以下のいずれかを実行してください:"
-  echo "  1. brew install trash && trash ./x-article/"
-  echo "  2. Finder で手動削除: open ./x-article/"
+  echo "  1. brew install trash && trash .x-article/"
+  echo "  2. Finder で手動削除: open .x-article/"
 fi
 ```
 
 ## Step 4: 完了報告
 
 ```
-./x-article/ をゴミ箱に移動しました。
+.x-article/ をゴミ箱に移動しました。
 次回 /x-article:draft を実行すると自動的に再作成されます。
 ```

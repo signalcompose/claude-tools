@@ -9,7 +9,7 @@
 .playwright-mcp/
 
 # x-article workspace (generated drafts, screenshots, etc.)
-/x-article/
+.x-article/
 
 # OS files
 .DS_Store

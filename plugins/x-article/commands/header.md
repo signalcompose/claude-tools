@@ -23,7 +23,7 @@ Bash toolで実行:
 ## 使用例
 
 ```
-/x-article:header --title "DraftJS Paste Tips" --subtitle "X Articles エディタで安定ペーストする方法" --output header.png
+/x-article:header --title "DraftJS Paste Tips" --subtitle "X Articles エディタで安定ペーストする方法" --output .x-article/header.png
 /x-article:header --title "My Article Title"
 ```
 
