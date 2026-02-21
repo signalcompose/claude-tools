@@ -35,6 +35,7 @@ Collect project context in parallel:
 3. Read `package.json`, `tsconfig.json` (project settings)
 4. Check existing file structure with Glob
 5. Run `git branch --show-current` to confirm branch
+6. Read `docs/dev-cycle-learnings.md` (if it exists — extract "Active Learnings" for agent context injection in Phase 6)
 
 If `$ARGUMENTS` is a GitHub Issue URL, fetch the issue body via GitHub MCP.
 If it's a file path, read the file.
@@ -93,6 +94,14 @@ For parallel tasks:
 
 1. **TeamCreate** with descriptive team name
 2. **Spawn agents** in parallel via Task tool (`subagent_type: "general-purpose"`, `mode: "acceptEdits"`)
+   - If Active Learnings were loaded in Phase 1, append to each agent's task description under `## Project Learnings`
+   - Keep injected learnings concise: include only the "Action" field from each active learning
+   - Example:
+     ```
+     ## Project Learnings (from previous retrospectives)
+     - <Action from learning 1>
+     - <Action from learning 2>
+     ```
 3. **Wait for all agents** to report completion
 4. **Shutdown agents** promptly + **TeamDelete**
 

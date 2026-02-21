@@ -150,7 +150,7 @@ After all 4 stages complete, output a combined report:
 
 ### Retrospective
 - Fixes applied: N
-- Skills updated: list
+- Learnings updated: N new, N merged, N resolved
 
 ### Metrics
 - Total: ~Xm

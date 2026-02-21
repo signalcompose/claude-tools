@@ -146,7 +146,8 @@ Pre-flight → 変更分析 → ステージング → コードレビュー →
 
 分析結果に基づいて:
 - コード修正があれば適用＋コミット
-- SKILL.md の改善が必要なら更新
+- プロジェクト固有の教訓を `docs/dev-cycle-learnings.md` に記録・最適化（次回スプリントで自動参照）
+- スキル設計レベルの改善が必要な場合、GitHub Issue 提案を出力（signalcompose/claude-tools）
 - プロセスの教訓を MEMORY.md に記録
 - メトリクスを `docs/research/workflow-recording.md` に追加
 
