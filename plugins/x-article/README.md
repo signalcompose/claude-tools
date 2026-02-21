@@ -27,7 +27,7 @@ X (Twitter) Articles への記事投稿ワークフローを自動化するプ�
 /x-article:draft "DraftJS エディタで安定ペーストする方法"
 
 # 2. ヘッダー画像生成
-/x-article:header --title "DraftJS Paste Tips" --subtitle "X Articles エディタで安定ペーストする方法" --output header.png
+/x-article:header --title "DraftJS Paste Tips" --subtitle "X Articles エディタで安定ペーストする方法" --output .x-article/header.png
 
 # 3. ファクトチェック
 /x-article:review draft-draftjs-paste-tips.md
