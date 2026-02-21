@@ -37,6 +37,7 @@ Managed automatically by `code:retrospective` — manual edits are preserved.
 
 ### [YYYY-MM-DD] <short title> (resolved: YYYY-MM-DD)
 - **Original finding**: <what was observed>
+- **Action taken**: <what agents did differently>
 - **Resolution**: <how it was fixed>
 ```
 

@@ -84,6 +84,7 @@ If the spec does not exist, **STOP and create it**. Do NOT proceed.
 
 Execute sequential/foundational tasks directly (no Team Agent overhead):
 - Directory structure, shared type definitions, core interfaces
+- If Active Learnings were loaded in Phase 1 and no parallel agents will be spawned, apply learnings directly during sequential implementation
 
 Run `npx tsc --noEmit` after each foundational step.
 **Commit foundational work immediately** before spawning parallel agents.

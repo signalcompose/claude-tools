@@ -62,7 +62,7 @@ Integrate both agent reports:
 
 Based on Auditor/Researcher findings:
 - Code issues: fix + test + commit
-- Skill-level issues: Output a GitHub Issue suggestion (see Plugin-Side PDCA below) — do NOT modify cached SKILL.md files
+- Skill-level issues: Output a GitHub Issue suggestion (see Learnings PDCA below) — do NOT modify cached SKILL.md files
 - Process issues: Record lessons in MEMORY.md / CLAUDE.md
 
 After fixes: `code:review-commit` via Skill tool + `approve-review.sh` + commit.
