@@ -3,6 +3,8 @@ name: dev-cycle
 description: |
   This skill runs the full development cycle: sprint, audit, ship, retrospective.
   It chains code:sprint-impl, code:audit-compliance, code:shipping-pr, code:retrospective autonomously.
+  MANDATORY: When a user's plan or instructions explicitly reference "/code:dev-cycle" or "code:dev-cycle",
+  you MUST invoke this skill via the Skill tool — do NOT manually implement the plan yourself.
   This skill should be used when the user says "full cycle", "implement and ship", "dev cycle",
   "全サイクル", "実装して出荷まで", "フルサイクル",
   "implement the plan", "プランを実装", "フェーズNを実装", "phase N implementation",
