@@ -259,6 +259,7 @@ plugins/code/
 │   │   ├── SKILL.md             # Retrospective skill
 │   │   └── references/
 │   │       ├── auditor-prompt.md
+│   │       ├── learnings-pdca.md
 │   │       └── researcher-prompt.md
 │   ├── setup-dev-env/
 │   │   ├── SKILL.md             # Dev environment setup skill
