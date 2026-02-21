@@ -55,14 +55,14 @@ Integrate both agent reports:
 
 1. **Audit result fixes**: If PARTIAL/FAIL found, apply fixes as Fixer
 2. **workflow-recording.md update**: Add phase metrics
-3. **Skill improvements**: Apply findings to SKILL.md files
+3. **Learnings optimization**: Read and optimize `docs/dev-cycle-learnings.md` (see Learnings PDCA below)
 4. **MEMORY.md update**: Record process lessons
 
 ### Step 4: Fix (if needed)
 
 Based on Auditor/Researcher findings:
 - Code issues: fix + test + commit
-- Skill issues: SKILL.md update + commit
+- Skill-level issues: Output a GitHub Issue suggestion (see Learnings PDCA below) — do NOT modify cached SKILL.md files
 - Process issues: Record lessons in MEMORY.md / CLAUDE.md
 
 After fixes: `code:review-commit` via Skill tool + `approve-review.sh` + commit.
@@ -98,7 +98,7 @@ Score: X/5
 - New files, tests, coverage, review iterations
 
 ### Improvements Applied
-- Skills updated, memory updated, code fixes
+- Learnings updated (N new, N merged, N resolved), memory updated, code fixes
 ```
 
 ## Output Rules
@@ -114,3 +114,7 @@ For shared output language rules, read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/out
 - Process lessons go in project MEMORY.md
 - Auditor + Researcher agents run via Task tool in parallel (TeamCreate is unnecessary — agents are independent)
 - All user-facing output MUST follow the user's configured language setting — SKILL.md being in English does not change this
+
+## Learnings PDCA
+
+For detailed Learnings PDCA procedures (Project-Side optimization + Plugin-Side GitHub Issue suggestion), read `${CLAUDE_PLUGIN_ROOT}/skills/retrospective/references/learnings-pdca.md`.

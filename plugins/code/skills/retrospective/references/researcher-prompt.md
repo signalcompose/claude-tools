@@ -25,8 +25,10 @@ Code quality and architecture analysis across 5 areas:
    - Any barrel export collisions?
 
 5. **Previous Retrospective Follow-up**
-   - Were improvements from last retrospective applied?
-   - Any recurring issues?
+   - Read `docs/dev-cycle-learnings.md` if it exists
+   - Were improvements from Active Learnings applied in this sprint?
+   - Any recurring issues that appear in Active Learnings but remain unfixed?
+   - Flag items that should be promoted to Resolved (evidence of fix found)
 
 ## Output Format
 
