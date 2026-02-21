@@ -9,7 +9,7 @@ After integrating Auditor + Researcher reports in Step 3:
    - Duplicates an existing Active Learning → **Merge** (strengthen evidence, update date)
    - Existing Active Learning is now resolved → **Promote** to Resolved (add resolution date + evidence)
    - New finding → **Add** to Active Learnings
-3. If Active Learnings exceed 10 items → consolidate related items, aggressively Promote resolved ones
+3. If Active Learnings exceed 10 items → consolidate related items, aggressively Promote resolved ones (limit keeps injected context concise for sprint agents)
 4. Write the optimized file (create if it doesn't exist yet)
 5. Commit as part of Step 5 retrospective artifacts
 
@@ -23,17 +23,17 @@ Managed automatically by `code:retrospective` — manual edits are preserved.
 
 ## Active Learnings
 
-<!-- Items here are injected into sprint agent context by code:sprint-impl -->
+<!-- Active items are read by code:sprint-impl Phase 1 and appended to agent task descriptions in Phase 6 -->
 
 ### [YYYY-MM-DD] <short title>
-- **Source**: Auditor | Researcher
+- **Source**: Auditor | Researcher (which agent's report the finding was extracted from during Step 3 integration)
 - **Category**: code-quality | process | architecture | testing | performance
 - **Finding**: <what was observed>
 - **Action**: <what agents should do differently>
 
 ## Resolved
 
-<!-- Items confirmed fixed in subsequent retrospectives -->
+<!-- Items promoted to Resolved by code:retrospective when evidence of fix is found -->
 
 ### [YYYY-MM-DD] <short title> (resolved: YYYY-MM-DD)
 - **Original finding**: <what was observed>
