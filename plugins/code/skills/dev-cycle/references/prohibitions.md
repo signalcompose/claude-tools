@@ -4,7 +4,7 @@ The following actions are **absolutely prohibited**. Violations result in HIGH F
 
 1. **Manual review-approval hash creation**
    - NEVER directly write to `/tmp/claude/review-approved-*` files
-   - The flag file is created automatically by the `pr-review-toolkit:code-reviewer` Agent upon approval
+   - The flag file is created by the `shipping-pr` / `review-commit` workflow after the code-reviewer Agent reports 0 critical and 0 important issues
    - Manual creation (`echo "$HASH" > /tmp/claude/review-approved-*`) is a violation
 
 2. **Manual code review**

@@ -170,10 +170,10 @@ Enable the PreToolUse hook to enforce code review before PR creation:
 ### 品質保証
 
 フラグベースの承認フロー：
-- **問題を修正**（フラグ立てるだけではない）
-- **品質達成まで反復**
-- **専門的レビューagentを使用**
-- **シンプルなフラグ方式**（`/tmp/claude/review-approved-${REPO_HASH}`）
+- ✅ **問題を修正**（フラグ立てるだけではない）
+- ✅ **品質達成まで反復**
+- ✅ **専門的レビューagentを使用**
+- ✅ **シンプルなフラグ方式**（`/tmp/claude/review-approved-${REPO_HASH}`）
 
 ### PR Creation Gate (PreToolUse Hook)
 
@@ -186,9 +186,9 @@ Enable the PreToolUse hook to enforce code review before PR creation:
 - `# skip-review` コメントでバイパス可能
 - `git commit` やその他のコマンドには影響しない
 
-### 無限ループ防止
+### 無限ループ防止（review-commit）
 
-最大5回のレビュー反復。5回の反復後も問題が残る場合：
+`/code:review-commit` は最大5回のレビュー反復（`/code:shipping-pr` のレビューループは最大3回）。5回の反復後も問題が残る場合：
 - ユーザーに警告を表示
 - コミットは許可（警告付き）
 - 想定: エッジケース、手動レビューが必要

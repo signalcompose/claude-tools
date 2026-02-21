@@ -1,6 +1,6 @@
 # Dev Cycle Guide — 自律開発サイクルとパーミッションの考え方
 
-> **Last Updated**: 2026-02-20
+> **Last Updated**: 2026-02-21
 > **Audience**: Claude Code ユーザー（code プラグイン利用者）
 > **Plugin**: `code@claude-tools`
 
@@ -137,7 +137,7 @@ Pre-flight → 変更分析 → ステージング → コードレビュー →
 
 **スキル**: `/code:retrospective`
 
-2つのエージェントが **並列で** 分析:
+2つのエージェントが **Task tool を使って並列で** 分析（Sprint の TeamCreate とは異なり、独立したエージェントのため TeamCreate は不要）:
 
 | エージェント | 役割 | 出力 |
 |-------------|------|------|
@@ -259,8 +259,8 @@ Dev Cycle のパーミッション設計は、以下の考え方に基づいて�
 
 | パーミッション | 理由 |
 |--------------|------|
-| `Read(./.env)` | 環境変数に秘密情報が含まれている可能性 |
-| `Read(./.env.*)` | 環境変数の派生ファイルも同様 |
+| `Read(./.env)` | 環境変数に秘密情報が含まれている可能性（Claude Code のデフォルト制限でもある） |
+| `Read(./.env.*)` | 環境変数の派生ファイルも同様（Claude Code のデフォルト制限でもある） |
 | `Bash(rm -rf :*)` | 再帰的削除は取り返しがつかない |
 | `Bash(rm -r :*)` | 同上 |
 | `Bash(git push --force :*)` | 履歴の上書きは取り返しがつかない |
@@ -270,6 +270,8 @@ Dev Cycle のパーミッション設計は、以下の考え方に基づいて�
 | `Bash(sudo :*)` | 管理者権限は危険 |
 
 **理由**: これらの操作はどのような状況でも自動実行すべきではありません。Dev Cycle の自律実行中であっても、これらは **絶対に実行されません**。
+
+**補足**: `rm -rf`（再帰的削除）と `rm -f`（単一ファイル削除）は異なります。Dev Cycle の内部処理（状態ファイルの `rm -f` 等）は deny パターンに該当しません。
 
 ### 3層のガードレール構造
 
@@ -371,6 +373,15 @@ Dev Cycle を快適に使うための推奨設定:
       "mcp__github__pull_request_read",
       "mcp__github__create_pull_request",
       "mcp__github__update_pull_request"
+    ],
+    "deny": [
+      "Bash(rm -rf :*)",
+      "Bash(rm -r :*)",
+      "Bash(git push --force :*)",
+      "Bash(git push -f :*)",
+      "Bash(git reset --hard :*)",
+      "Bash(gh repo delete :*)",
+      "Bash(sudo :*)"
     ]
   },
   "sandbox": {
@@ -382,7 +393,7 @@ Dev Cycle を快適に使うための推奨設定:
 
 #### GitHub MCP の設定
 
-Dev Cycle は GitHub 操作（Issue作成、PR作成等）に **GitHub MCP Server を使用します**。各スキル（`sprint-impl`, `shipping-pr` 等）は `mcp__github__*` ツールを直接呼び出すため、GitHub MCP の設定は必須です。
+Dev Cycle は GitHub 操作（Issue作成、PR作成等）に **GitHub MCP Server を使用します**。各スキル（`sprint-impl`, `shipping-pr` 等）は `mcp__github__*` ツールを直接呼び出す設計です。これはスキル内部での構造化データ交換を確実にするための設計上の選択であり、`gh` CLI は PR の状態確認等の読み取り操作で補助的に使用されます。
 
 `.mcp.json` を設定してください:
 
@@ -422,7 +433,7 @@ Dev Cycle は GitHub 操作（Issue作成、PR作成等）に **GitHub MCP Serve
 | 4 | Git State | `main` ブランチでないか、remote 設定があるか |
 | 5 | GitHub MCP | MCP Server が応答するか |
 | 6 | Code Review Skill | `review-commit` スキルが利用可能か |
-| 7 | Permissions | 必要なパーミッションが設定されているか |
+| 7 | Permissions & Sandbox | パーミッションと Sandbox 設定（`sandbox.enabled`, `autoAllowBashIfSandboxed`）が正しいか |
 
 ---
 
@@ -439,7 +450,7 @@ Dev Cycle の実行中、以下の操作は **いかなる状況でも禁止** �
 echo "$HASH" > /tmp/claude/review-approved-xxx
 
 # ✅ 正しい方法
-# pr-review-toolkit:code-reviewer エージェントが自動作成
+# code-reviewer エージェントのレビュー完了後、shipping-pr ワークフローが作成
 ```
 
 **なぜ**: レビュープロセスを迂回することは、品質保証の根幹を破壊します。
@@ -491,7 +502,7 @@ Dev Cycle は **Claude Code の Hook システム** を活用して、プロセ�
 | Hook | タイプ | 動作 |
 |------|--------|------|
 | `dev-cycle-stop.sh` | Stop | サイクル完了前のClaudeの停止を防止し、次のステージへの遷移を指示 |
-| `dev-cycle-guard.sh` | UserPromptSubmit | `/code:dev-cycle` の存在を通知し、手動ワークフローの代わりに使用を提案 |
+| `dev-cycle-guard.sh` | UserPromptSubmit | 実装関連キーワード（"implement", "sprint", "実装"等）検出時に `/code:dev-cycle` の使用を提案（Dev Cycle 未実行時のみ） |
 | `enforce-code-review-rules.sh` | UserPromptSubmit | コードレビュールールの強制（手動レビュー禁止等） |
 | `check-pr-review-gate.sh` | PreToolUse | `gh pr create` をブロックし、レビュー承認フラグの存在を確認 |
 
@@ -499,13 +510,14 @@ Dev Cycle は **Claude Code の Hook システム** を活用して、プロセ�
 
 Dev Cycle 実行中、`.claude/dev-cycle.state.json` に現在のステージが記録されます:
 
-```json
-{"stage": "sprint"}  // → 次は audit
-{"stage": "audit"}   // → 次は ship
-{"stage": "ship"}    // → 次は retrospective
+```
+{"stage": "sprint"}          → 次は audit
+{"stage": "audit"}           → 次は ship
+{"stage": "ship"}            → 次は retrospective
+{"stage": "retrospective"}   → サイクル完了、state ファイル削除
 ```
 
-Claude が途中で停止しようとすると、Stop Hook がこのファイルを読み取り、次のステージを実行するよう指示します。全4ステージが完了した時点でファイルが削除され、正常終了します。
+Claude が途中で停止しようとすると、Stop Hook がこのファイルを読み取り、次のステージを実行するよう指示します。`retrospective` ステージが完了すると state ファイルが削除され、正常終了します。
 
 ---
 
@@ -593,7 +605,9 @@ Sandbox なしでも使えますが、`ask` パーミッションの操作のた
 
 ### Q: コードレビューで問題が見つかり続けたらどうなりますか？
 
-Ship ステージのコードレビュー修正ループは **最大3回** です。3回の修正後も critical/important な問題が残る場合、Dev Cycle は停止し、残りの問題を報告します。この場合は手動で修正を行い、再度 `/code:shipping-pr` を実行してください。
+Ship ステージ（`shipping-pr`）のコードレビュー修正ループは **最大3回** です。3回の修正後も critical/important な問題が残る場合、Dev Cycle は停止し、残りの問題を報告します。この場合は手動で修正を行い、再度 `/code:shipping-pr` を実行してください。
+
+**注意**: スタンドアロンの `/code:review-commit`（コミット前レビュー）は最大5回の反復です。スキルごとにループ上限が異なります。
 
 ### Q: コンテキストが尽きた場合、最初からやり直しですか？
 
@@ -605,7 +619,7 @@ Ship ステージのコードレビュー修正ループは **最大3回** で�
 
 ### Q: GitHub MCP の代わりに `gh` CLI を使えますか？
 
-Dev Cycle のスキルは GitHub MCP Server（`mcp__github__*` ツール）を直接呼び出す設計です。Issue作成（`mcp__github__issue_write`）やPR作成（`mcp__github__create_pull_request`）は MCP 経由で実行されるため、**GitHub MCP の設定は必須です**。`gh` CLI は読み取り操作（`gh pr view` 等）の補助として使用されますが、MCP の代替にはなりません。
+Dev Cycle のスキルは GitHub MCP Server（`mcp__github__*` ツール）を直接呼び出す設計です。Issue作成（`mcp__github__issue_write`）やPR作成（`mcp__github__create_pull_request`）は MCP 経由で実行されます。`gh` CLI は PR の状態確認（`gh pr view`, `gh pr checks`）等の読み取り操作で補助的に使用されますが、書き込み操作の代替にはなりません。これはスキル内部での構造化データ交換を確実にするための設計上の選択です。
 
 ---
 
