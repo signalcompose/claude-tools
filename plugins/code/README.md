@@ -1,19 +1,27 @@
 # code - Claude Code Plugin
 
-Code quality tools for Claude Code: commit review, PR team review, and refactoring team.
+Code quality tools and autonomous development lifecycle for Claude Code.
 
 ## Features
 
+- **Dev Cycle**: 自律型の開発ライフサイクル（実装→監査→PR作成→振り返り）を1コマンドで実行
+- **Sprint Implementation**: 並列チームエージェントによる計画駆動の実装スプリント
+- **Compliance Audit**: DDD/TDD/DRY/ISSUE/PROCESS の5原則コンプライアンス監査
 - **Team-based Code Review**: 反復的、自動修正レビューループ
+- **Shipping PR**: コードレビュー＋修正ループ＋PR作成を自律実行
+- **Retrospective**: 2エージェント並列分析（監査＋研究）による振り返り
 - **PR Team Review**: 4つの専門エージェントによる並行PRレビュー + CI統合
 - **Refactoring Team**: 分析→ユーザー承認→実行のリファクタリングワークフロー
 - **Quality Assurance**: critical/important問題の完全解決を保証
 - **PR Creation Gate**: PR作成前にレビュー実行をチェック（PreToolUseフック）
+- **Dev Environment Setup**: 7項目の環境チェック＋自動修正
 
 ## Requirements
 
 - macOS or Linux
+- Node.js >= 20.0.0
 - Git installed and configured
+- GitHub MCP Server (recommended for full dev-cycle)
 - jq (optional, for better JSON parsing in hooks)
 
 ## Installation
@@ -25,6 +33,19 @@ Code quality tools for Claude Code: commit review, PR team review, and refactori
 
 ## Commands & Skills
 
+### Dev Cycle（自律開発ライフサイクル）
+
+| Command/Skill | Description |
+|---------------|-------------|
+| `/code:dev-cycle` | 全サイクル自律実行（sprint → audit → ship → retrospective） |
+| `/code:sprint-impl` | 計画駆動の実装スプリント（並列チームエージェント） |
+| `/code:audit-compliance` | 5原則コンプライアンス監査 |
+| `/code:shipping-pr` | コードレビュー＋修正ループ＋コミット＋PR作成 |
+| `/code:retrospective` | 2エージェント並列分析による振り返り |
+| `/code:setup-dev-env` | 開発環境チェック（7項目）＋自動修正 |
+
+### Code Quality（コード品質）
+
 | Command/Skill | Description |
 |---------------|-------------|
 | `/code:review-commit` | Review staged changes and approve for commit |
@@ -33,6 +54,55 @@ Code quality tools for Claude Code: commit review, PR team review, and refactori
 | `/code:trufflehog-scan` | Run TruffleHog security scan on current project |
 
 ## Usage
+
+### Dev Cycle（全サイクル実行）
+
+```
+/code:dev-cycle docs/plans/phase-3-plan.md
+```
+
+4つのステージを自律的に連続実行:
+
+1. **Sprint**: プラン解析→Issue作成→仕様書作成→並列チーム実装→テスト→ビルド検証
+2. **Audit**: DDD/TDD/DRY/ISSUE/PROCESS の5原則監査
+3. **Ship**: コードレビュー（自動修正ループ）→コミット→Push→PR作成
+4. **Retrospective**: 2エージェント並列分析→改善適用→メトリクス記録
+
+入力ソース:
+- プランファイルパス: `docs/plans/phase-3-plan.md`
+- GitHub Issue URL: `https://github.com/owner/repo/issues/42`
+- インライン説明: `ユーザー認証機能を追加する`
+- 空（`docs/plans/` から次のフェーズを自動検出）
+
+**詳細ガイド**: [Dev Cycle Guide](../../docs/dev-cycle-guide.md)
+
+### 個別ステージの実行
+
+```bash
+# 実装スプリントのみ
+/code:sprint-impl docs/plans/phase-3-plan.md
+
+# 監査のみ
+/code:audit-compliance
+
+# PR作成のみ
+/code:shipping-pr
+
+# 振り返りのみ
+/code:retrospective
+```
+
+### 環境セットアップ
+
+```bash
+# チェックのみ
+/code:setup-dev-env
+
+# 自動修正付き
+/code:setup-dev-env --fix
+```
+
+7項目をチェック: Node.js、依存パッケージ、ビルド、Git状態、GitHub MCP、コードレビュースキル、パーミッション
 
 ### Basic Code Review
 
@@ -100,10 +170,10 @@ Enable the PreToolUse hook to enforce code review before PR creation:
 ### 品質保証
 
 フラグベースの承認フロー：
-- ✅ **問題を修正**（フラグ立てるだけではない）
-- ✅ **品質達成まで反復**
-- ✅ **専門的レビューagentを使用**
-- ✅ **シンプルなフラグ方式**（`/tmp/claude/review-approved-${REPO_HASH}`）
+- **問題を修正**（フラグ立てるだけではない）
+- **品質達成まで反復**
+- **専門的レビューagentを使用**
+- **シンプルなフラグ方式**（`/tmp/claude/review-approved-${REPO_HASH}`）
 
 ### PR Creation Gate (PreToolUse Hook)
 
@@ -153,36 +223,76 @@ The code review checks for:
 ```
 plugins/code/
 ├── .claude-plugin/
-│   └── plugin.json           # Plugin metadata
+│   └── plugin.json              # Plugin metadata
 ├── commands/
-│   ├── review-commit.md       # Commit review command
-│   ├── pr-review-team.md      # PR team review command
-│   ├── refactor-team.md       # Refactoring team command
-│   └── trufflehog-scan.md     # Security scan command
+│   ├── dev-cycle.md             # Dev cycle command
+│   ├── sprint-impl.md           # Sprint implementation command
+│   ├── audit-compliance.md      # Compliance audit command
+│   ├── shipping-pr.md           # Shipping PR command
+│   ├── retrospective.md         # Retrospective command
+│   ├── setup-dev-env.md         # Dev environment setup command
+│   ├── review-commit.md         # Commit review command
+│   ├── pr-review-team.md        # PR team review command
+│   ├── refactor-team.md         # Refactoring team command
+│   └── trufflehog-scan.md       # Security scan command
 ├── skills/
+│   ├── dev-cycle/
+│   │   ├── SKILL.md             # Dev cycle orchestration skill
+│   │   └── references/
+│   │       ├── main-agent-guide.md
+│   │       ├── prohibitions.md
+│   │       └── package-security-audit.md
+│   ├── sprint-impl/
+│   │   ├── SKILL.md             # Sprint implementation skill
+│   │   └── references/
+│   │       └── agent-prompt-template.md
+│   ├── audit-compliance/
+│   │   ├── SKILL.md             # Compliance audit skill
+│   │   └── templates/
+│   │       └── audit-report.md
+│   ├── shipping-pr/
+│   │   ├── SKILL.md             # Shipping PR skill
+│   │   └── templates/
+│   │       ├── commit-format.md
+│   │       └── pr-body.md
+│   ├── retrospective/
+│   │   ├── SKILL.md             # Retrospective skill
+│   │   └── references/
+│   │       ├── auditor-prompt.md
+│   │       └── researcher-prompt.md
+│   ├── setup-dev-env/
+│   │   ├── SKILL.md             # Dev environment setup skill
+│   │   └── references/
+│   │       ├── expected-permissions.md
+│   │       └── github-mcp-guide.md
 │   ├── review-commit/
-│   │   ├── SKILL.md           # Review skill definition
+│   │   ├── SKILL.md             # Review skill definition
 │   │   └── references/
 │   │       └── review-criteria.md
 │   ├── pr-review-team/
-│   │   ├── SKILL.md           # PR review team skill
+│   │   ├── SKILL.md             # PR review team skill
 │   │   └── references/
 │   │       ├── ci-integration.md
 │   │       └── security-checklist.md
-│   └── refactor-team/
-│       ├── SKILL.md           # Refactoring team skill
-│       └── references/
-│           └── analysis-criteria.md
+│   ├── refactor-team/
+│   │   ├── SKILL.md             # Refactoring team skill
+│   │   └── references/
+│   │       └── analysis-criteria.md
+│   └── _shared/
+│       ├── output-rules.md      # Shared output formatting rules
+│       └── serena-integration.md # Context saving patterns
 ├── scripts/
-│   ├── check-pr-review-gate.sh      # PreToolUse hook (checks review flag)
-│   └── enforce-code-review-rules.sh # UserPromptSubmit hook (enforces review policy)
+│   ├── check-pr-review-gate.sh       # PreToolUse hook
+│   ├── dev-cycle-stop.sh             # Stop hook (auto-chain stages)
+│   ├── enforce-code-review-rules.sh  # UserPromptSubmit hook
+│   └── validate-audit-metrics.sh     # Audit metrics validation
 ├── tests/
 │   ├── check-code-review.bats       # PR review gate hook tests (BATS)
 │   └── validate-skills.bats         # Structural validation tests (BATS)
 ├── hooks/
-│   └── hooks.json            # Optional hook configuration
+│   └── hooks.json            # Hook configuration
 ├── .claude/
-│   └── settings.json         # Permissions
+│   └── settings.json         # Plugin permissions
 ├── README.md                 # This file
 └── LICENSE                   # MIT License
 ```
@@ -203,6 +313,27 @@ Consider manual review of the warnings.
 1. Ensure jq is installed: `brew install jq`
 2. Verify hook path in settings.json
 3. Check script permissions: `chmod +x scripts/*.sh`
+
+### Dev Cycle が途中で停止した
+
+`.claude/dev-cycle.state.json` を確認し、該当ステージのスキルを直接実行:
+
+```bash
+# 状態確認
+cat .claude/dev-cycle.state.json
+
+# 例: audit ステージから再開
+/code:audit-compliance
+```
+
+### Setup check で FAIL が出る
+
+```bash
+# 自動修正を試す
+/code:setup-dev-env --fix
+```
+
+自動修正できない項目（GitHub MCP等）は、表示されるガイダンスに従って手動で設定してください。
 
 ## License
 
