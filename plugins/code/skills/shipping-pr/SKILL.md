@@ -141,7 +141,7 @@ After PR creation:
 
 ### Step 9: Summary Report
 
-Output: commit hash, PR URL, review stats (iterations, issues found/fixed), verification results, documentation status.
+Output: commit hash, PR URL, review stats (iterations, issues found/fixed), verification results, documentation status, agent launch warnings (if any).
 
 ### Step 10: Serena Memory Save (recommended)
 
