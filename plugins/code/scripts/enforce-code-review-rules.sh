@@ -1,6 +1,22 @@
 #!/bin/bash
 # UserPromptSubmit hook: Enforce code review rules via Sandwich Defense
 # This script outputs rules that Claude must follow when performing code reviews.
+# Only fires when user message contains code-review-related keywords.
+
+# --- Message filter: skip unrelated messages to reduce context consumption ---
+HOOK_INPUT=$(cat)
+
+if command -v python3 &>/dev/null; then
+  USER_MSG=$(echo "$HOOK_INPUT" | python3 -c \
+    "import json,sys; d=json.load(sys.stdin); print(d.get('message',''))" 2>/dev/null || echo "")
+else
+  USER_MSG=$(echo "$HOOK_INPUT" | grep -oE '"message"\s*:\s*"[^"]*"' | sed 's/^"message"[[:space:]]*:[[:space:]]*"//;s/"$//' || echo "")
+fi
+
+if ! echo "$USER_MSG" | grep -qiE \
+  "(review|レビュー|ship|pr|push|commit|shipping|dev.?cycle)"; then
+  exit 0
+fi
 
 # Output rules as systemMessage with Sandwich Defense structure
 
