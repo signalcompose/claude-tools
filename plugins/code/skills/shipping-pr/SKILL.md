@@ -82,7 +82,11 @@ Report only issues with confidence >= 80.
 ### Step 4: Fix Loop (max 3 iterations)
 
 ```
-while review has critical or important issues AND iteration < 3:
+max_iterations = 3  # default
+if .claude/dev-cycle.state.json exists:
+    max_iterations = 2  # retrospective 用のコンテキストを確保
+
+while review has critical or important issues AND iteration < max_iterations:
     1. Fix each issue (use Serena find_referencing_symbols if available)
     2. Re-run tests + lint
     3. Re-stage fixed files
@@ -90,7 +94,7 @@ while review has critical or important issues AND iteration < 3:
     5. iteration++
 ```
 
-If iteration >= 3 AND still has issues: report and STOP.
+If iteration >= max_iterations AND still has issues: report and STOP.
 
 ### Step 5: Approve Review
 
@@ -142,7 +146,7 @@ For post-sprint memory save, read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/serena-i
 - **Pre-commit hook blocks**: Re-create flag file (Step 5 bash commands), retry commit once
 - **Push fails**: Check remote URL, try again
 - **PR creation fails**: Fall back to providing manual PR URL
-- **Fix loop exhausted (3 iterations)**: Report remaining issues, let user decide
+- **Fix loop exhausted (max_iterations reached)**: Report remaining issues, let user decide
 
 ## Important Notes
 

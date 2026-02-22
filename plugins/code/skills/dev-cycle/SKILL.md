@@ -37,12 +37,45 @@ Each phase is self-contained, making it resilient to context window exhaustion.
 Create the state file to enable the Stop hook auto-chain mechanism:
 
 ```bash
-mkdir -p .claude && echo '{"stage": "sprint"}' > .claude/dev-cycle.state.json
+if [ ! -f .claude/dev-cycle.state.json ]; then
+  mkdir -p .claude && echo '{"stage": "sprint"}' > .claude/dev-cycle.state.json
+fi
 ```
+
+> **Compaction Resilience**: The UserPromptSubmit hook (`dev-cycle-guard.sh`)
+> pre-creates this file when `/code:dev-cycle` is detected. If compaction occurs
+> before this step executes, the file already exists. The `if` guard ensures
+> idempotency — existing state is never overwritten.
 
 This file drives the Stop hook (`dev-cycle-stop.sh`) which blocks
 Claude from stopping until all 4 stages complete. If Claude tries to stop mid-cycle,
 the hook reads this file and instructs Claude to invoke the next skill.
+
+**Output to user** (in user's configured language):
+```
+Context Budget Management: Active
+- PostToolUse hook がコンテキスト残量を追跡します
+- ステージ間遷移時に予算チェックを実施します
+- 予算不足の場合、状態を保存して安全に停止します
+- 次セッションで再開コマンドが案内されます
+```
+
+### Context Budget Management
+
+ステージ間遷移の前にコンテキスト予算を確認する。
+詳細は `${CLAUDE_PLUGIN_ROOT}/skills/dev-cycle/references/context-budget.md` を参照。
+
+```bash
+cat .claude/.context-budget.json 2>/dev/null || echo '{"remaining":100}'
+```
+
+| 遷移先 | 必要残量 | 不足時のアクション |
+|-------|---------|-----------------|
+| audit | >= 50% | 停止。再開: `/code:audit-compliance` |
+| ship | >= 30% | 停止。再開: `/code:shipping-pr` |
+| retrospective | >= 15% | 停止。再開: `/code:retrospective` |
+
+予算データなしの場合は続行（後方互換）。
 
 ### Stage 0.5: Package Security Audit (conditional)
 
@@ -57,12 +90,18 @@ Invoke `code:sprint-impl $ARGUMENTS` via Skill tool.
 
 **On success — IMMEDIATELY (no intermediate text output):**
 
-```bash
-echo '{"stage": "audit"}' > .claude/dev-cycle.state.json
-```
+1. Context budget check:
+   ```bash
+   cat .claude/.context-budget.json 2>/dev/null
+   ```
+   If remaining < 50%: update state file with stopped info, output resumption guide, STOP.
 
-Then invoke via Skill tool: `code:audit-compliance` — do NOT write a status summary first.
-(Stage summaries are included in the final combined report only.)
+2. Proceed:
+   ```bash
+   echo '{"stage": "audit"}' > .claude/dev-cycle.state.json
+   ```
+   Then invoke via Skill tool: `code:audit-compliance` — do NOT write a status summary first.
+   (Stage summaries are included in the final combined report only.)
 
 ### Stage 2: Compliance Audit
 
@@ -75,12 +114,18 @@ After sprint completes, invoke `code:audit-compliance` via Skill tool.
 
 **On success — IMMEDIATELY (no intermediate text output):**
 
-```bash
-echo '{"stage": "ship"}' > .claude/dev-cycle.state.json
-```
+1. Context budget check:
+   ```bash
+   cat .claude/.context-budget.json 2>/dev/null
+   ```
+   If remaining < 30%: update state file with stopped info, output resumption guide, STOP.
 
-Then invoke via Skill tool: `code:shipping-pr` — do NOT write a status summary first.
-(Stage summaries are included in the final combined report only.)
+2. Proceed:
+   ```bash
+   echo '{"stage": "ship"}' > .claude/dev-cycle.state.json
+   ```
+   Then invoke via Skill tool: `code:shipping-pr` — do NOT write a status summary first.
+   (Stage summaries are included in the final combined report only.)
 
 ### Stage 3: Ship PR
 
@@ -91,12 +136,18 @@ After audit passes, invoke `code:shipping-pr` via Skill tool.
 
 **On success — IMMEDIATELY (no intermediate text output):**
 
-```bash
-echo '{"stage": "retrospective"}' > .claude/dev-cycle.state.json
-```
+1. Context budget check:
+   ```bash
+   cat .claude/.context-budget.json 2>/dev/null
+   ```
+   If remaining < 15%: update state file with stopped info, output resumption guide, STOP.
 
-Then invoke via Skill tool: `code:retrospective` — do NOT write a status summary first.
-(Stage summaries are included in the final combined report only.)
+2. Proceed:
+   ```bash
+   echo '{"stage": "retrospective"}' > .claude/dev-cycle.state.json
+   ```
+   Then invoke via Skill tool: `code:retrospective` — do NOT write a status summary first.
+   (Stage summaries are included in the final combined report only.)
 
 ### Stage 4: Retrospective
 
@@ -113,6 +164,26 @@ rm -f .claude/dev-cycle.state.json
 ```
 
 ## Resumption Guide
+
+### Budget-Stopped Resumption
+
+If `.claude/dev-cycle.state.json` contains `"status": "stopped"`:
+
+```bash
+cat .claude/dev-cycle.state.json
+```
+
+`skipped_stages` の最初の要素から再開:
+- `["audit", ...]` → `/code:audit-compliance`
+- `["ship", ...]` → `/code:shipping-pr`
+- `["retrospective"]` → `/code:retrospective`
+
+再開前に state ファイルをリセット:
+```bash
+echo '{"stage": "<resume_stage>"}' > .claude/dev-cycle.state.json
+```
+
+### Manual Resumption
 
 If context is exhausted mid-cycle, resume using the appropriate individual skill:
 
