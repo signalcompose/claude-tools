@@ -12,6 +12,13 @@ SIDECAR_FILE="${CLAUDE_PROJECT_DIR:-.}/.claude/.context-budget.json"
 
 command -v jq &>/dev/null || exit 0
 
+# Throttle: skip if last write was within 30 seconds
+if [[ -f "$SIDECAR_FILE" ]]; then
+  LAST_TS=$(jq -r '.ts // 0' "$SIDECAR_FILE" 2>/dev/null || echo 0)
+  NOW=$(date +%s)
+  [[ $((NOW - LAST_TS)) -lt 30 ]] && exit 0
+fi
+
 input=$(cat)
 
 REMAINING=$(echo "$input" | jq -r '.context_window.remaining_percentage // empty')
