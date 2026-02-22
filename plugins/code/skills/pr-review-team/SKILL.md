@@ -161,15 +161,8 @@ Structure the message to fixer using this template:
 
 ## Step 5: Iterative Fix Loop
 
-Determine max iterations:
-
-```bash
-# Check if running inside dev-cycle
-if [ -f .claude/dev-cycle.state.json ]; then
-  MAX_ITERATIONS=2   # Preserve context for retrospective
-else
-  MAX_ITERATIONS=5   # Standalone mode
-fi
+```
+MAX_ITERATIONS=5
 ```
 
 ```
@@ -177,15 +170,18 @@ FOR iteration = 1 TO $MAX_ITERATIONS:
   1. Fixer applies fixes
   2. Run test command (detected in Step 1)
   3. IF tests fail → Fixer retries
-  4. Re-review with code-reviewer
-  5. IF critical = 0 AND important = 0 AND security = all pass:
+  4. Re-review with ALL 4 reviewers in parallel (same failure handling as Step 2):
+     - code-reviewer
+     - silent-failure-hunter
+     - pr-test-analyzer
+     - comment-analyzer
+  5. Aggregate results (same template as Step 4)
+  6. IF critical = 0 AND important = 0 AND security = all pass:
        → BREAK
 END FOR
 ```
 
 If iteration limit reached with remaining issues: report to user, do NOT merge.
-
-In dev-cycle mode (MAX_ITERATIONS=2): if issues remain after 2 iterations, report remaining issues and STOP. User decides whether to continue manually.
 
 ## Step 6: Report & Shutdown
 

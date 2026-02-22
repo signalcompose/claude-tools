@@ -76,8 +76,14 @@ Exclude: `.env*`, `credentials*`, `secrets*`, `*.key`, `*.pem`
 
 ### Step 3: Code Review (automated)
 
-Use Task tool with `pr-review-toolkit:code-reviewer` agent.
+Launch 2 reviewers **in parallel** via Task tool:
+- `pr-review-toolkit:code-reviewer` — code quality, bugs, security
+- `pr-review-toolkit:silent-failure-hunter` — silent failures, error handling
+
 Report only issues with confidence >= 80.
+
+If silent-failure-hunter fails to launch: continue with code-reviewer only (WARNING, not blocking).
+Include in Step 9 Summary Report: "silent-failure-hunter failed to launch — error handling review was NOT performed."
 
 ### Step 4: Fix Loop (max 3 iterations)
 
@@ -135,7 +141,7 @@ After PR creation:
 
 ### Step 9: Summary Report
 
-Output: commit hash, PR URL, review stats (iterations, issues found/fixed), verification results, documentation status.
+Output: commit hash, PR URL, review stats (iterations, issues found/fixed), verification results, documentation status, agent launch warnings (if any).
 
 ### Step 10: Serena Memory Save (recommended)
 
