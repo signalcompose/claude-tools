@@ -288,7 +288,6 @@ plugins/code/
 │   ├── pr-review-team/
 │   │   ├── SKILL.md             # PR review team skill
 │   │   └── references/
-│   │       ├── ci-integration.md
 │   │       └── security-checklist.md
 │   ├── refactor-team/
 │   │   ├── SKILL.md             # Refactoring team skill
