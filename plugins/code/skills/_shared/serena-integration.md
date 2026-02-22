@@ -21,9 +21,11 @@ If Serena tools are confirmed unavailable, skip all Serena phases.
 
 If Serena is NOT available, skip — all essential info is also in `CLAUDE.md` and `docs/`.
 
-## Mid-Sprint: Context Pressure Save
+## Mid-Sprint: Context Pressure Save (Serena or File)
 
-When context usage exceeds 70%, save work state to Serena memory:
+When context usage exceeds 70%, save work state.
+
+**If Serena is available**, use Serena memory:
 
 ```
 mcp__plugin_serena_serena__write_memory
@@ -37,6 +39,28 @@ mcp__plugin_serena_serena__write_memory
     ## Next Steps
     - (remaining work)
 ```
+
+**If Serena is NOT available**, save to a local checkpoint file instead:
+
+```bash
+cat > .claude/dev-cycle-checkpoint.md << 'CHECKPOINT_EOF'
+# Dev Cycle Checkpoint — <date>
+
+## Completed
+- (list of completed tasks)
+
+## In Progress
+- (current task details)
+
+## Next Steps
+- (remaining work)
+
+## Technical Decisions
+- (key decisions made during this session)
+CHECKPOINT_EOF
+```
+
+This file provides the same compaction resilience as Serena memory without requiring MCP.
 
 ## Post-Sprint: Memory Save (~10 sec)
 

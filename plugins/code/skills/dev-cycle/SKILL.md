@@ -38,7 +38,7 @@ Create the state file to enable the Stop hook auto-chain mechanism:
 
 ```bash
 if [ ! -f .claude/dev-cycle.state.json ]; then
-  mkdir -p .claude && echo '{"stage": "sprint"}' > .claude/dev-cycle.state.json
+  mkdir -p .claude && echo '{"stage": "sprint", "metrics": {}}' > .claude/dev-cycle.state.json
 fi
 ```
 
@@ -79,14 +79,25 @@ cat .claude/.context-budget.json 2>/dev/null || echo '{"remaining":100}'
 
 ### Stage 0.5: Package Security Audit (conditional)
 
-Only when adding new dependency packages. See `${CLAUDE_PLUGIN_ROOT}/skills/dev-cycle/references/package-security-audit.md`.
+Run after sprint completes. Check if dependency files were modified:
+
+```bash
+git diff $(git merge-base HEAD main)...HEAD --name-only | \
+  grep -qE '(package\.json|package-lock\.json|Cargo\.toml|requirements\.txt|go\.mod|Gemfile|pyproject\.toml)$'
+```
+
+If the command exits 0 (dependency changes detected), run the audit per `${CLAUDE_PLUGIN_ROOT}/skills/dev-cycle/references/package-security-audit.md`.
+If no dependency changes detected, skip this stage.
 
 ### Stage 1: Sprint Implementation
 
 Invoke `code:sprint-impl $ARGUMENTS` via Skill tool.
 
 **Exit condition**: Phase 9 summary report generated.
-**If sprint fails**: Report failure details and STOP (delete `.claude/dev-cycle.state.json` first).
+**If sprint fails**: Report failure details and STOP. Clean up first:
+```bash
+rm -f .claude/dev-cycle.state.json .claude/.context-budget.json
+```
 
 **On success — IMMEDIATELY (no intermediate text output):**
 
@@ -96,10 +107,13 @@ Invoke `code:sprint-impl $ARGUMENTS` via Skill tool.
    ```
    If remaining < 50%: update state file with stopped info, output resumption guide, STOP.
 
-2. Proceed:
+2. Save sprint metrics and advance stage:
    ```bash
-   echo '{"stage": "audit"}' > .claude/dev-cycle.state.json
+   jq '.stage = "audit" | .metrics.sprint = {files_changed: N, tests: "X passed", coverage: "Y%"}' \
+     .claude/dev-cycle.state.json > .claude/dev-cycle.state.json.tmp && \
+     mv .claude/dev-cycle.state.json.tmp .claude/dev-cycle.state.json
    ```
+   Replace N, X, Y% with actual values from Phase 9 summary report.
    Then invoke via Skill tool: `code:audit-compliance` — do NOT write a status summary first.
    (Stage summaries are included in the final combined report only.)
 
@@ -110,7 +124,10 @@ After sprint completes, invoke `code:audit-compliance` via Skill tool.
 **Exit conditions**:
 
 - **All pass / partial**: Proceed to Stage 3
-- **Any HIGH-impact fail**: Attempt 1 recovery per audit recommendations. Re-audit if recovery succeeds. STOP if still failing (delete `.claude/dev-cycle.state.json` first).
+- **Any HIGH-impact fail**: Attempt 1 recovery per audit recommendations. Re-audit if recovery succeeds. STOP if still failing. Clean up first:
+  ```bash
+  rm -f .claude/dev-cycle.state.json .claude/.context-budget.json
+  ```
 
 **On success — IMMEDIATELY (no intermediate text output):**
 
@@ -120,10 +137,13 @@ After sprint completes, invoke `code:audit-compliance` via Skill tool.
    ```
    If remaining < 30%: update state file with stopped info, output resumption guide, STOP.
 
-2. Proceed:
+2. Save audit metrics and advance stage:
    ```bash
-   echo '{"stage": "ship"}' > .claude/dev-cycle.state.json
+   jq '.stage = "ship" | .metrics.audit = {score: "X/5"}' \
+     .claude/dev-cycle.state.json > .claude/dev-cycle.state.json.tmp && \
+     mv .claude/dev-cycle.state.json.tmp .claude/dev-cycle.state.json
    ```
+   Replace X with actual audit score.
    Then invoke via Skill tool: `code:shipping-pr` — do NOT write a status summary first.
    (Stage summaries are included in the final combined report only.)
 
@@ -132,7 +152,10 @@ After sprint completes, invoke `code:audit-compliance` via Skill tool.
 After audit passes, invoke `code:shipping-pr` via Skill tool.
 
 **Exit condition**: PR URL returned in summary report.
-**If shipping fails after max iterations**: Delete `.claude/dev-cycle.state.json` and STOP.
+**If shipping fails after max iterations**: Clean up and STOP:
+```bash
+rm -f .claude/dev-cycle.state.json .claude/.context-budget.json
+```
 
 **On success — IMMEDIATELY (no intermediate text output):**
 
@@ -142,10 +165,13 @@ After audit passes, invoke `code:shipping-pr` via Skill tool.
    ```
    If remaining < 15%: update state file with stopped info, output resumption guide, STOP.
 
-2. Proceed:
+2. Save ship metrics and advance stage:
    ```bash
-   echo '{"stage": "retrospective"}' > .claude/dev-cycle.state.json
+   jq '.stage = "retrospective" | .metrics.ship = {commit: "HASH MESSAGE", pr_url: "URL"}' \
+     .claude/dev-cycle.state.json > .claude/dev-cycle.state.json.tmp && \
+     mv .claude/dev-cycle.state.json.tmp .claude/dev-cycle.state.json
    ```
+   Replace HASH, MESSAGE, URL with actual values from shipping report.
    Then invoke via Skill tool: `code:retrospective` — do NOT write a status summary first.
    (Stage summaries are included in the final combined report only.)
 
@@ -155,13 +181,26 @@ After shipping completes, invoke `code:retrospective` via Skill tool.
 
 **Exit condition**: Retrospective report generated and artifacts committed.
 **If issues found**: Apply fixes, re-review, commit, push to existing PR branch.
-**If retrospective fails after repeated attempts**: Delete `.claude/dev-cycle.state.json` and STOP.
-
-**On success**, clean up state file:
-
+**If retrospective fails after repeated attempts**: Clean up and STOP:
 ```bash
-rm -f .claude/dev-cycle.state.json
+rm -f .claude/dev-cycle.state.json .claude/.context-budget.json
 ```
+
+**On success**:
+
+1. Save retrospective metrics to state file:
+   ```bash
+   jq '.metrics.retrospective = {fixes_applied: N, learnings: "X new, Y merged, Z resolved"}' \
+     .claude/dev-cycle.state.json > .claude/dev-cycle.state.json.tmp && \
+     mv .claude/dev-cycle.state.json.tmp .claude/dev-cycle.state.json
+   ```
+   Replace N, X, Y, Z with actual values from retrospective report.
+
+2. Read metrics for final report, then clean up:
+   ```bash
+   cat .claude/dev-cycle.state.json
+   rm -f .claude/dev-cycle.state.json .claude/.context-budget.json
+   ```
 
 ## Resumption Guide
 
@@ -205,7 +244,13 @@ git log --oneline -5
 
 ## Summary Report
 
-After all 4 stages complete, output a combined report:
+After all 4 stages complete, read metrics from the state file (compaction-safe source):
+
+```bash
+cat .claude/dev-cycle.state.json 2>/dev/null
+```
+
+Use the `metrics` field to populate the report. If metrics are also available in context memory, prefer those (more detailed). Output:
 
 ```
 ## Dev Cycle Complete
@@ -229,23 +274,36 @@ After all 4 stages complete, output a combined report:
 - Total: ~Xm
 ```
 
-**Cleanup**: Ensure `.claude/dev-cycle.state.json` has been deleted. If it still exists, delete it now.
+**Cleanup**: Ensure `.claude/dev-cycle.state.json` and `.claude/.context-budget.json` have been deleted. If they still exist, delete them now.
 
 ## Absolute Prohibitions
 
-For violations and their impact, read `${CLAUDE_PLUGIN_ROOT}/skills/dev-cycle/references/prohibitions.md`.
+The following actions are **absolutely prohibited**. Violations result in HIGH FAIL in PROCESS audit:
+
+1. **Manual review-approval hash creation** — NEVER directly write to `/tmp/claude/review-approved-*` files. The flag file is created by the `shipping-pr` / `review-commit` workflow after the code-reviewer Agent reports 0 critical and 0 important issues. Manual creation (`echo "$HASH" > /tmp/claude/review-approved-*`) is a violation.
+2. **Manual code review** — The main agent must NOT read diff and judge "no issues" itself. Always delegate to `pr-review-toolkit:code-reviewer` Agent.
+3. **Skipping `/code:shipping-pr` skill** — Ad-hoc `git push` + PR creation is prohibited. Final shipping must go through `/code:shipping-pr`. Mid-sprint intermediate commits are exempt.
+4. **Pre-commit hook circumvention** — `--no-verify` flag usage is prohibited. If a hook blocks, resolve the root cause and retry.
+5. **Responding in non-configured language** — All user-facing output MUST follow the language configured in user settings. SKILL.md being in English does NOT change the output language. Technical terms and code identifiers may remain in English.
+6. **Deleting state file during active cycle** — NEVER delete `.claude/dev-cycle.state.json` while a dev-cycle is in progress. The state file drives all hook enforcement (Stop, PostToolUse, UserPromptSubmit). Only the Stop hook or explicit cycle-end cleanup may remove this file.
 
 ## Main Agent Guide
 
-For responsibilities, agent prompt guidelines, and commit patterns, read `${CLAUDE_PLUGIN_ROOT}/skills/dev-cycle/references/main-agent-guide.md`.
+**Read only during Stage 1 (sprint)**: `${CLAUDE_PLUGIN_ROOT}/skills/dev-cycle/references/main-agent-guide.md`
 
 ## Output Rules
 
-For shared output language rules, read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/output-rules.md`.
+- User-facing output: follow user's configured language setting
+- SKILL.md is English → output language is still determined by user settings
+- Technical terms, code identifiers: English OK
+- Commit titles: English (project convention), commit bodies: user's configured language
+- Violations are flagged as PROCESS audit findings
 
 ## Serena Integration
 
-For context load, mid-sprint save, and post-sprint memory save, read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/serena-integration.md`.
+**Read only if Serena MCP tools (`mcp__plugin_serena_serena__*`) are available**: `${CLAUDE_PLUGIN_ROOT}/skills/_shared/serena-integration.md`
+
+If Serena is unavailable, skip all Serena phases. Essential information is also in `CLAUDE.md` and `docs/`.
 
 ## Error Handling
 
