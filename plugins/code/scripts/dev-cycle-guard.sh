@@ -32,7 +32,7 @@ if echo "$USER_MSG" | grep -qiE "dev.?cycle|code:dev"; then
   # Idempotent: only create if not already present
   if [[ ! -f "$STATE_FILE" ]]; then
     mkdir -p "$(dirname "$STATE_FILE")"
-    echo '{"stage":"sprint"}' > "$STATE_FILE"
+    echo '{"stage":"sprint","metrics":{}}' > "$STATE_FILE"
   fi
   exit 0
 fi

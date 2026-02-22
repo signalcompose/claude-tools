@@ -78,12 +78,14 @@ Claude が `.context-budget.json` を読んで自律的に停止判断する。
 ```json
 {
   "remaining": 65.3,
-  "ts": 1708617600
+  "ts": 1708617600,
+  "stage": "sprint"
 }
 ```
 
 - `remaining`: コンテキスト残量 (%)
 - `ts`: Unix タイムスタンプ（鮮度チェック用、5分以上古いデータは無視）
+- `stage`: 現在のステージ（state ファイル消失時の復元に使用）
 
 **Git 管理外**: `.gitignore` に登録済み
 
