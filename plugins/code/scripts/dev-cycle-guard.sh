@@ -27,8 +27,13 @@ else
   USER_MSG=$(echo "$HOOK_INPUT" | grep -oE '"message"\s*:\s*"[^"]*"' | sed 's/^"message"[[:space:]]*:[[:space:]]*"//;s/"$//' || echo "")
 fi
 
-# Skip if user explicitly invoked /code:dev-cycle
+# User explicitly invoked /code:dev-cycle → ensure state file exists
 if echo "$USER_MSG" | grep -qiE "dev.?cycle|code:dev"; then
+  # Idempotent: only create if not already present
+  if [[ ! -f "$STATE_FILE" ]]; then
+    mkdir -p "$(dirname "$STATE_FILE")"
+    echo '{"stage":"sprint"}' > "$STATE_FILE"
+  fi
   exit 0
 fi
 

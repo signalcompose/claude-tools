@@ -24,3 +24,9 @@ The following actions are **absolutely prohibited**. Violations result in HIGH F
    - All user-facing output MUST follow the language configured in user settings
    - SKILL.md files are written in English, but this does NOT change the output language
    - Technical terms and code identifiers may remain in English
+
+6. **Deleting state file during active cycle**
+   - NEVER delete `.claude/dev-cycle.state.json` while a dev-cycle is in progress
+   - The state file drives all hook enforcement (Stop, PostToolUse, UserPromptSubmit)
+   - Deleting it silently disables the entire auto-chain mechanism
+   - Only the Stop hook or explicit cycle-end cleanup may remove this file

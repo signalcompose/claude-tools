@@ -16,9 +16,24 @@ fi
 
 STATE_FILE="${CLAUDE_PROJECT_DIR:-.}/.claude/dev-cycle.state.json"
 
-# No state file → not in a dev-cycle → allow stop
+# No state file → try recovery from sidecar
 if [[ ! -f "$STATE_FILE" ]]; then
-  exit 0
+  SIDECAR_FILE="${CLAUDE_PROJECT_DIR:-.}/.claude/.context-budget.json"
+  if [[ -f "$SIDECAR_FILE" ]]; then
+    SIDECAR_DATA=$(jq '.' "$SIDECAR_FILE" 2>/dev/null) || { exit 0; }
+    SIDECAR_STAGE=$(echo "$SIDECAR_DATA" | jq -r '.stage // empty')
+    SIDECAR_TS=$(echo "$SIDECAR_DATA" | jq -r '.ts // 0')
+    NOW=$(date +%s)
+    # 10分以内 + stage あり → 復元
+    if [[ -n "$SIDECAR_STAGE" && $((NOW - SIDECAR_TS)) -le 600 ]]; then
+      mkdir -p "$(dirname "$STATE_FILE")"
+      jq -n --arg stage "$SIDECAR_STAGE" '{stage:$stage}' > "$STATE_FILE"
+    else
+      exit 0
+    fi
+  else
+    exit 0
+  fi
 fi
 
 # Read hook input from stdin (Claude Code provides stop_hook_active)
@@ -57,14 +72,16 @@ case "$STAGE" in
     NEXT_STAGE="retrospective"
     ;;
   retrospective|complete)
-    # Cycle complete — clean up and allow stop
+    # Cycle complete — clean up state + sidecar and allow stop
     rm -f "$STATE_FILE"
+    rm -f "${CLAUDE_PROJECT_DIR:-.}/.claude/.context-budget.json"
     exit 0
     ;;
   *)
-    # Unknown stage — log, clean up, and allow stop (don't block on corrupted state)
+    # Unknown stage — log, clean up state + sidecar, and allow stop (don't block on corrupted state)
     echo "[dev-cycle-stop] Unknown stage '${STAGE}' in state file — allowing stop" >&2
     rm -f "$STATE_FILE"
+    rm -f "${CLAUDE_PROJECT_DIR:-.}/.claude/.context-budget.json"
     exit 0
     ;;
 esac
