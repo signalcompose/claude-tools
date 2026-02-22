@@ -31,6 +31,12 @@ Managed automatically by `code:retrospective` — manual edits are preserved.
 - **Finding**: A-2 (Serena fallback) で導入した `.claude/dev-cycle-checkpoint.md` が `.gitignore` に未登録だった。同様に `.claude/dev-cycle.state.json` も未登録。ランタイム状態ファイルの誤コミットリスク。
 - **Action**: 新しいランタイムファイルを導入する際は、実装と同時に `.gitignore` にエントリを追加すること。
 
+### [2026-02-22] Review approval flag hash must use truncated format
+- **Source**: shipping-pr
+- **Category**: process
+- **Finding**: `check-pr-review-gate.sh` は `shasum -a 256 | cut -c1-16`（16文字）でハッシュを生成するが、shipping-pr のフラグ作成が full hash を使用していた。PR 作成が gate でブロックされた。
+- **Action**: レビュー承認フラグのハッシュは `cut -c1-16` で16文字に切り詰めること。`check-pr-review-gate.sh` の diagnostic 出力で期待されるハッシュ形式を確認できる。
+
 ### [2026-02-22] Inlined references should preserve concrete examples
 - **Source**: code-reviewer
 - **Category**: documentation
