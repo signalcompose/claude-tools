@@ -23,7 +23,7 @@ Verify and configure the development environment for dev-cycle workflows.
 
 ## Execution Flow
 
-Run all 7 checks in sequence. Collect results, then output a summary table.
+Run all 8 checks in sequence. Collect results, then output a summary table.
 
 ### Check 1: Node.js Version
 
@@ -128,6 +128,35 @@ Check categories:
 
 **Important**: When auto-fixing, show the diff to the user before applying. Never silently modify permission files.
 
+### Check 8: .gitignore Security Patterns
+
+Check that `.gitignore` contains the security patterns marker `code:security-patterns`.
+This prevents accidental commit of secrets (`.env`, `*.key`, `*.pem`, `credentials*`).
+
+Reference: Read `${CLAUDE_PLUGIN_ROOT}/skills/setup-dev-env/references/gitignore-security-patterns.md` for the full pattern block and rationale.
+
+**Check logic**:
+
+1. Does `.gitignore` exist?
+2. Does it contain the marker `code:security-patterns`?
+
+```bash
+# Check for marker
+grep -q "code:security-patterns" .gitignore 2>/dev/null && echo "PASS" || echo "MISSING"
+```
+
+- **PASS**: Marker found in `.gitignore`
+- **WARN**: `.gitignore` exists but marker is missing
+- **FAIL**: `.gitignore` does not exist at all
+- **Auto-fix**: Yes — append the security patterns block from the reference file to `.gitignore` (create file if absent)
+
+**Auto-fix behavior**:
+- If `.gitignore` does not exist: create the file with the marker block
+- If `.gitignore` exists but marker is missing: append the marker block to the end
+- If marker is already present: do nothing (idempotent)
+
+**Important**: A PreToolUse hook (`check-gitignore-security.sh`) blocks `git commit` when the marker is missing. Running `/code:setup-dev-env --fix` resolves this by adding the patterns.
+
 ## Output Format
 
 After all checks complete, output a summary table:
@@ -144,6 +173,7 @@ After all checks complete, output a summary table:
 | 5 | GitHub MCP | FAIL | .mcp.json not found |
 | 6 | Code review skill | PASS | code:review-commit available |
 | 7 | Permissions | PASS | All entries present |
+| 8 | .gitignore Security | PASS | Security patterns present |
 ```
 
 Status values:
