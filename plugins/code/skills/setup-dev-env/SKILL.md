@@ -130,30 +130,36 @@ Check categories:
 
 ### Check 8: .gitignore Security Patterns
 
-Check that `.gitignore` contains the security patterns marker `code:security-patterns`.
+Check that `.gitignore` contains the security patterns marker `code:security-patterns` with an up-to-date content hash.
 This prevents accidental commit of secrets (`.env`, `*.key`, `*.pem`, `credentials*`).
 
-Reference: Read `${CLAUDE_PLUGIN_ROOT}/skills/setup-dev-env/references/gitignore-security-patterns.md` for the full pattern block and rationale.
+Reference: Read `${CLAUDE_PLUGIN_ROOT}/skills/setup-dev-env/references/gitignore-security-patterns.md` for the full pattern block, content hash, and rationale.
 
 **Check logic**:
 
 1. Does `.gitignore` exist?
 2. Does it contain the marker `code:security-patterns`?
+3. Does the hash in the marker match the hash in the reference file?
 
 ```bash
-# Check for marker
-grep -q "code:security-patterns" .gitignore 2>/dev/null && echo "PASS" || echo "MISSING"
+# Check for marker presence
+grep -q "code:security-patterns" .gitignore 2>/dev/null && echo "PRESENT" || echo "MISSING"
+
+# Extract hash from .gitignore marker (if present)
+grep -o 'code:security-patterns:[a-f0-9]*' .gitignore 2>/dev/null | head -1 | cut -d: -f3
 ```
 
-- **PASS**: Marker found in `.gitignore`
-- **WARN**: `.gitignore` exists but marker is missing
+- **PASS**: Marker found with matching hash
+- **WARN (outdated)**: Marker found but hash differs from reference — patterns need updating
+- **WARN (missing)**: `.gitignore` exists but marker is missing
 - **FAIL**: `.gitignore` does not exist at all
-- **Auto-fix**: Yes — append the security patterns block from the reference file to `.gitignore` (create file if absent)
+- **Auto-fix**: Yes — append or replace the security patterns block from the reference file
 
 **Auto-fix behavior**:
 - If `.gitignore` does not exist: create the file with the marker block
 - If `.gitignore` exists but marker is missing: append the marker block to the end
-- If marker is already present: do nothing (idempotent)
+- If marker exists but hash is outdated: replace the entire marker block (from `# [code:security-patterns` to `# [/code:security-patterns]`) with the latest version
+- If marker with matching hash is already present: do nothing (idempotent)
 
 **Important**: A PreToolUse hook (`check-gitignore-security.sh`) blocks `git commit` when the marker is missing. Running `/code:setup-dev-env --fix` resolves this by adding the patterns.
 

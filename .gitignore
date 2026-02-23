@@ -23,7 +23,7 @@ Thumbs.db
 *.swo
 *~
 
-# [code:security-patterns]
+# [code:security-patterns:fbe2794b]
 .env
 .env.*
 !.env.example
