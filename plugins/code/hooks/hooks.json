@@ -55,6 +55,16 @@
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-pr-review-gate.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-gitignore-security.sh",
+            "timeout": 3000
+          }
+        ]
       }
     ]
   }

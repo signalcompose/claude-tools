@@ -23,7 +23,7 @@ Verify and configure the development environment for dev-cycle workflows.
 
 ## Execution Flow
 
-Run all 7 checks in sequence. Collect results, then output a summary table.
+Run all 8 checks in sequence. Collect results, then output a summary table.
 
 ### Check 1: Node.js Version
 
@@ -128,6 +128,41 @@ Check categories:
 
 **Important**: When auto-fixing, show the diff to the user before applying. Never silently modify permission files.
 
+### Check 8: .gitignore Security Patterns
+
+Check that `.gitignore` contains the security patterns marker `code:security-patterns` with an up-to-date content hash.
+This prevents accidental commit of secrets (`.env`, `*.key`, `*.pem`, `credentials*`).
+
+Reference: Read `${CLAUDE_PLUGIN_ROOT}/skills/setup-dev-env/references/gitignore-security-patterns.md` for the full pattern block, content hash, and rationale.
+
+**Check logic**:
+
+1. Does `.gitignore` exist?
+2. Does it contain the marker `code:security-patterns`?
+3. Does the hash in the marker match the hash in the reference file?
+
+```bash
+# Check for marker presence
+grep -q "code:security-patterns" .gitignore 2>/dev/null && echo "PRESENT" || echo "MISSING"
+
+# Extract hash from .gitignore marker (if present)
+grep -o 'code:security-patterns:[a-f0-9]*' .gitignore 2>/dev/null | head -1 | cut -d: -f3
+```
+
+- **PASS**: Marker found with matching hash
+- **WARN (outdated)**: Marker found but hash differs from reference — patterns need updating
+- **WARN (missing)**: `.gitignore` exists but marker is missing
+- **FAIL**: `.gitignore` does not exist at all
+- **Auto-fix**: Yes — append or replace the security patterns block from the reference file
+
+**Auto-fix behavior**:
+- If `.gitignore` does not exist: create the file with the marker block
+- If `.gitignore` exists but marker is missing: append the marker block to the end
+- If marker exists but hash is outdated: replace the entire marker block (from `# [code:security-patterns` to `# [/code:security-patterns]`) with the latest version
+- If marker with matching hash is already present: do nothing (idempotent)
+
+**Important**: A PreToolUse hook (`check-gitignore-security.sh`) blocks `git commit` when the marker is missing. Running `/code:setup-dev-env --fix` resolves this by adding the patterns.
+
 ## Output Format
 
 After all checks complete, output a summary table:
@@ -144,6 +179,7 @@ After all checks complete, output a summary table:
 | 5 | GitHub MCP | FAIL | .mcp.json not found |
 | 6 | Code review skill | PASS | code:review-commit available |
 | 7 | Permissions | PASS | All entries present |
+| 8 | .gitignore Security | PASS | Security patterns present |
 ```
 
 Status values:
