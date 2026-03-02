@@ -28,6 +28,8 @@ Team Lead (yourself)
 └─ Fixer (code-fixer agent)
 ```
 
+**MANDATORY**: Always specify an explicit `model` parameter when spawning each agent. Choose the appropriate model based on task complexity (`haiku` for lightweight, `sonnet` for standard, `opus` for complex reasoning). Never omit `model` (default `inherit` may fail in parallel spawning).
+
 **Reviewer Agent**:
 - Analyzes `git diff HEAD`
 - Categorizes issues by severity:

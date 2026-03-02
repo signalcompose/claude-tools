@@ -31,6 +31,8 @@ Team Lead (yourself)
 └─ Refactorer: general-purpose (refactorer)
 ```
 
+**MANDATORY**: Always specify an explicit `model` parameter when spawning each agent. Choose the appropriate model based on task complexity (`haiku` for lightweight, `sonnet` for standard, `opus` for complex reasoning). Never omit `model` (default `inherit` may fail in parallel spawning).
+
 ## Step 3: Run Analysis
 
 Analyzer examines target files using criteria from `${CLAUDE_PLUGIN_ROOT}/skills/refactor-team/references/analysis-criteria.md`.
