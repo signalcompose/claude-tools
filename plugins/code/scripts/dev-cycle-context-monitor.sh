@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # dev-cycle-context-monitor.sh — PostToolUse hook
 # dev-cycle 中のみ remaining_percentage を sidecar ファイルに記録
+# Matcher in hooks.json limits to file/content tools (Bash, Edit, Write, Read, Grep, Glob,
+# NotebookEdit, WebFetch, WebSearch). Meta-tools (Agent, SendMessage, etc.) are excluded
+# because they don't represent direct code operations. The case guard below provides
+# defense-in-depth for any tools that slip through the matcher.
 
 set -euo pipefail
 
@@ -25,7 +29,7 @@ input=$(cat 2>/dev/null) || exit 0
 # Skip tool types that don't include context_window (e.g., Agent, SendMessage)
 TOOL_NAME=$(echo "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
 case "$TOOL_NAME" in
-  Agent|SendMessage|TaskCreate|TaskUpdate|TaskList|TaskGet|TeamCreate|TeamDelete|EnterPlanMode|ExitPlanMode|AskUserQuestion|Skill|ToolSearch) exit 0 ;;
+  Agent|SendMessage|TaskCreate|TaskUpdate|TaskList|TaskGet|TeamCreate|TeamDelete|EnterPlanMode|ExitPlanMode|AskUserQuestion|Skill|ToolSearch|EnterWorktree) exit 0 ;;
 esac
 
 REMAINING=$(echo "$input" | jq -r '.context_window.remaining_percentage // empty')
