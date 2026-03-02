@@ -19,7 +19,14 @@ if [[ -f "$SIDECAR_FILE" ]]; then
   [[ $((NOW - LAST_TS)) -lt 30 ]] && exit 0
 fi
 
-input=$(cat)
+input=$(cat 2>/dev/null) || exit 0
+[[ -n "$input" ]] || exit 0
+
+# Skip tool types that don't include context_window (e.g., Agent, SendMessage)
+TOOL_NAME=$(echo "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
+case "$TOOL_NAME" in
+  Agent|SendMessage|TaskCreate|TaskUpdate|TaskList|TaskGet|TeamCreate|TeamDelete|EnterPlanMode|ExitPlanMode|AskUserQuestion|Skill|ToolSearch) exit 0 ;;
+esac
 
 REMAINING=$(echo "$input" | jq -r '.context_window.remaining_percentage // empty')
 [[ -n "$REMAINING" && "$REMAINING" != "null" ]] || exit 0
