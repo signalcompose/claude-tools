@@ -11,7 +11,9 @@
 
 1. TeamCreate to create team
 2. TaskCreate + dependency setup
-3. Agent spawn (`subagent_type: "general-purpose"`, `mode: "acceptEdits"`, `model: "<choose per task>"`) — **always specify `model` explicitly** (`haiku`/`sonnet`/`opus`); never omit (default `inherit` may fail in parallel spawning)
+3. Agent spawn (`subagent_type: "general-purpose"`, `mode: "acceptEdits"`, `model: "<choose per task>"`)
+
+**MANDATORY**: Always specify an explicit `model` parameter. Choose the appropriate model based on task complexity (`haiku` for lightweight, `sonnet` for standard, `opus` for complex reasoning). Never omit `model` (default `inherit` may fail in parallel spawning).
 4. Wait for agent completion + verify each agent's output
 5. **Commit per-agent individually** (lead performs commits, not agents)
 6. After all agents complete: shutdown + TeamDelete
