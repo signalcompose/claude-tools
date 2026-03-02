@@ -52,26 +52,33 @@ For detailed review criteria, read `${CLAUDE_PLUGIN_ROOT}/skills/review-commit/r
 
 **MANDATORY**: Run up to 5 review iterations.
 
+**WARNING: The Fixer's "completion" report is NOT a review result. It does not update critical_count or important_count. Counts are ONLY valid when produced by the Reviewer in step 1-2 of the current iteration. Never carry counts forward across iterations.**
+
 **Loop logic**:
 ```
 FOR iteration = 1 TO 5:
-  1. Reviewer analyzes current working directory changes
-  2. Reviewer reports: critical_count, important_count, minor_count
-  3. IF critical_count = 0 AND important_count = 0:
+  SET fresh_critical_count = UNSET
+  SET fresh_important_count = UNSET
+
+  1. Invoke Reviewer agent to analyze current working directory changes (re-invoke even if Reviewer ran in a prior iteration; do NOT reuse prior analysis)
+  2. Reviewer reports and ASSIGNS: fresh_critical_count, fresh_important_count, minor_count
+  3. MUST VERIFY: fresh_critical_count and fresh_important_count are SET (not UNSET).
+     If either is UNSET, step 1 was skipped — go back to step 1.
+     IF fresh_critical_count = 0 AND fresh_important_count = 0:
        → BREAK (quality target achieved)
   4. Fixer receives issue list from Reviewer
   5. Fixer fixes critical and important issues
-  6. Fixer reports completion
+  6. Fixer reports completion to Team Lead (this is a work-done signal only; Team Lead MUST NOT use this report to evaluate exit condition — proceed to next iteration's step 1 instead)
   7. CONTINUE to next iteration
 END FOR
 
-IF iteration = 5 AND (critical_count > 0 OR important_count > 0):
+IF iteration limit reached AND (fresh_critical_count is UNSET OR fresh_critical_count > 0 OR fresh_important_count is UNSET OR fresh_important_count > 0):
   → Report failure to user
   → Do NOT create flag
   → Exit
 ```
 
-**Success condition**: `critical_count = 0` AND `important_count = 0`
+**Success condition**: `fresh_critical_count = 0` AND `fresh_important_count = 0` as reported by Reviewer in the current iteration
 
 ## Step 4: Create Approval Flag
 

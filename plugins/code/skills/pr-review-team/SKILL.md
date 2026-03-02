@@ -165,20 +165,40 @@ Structure the message to fixer using this template:
 
 ```
 MAX_ITERATIONS=5
+MAX_RETRIES=2
 ```
+
+**WARNING: Never use counts from a previous iteration to check the exit condition. Every exit check MUST use counts produced by the re-review in step 4 of the SAME iteration.**
 
 ```
 FOR iteration = 1 TO $MAX_ITERATIONS:
+  SET fresh_critical = UNSET
+  SET fresh_important = UNSET
+  SET fresh_security = UNSET
+  SET retry_count = 0
+  SET review_retry_count = 0
+
   1. Fixer applies fixes
   2. Run test command (detected in Step 1)
-  3. IF tests fail → Fixer retries
+  3. IF tests fail:
+       SET retry_count = retry_count + 1
+       IF retry_count >= MAX_RETRIES → report to user ("Test failures persist after MAX_RETRIES retries"), do NOT merge, BREAK outer loop
+       ELSE → Fixer retries (loop back to step 1 of this iteration; do NOT advance to step 4)
+     IF tests pass → CONTINUE to step 4
   4. Re-review with ALL 4 reviewers in parallel (same failure handling as Step 2):
      - code-reviewer
      - silent-failure-hunter
      - pr-test-analyzer
      - comment-analyzer
-  5. Aggregate results (same template as Step 4)
-  6. IF critical = 0 AND important = 0 AND security = all pass:
+     ASSIGN fresh_critical, fresh_important, fresh_security FROM this re-review output
+     (fresh_security MUST be one of: "all_pass" or "has_failures". Any other value including empty string is treated as UNSET.)
+  5. Aggregate results (same template as Step 4) using fresh_critical, fresh_important, fresh_security
+  6. MUST VERIFY: fresh_critical, fresh_important, fresh_security are SET (not UNSET).
+     If any is UNSET:
+       SET review_retry_count = review_retry_count + 1
+       IF review_retry_count >= 2 (i.e., any fresh_ variable still remains UNSET after retry), report "Re-review failed" to user and BREAK.
+       ELSE go back to step 4 of THIS iteration (do NOT advance to step 5 or 6; do NOT start a new iteration).
+     IF fresh_critical = 0 AND fresh_important = 0 AND fresh_security = "all_pass":
        → BREAK
 END FOR
 ```
