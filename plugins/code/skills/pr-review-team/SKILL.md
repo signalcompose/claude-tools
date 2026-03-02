@@ -39,6 +39,8 @@ Team Lead (yourself)
 
 Launch all 4 reviewers **in parallel** via Task tool.
 
+**MANDATORY**: Always specify an explicit `model` parameter when spawning each agent. Choose the appropriate model based on task complexity (`haiku` for lightweight, `sonnet` for standard, `opus` for complex reasoning). Never omit `model` (default `inherit` may fail in parallel spawning).
+
 Review criteria: agents read `${CLAUDE_PLUGIN_ROOT}/skills/review-commit/references/review-criteria.md` — leader does NOT read this file (agents handle criteria, leader handles integration).
 
 ### Agent Launch Failure Handling

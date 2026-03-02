@@ -34,7 +34,8 @@ Identify the base branch (from PR target or parent feature branch).
 
 ### Step 2: Spawn 2 Agents in Parallel
 
-Spawn 2 agents using the Task tool (`subagent_type: "general-purpose"`) in parallel.
+Spawn 2 agents using the Task tool (`subagent_type: "general-purpose"`, `model: "<choose per task>"`) in parallel.
+**MANDATORY**: Always specify an explicit `model` parameter. Choose based on task complexity (`haiku`/`sonnet`/`opus`). Never omit `model` (default `inherit` may fail in parallel spawning).
 Auditor and Researcher are independent — no inter-agent communication needed.
 
 #### Agent 1: Auditor

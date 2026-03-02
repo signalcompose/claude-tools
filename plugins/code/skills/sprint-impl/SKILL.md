@@ -96,7 +96,8 @@ Run `npx tsc --noEmit` after each foundational step.
 For parallel tasks:
 
 1. **TeamCreate** with descriptive team name
-2. **Spawn agents** in parallel via Task tool (`subagent_type: "general-purpose"`, `mode: "acceptEdits"`)
+2. **Spawn agents** in parallel via Task tool (`subagent_type: "general-purpose"`, `mode: "acceptEdits"`, `model: "<choose per task>"`)
+   - **MANDATORY**: Always specify an explicit `model` parameter. Choose based on task complexity (`haiku`/`sonnet`/`opus`). Never omit `model` (default `inherit` may fail in parallel spawning).
    - If Active Learnings were loaded in Phase 1, append to each agent's task description under `## Project Learnings`
    - Keep injected learnings concise: include only the "Action" field from each active learning
    - Example:
