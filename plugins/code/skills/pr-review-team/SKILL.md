@@ -174,10 +174,15 @@ FOR iteration = 1 TO $MAX_ITERATIONS:
   SET fresh_critical = UNSET
   SET fresh_important = UNSET
   SET fresh_security = UNSET
+  SET retry_count = 0
+  SET MAX_RETRIES = 2
 
   1. Fixer applies fixes
   2. Run test command (detected in Step 1)
-  3. IF tests fail → Fixer retries (loop back to step 1 of this iteration; do NOT advance to step 4)
+  3. IF tests fail:
+       SET retry_count = retry_count + 1
+       IF retry_count > MAX_RETRIES → report to user ("Test failures persist after MAX_RETRIES retries"), do NOT merge, BREAK outer loop
+       ELSE → Fixer retries (loop back to step 1 of this iteration; do NOT advance to step 4)
      IF tests pass → CONTINUE to step 4
   4. Re-review with ALL 4 reviewers in parallel (same failure handling as Step 2):
      - code-reviewer
