@@ -68,11 +68,11 @@ FOR iteration = 1 TO 5:
        → BREAK (quality target achieved)
   4. Fixer receives issue list from Reviewer
   5. Fixer fixes critical and important issues
-  6. Fixer reports completion (this is a work-done signal only; it does NOT satisfy the exit condition)
+  6. Fixer reports completion to Team Lead (this is a work-done signal only; Team Lead MUST NOT use this report to evaluate exit condition — proceed to next iteration's step 1 instead)
   7. CONTINUE to next iteration
 END FOR
 
-IF iteration limit reached AND (fresh_critical_count > 0 OR fresh_important_count > 0):
+IF iteration limit reached AND (fresh_critical_count is UNSET OR fresh_critical_count > 0 OR fresh_important_count is UNSET OR fresh_important_count > 0):
   → Report failure to user
   → Do NOT create flag
   → Exit
