@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # dev-cycle-context-monitor.sh — PostToolUse hook
 # dev-cycle 中のみ remaining_percentage を sidecar ファイルに記録
+# Matcher in hooks.json limits firing to file/content tools (Bash, Edit, Write, Read, Grep, Glob,
+# NotebookEdit, WebFetch, WebSearch). Meta-tools (Agent, SendMessage, etc.) do not match the
+# current matcher. The case guard below provides defense-in-depth: it actively filters tools whose
+# payloads lack context_window data, and future-proofs against matcher broadening.
+# When adding new tools, update BOTH the matcher AND the case guard below.
 
 set -euo pipefail
 
@@ -19,9 +24,21 @@ if [[ -f "$SIDECAR_FILE" ]]; then
   [[ $((NOW - LAST_TS)) -lt 30 ]] && exit 0
 fi
 
-input=$(cat)
+# Read stdin (PostToolUse hook provides JSON via stdin; guard against empty payload or read errors)
+input=$(cat 2>/dev/null) || exit 0
+[[ -n "$input" ]] || exit 0
 
-REMAINING=$(echo "$input" | jq -r '.context_window.remaining_percentage // empty')
+# Skip tool types whose payloads lack context_window (e.g., Agent, SendMessage).
+# NOTE: If you update this list, also update the matcher in hooks.json (PostToolUse).
+TOOL_NAME=$(echo "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
+[[ -n "$TOOL_NAME" ]] || exit 0
+case "$TOOL_NAME" in
+  Agent|SendMessage|TaskCreate|TaskUpdate|TaskList|TaskGet|TeamCreate|TeamDelete|EnterPlanMode|ExitPlanMode|AskUserQuestion|Skill|ToolSearch|EnterWorktree) exit 0 ;;
+  Bash|Edit|Write|Read|Grep|Glob|NotebookEdit|WebFetch|WebSearch) ;;
+  *) exit 0 ;;
+esac
+
+REMAINING=$(echo "$input" | jq -r '.context_window.remaining_percentage // empty' 2>/dev/null)
 [[ -n "$REMAINING" && "$REMAINING" != "null" ]] || exit 0
 
 # Read stage from state file (if available) for sidecar enrichment
@@ -31,14 +48,17 @@ if [[ -f "$STATE_FILE" ]]; then
 fi
 
 # Atomic write (一時ファイル → mv)
-TMPFILE=$(mktemp "${SIDECAR_FILE}.XXXXXX" 2>/dev/null || mktemp /tmp/ctx-budget.XXXXXX)
+TMPFILE=$(mktemp "${SIDECAR_FILE}.XXXXXX" 2>/dev/null || mktemp /tmp/ctx-budget.XXXXXX 2>/dev/null) || exit 0
+trap 'rm -f "${TMPFILE:-}"' EXIT
+
 if [[ -n "$STAGE" ]]; then
   jq -n --arg remaining "$REMAINING" --arg ts "$(date +%s)" --arg stage "$STAGE" \
-    '{remaining:($remaining|tonumber), ts:($ts|tonumber), stage:$stage}' > "$TMPFILE"
+    '{remaining:($remaining|tonumber), ts:($ts|tonumber), stage:$stage}' > "$TMPFILE" 2>/dev/null || exit 0
 else
   jq -n --arg remaining "$REMAINING" --arg ts "$(date +%s)" \
-    '{remaining:($remaining|tonumber), ts:($ts|tonumber)}' > "$TMPFILE"
+    '{remaining:($remaining|tonumber), ts:($ts|tonumber)}' > "$TMPFILE" 2>/dev/null || exit 0
 fi
 mv "$TMPFILE" "$SIDECAR_FILE"
+trap - EXIT
 
 exit 0
