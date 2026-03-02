@@ -167,18 +167,28 @@ Structure the message to fixer using this template:
 MAX_ITERATIONS=5
 ```
 
+**WARNING: Never use counts from a previous iteration to check the exit condition. Every exit check MUST use counts produced by the re-review in step 4 of the SAME iteration.**
+
 ```
 FOR iteration = 1 TO $MAX_ITERATIONS:
+  SET fresh_critical = UNSET
+  SET fresh_important = UNSET
+  SET fresh_security = UNSET
+
   1. Fixer applies fixes
   2. Run test command (detected in Step 1)
-  3. IF tests fail → Fixer retries
+  3. IF tests fail → Fixer retries (loop back to step 1 of this iteration; do NOT advance to step 4)
+     IF tests pass → CONTINUE to step 4
   4. Re-review with ALL 4 reviewers in parallel (same failure handling as Step 2):
      - code-reviewer
      - silent-failure-hunter
      - pr-test-analyzer
      - comment-analyzer
-  5. Aggregate results (same template as Step 4)
-  6. IF critical = 0 AND important = 0 AND security = all pass:
+     ASSIGN fresh_critical, fresh_important, fresh_security FROM this re-review output
+  5. Aggregate results (same template as Step 4) using fresh_critical, fresh_important, fresh_security
+  6. MUST VERIFY: fresh_critical, fresh_important, fresh_security are SET (not UNSET).
+     If any is UNSET, step 4 was skipped — do NOT exit the loop; go back to step 4.
+     IF fresh_critical = 0 AND fresh_important = 0 AND fresh_security = all pass:
        → BREAK
 END FOR
 ```
