@@ -3,27 +3,77 @@
 [![GitHub Sponsors](https://img.shields.io/badge/GitHub_Sponsors-Signal_compose-EA4AAA?style=for-the-badge&logo=github)](https://github.com/sponsors/signalcompose)
 [![GitHub Sponsors](https://img.shields.io/badge/GitHub_Sponsors-dropcontrol-EA4AAA?style=for-the-badge&logo=github)](https://github.com/sponsors/dropcontrol)
 
-Claude Code plugins by Signal compose
+Development workflow plugins for Claude Code's official plugin system.
 
-## Overview
+## Core Workflow
 
-This repository serves as a marketplace for Claude Code plugins developed by Signal compose. Plugins are managed as Git subtrees or directly within the repository.
+These plugins work together to form an end-to-end development lifecycle:
 
-> **Official Documentation**: See [Claude Code Plugins Documentation](https://code.claude.com/docs/en/plugins) for details on the plugin system.
+```
+/ypm:new           Set up a new project with plans and documentation
+     |
+/code:dev-cycle    Autonomously run: sprint -> audit -> ship -> retrospective
+     |
+/code:simplify     (optional) Simplify and refine code post-implementation
+     |
+/code:pr-review-team   Team-based PR review with specialized agents
+     |
+/ypm:update        Update project status after shipping
+```
+
+### Before & After
+
+**Without dev-cycle** (manual steps):
+1. Read the plan, create issue, write specs
+2. Implement feature, run tests
+3. Stage files, review code, fix issues, re-review
+4. Commit, push, create PR
+5. Run PR review, fix findings, push again
+6. Write retrospective notes
+
+**With `/code:dev-cycle`**:
+```bash
+/code:dev-cycle docs/plans/phase-3-plan.md
+```
+One command. Four stages run autonomously.
+
+### dev-cycle Stages
+
+| Stage | What happens |
+|-------|-------------|
+| **Sprint** | Plan parsing, issue creation, parallel team implementation, tests, build verification |
+| **Audit** | DDD/TDD/DRY/ISSUE/PROCESS compliance check |
+| **Ship** | Code review loop (auto-fix), commit, push, PR creation |
+| **Retrospective** | Two-agent parallel analysis, learnings update, metrics recording |
+
+## Design Principles
+
+1. **Documentation Driven Development (DDD)**: Documentation is the single source of truth. Specs are written before code, and kept in sync with implementation.
+
+2. **Official Plugin System Compliance**: Built on Claude Code's plugin system (skills, commands, hooks, agents). No custom runtime or framework required.
+
+3. **External CLI Bridge**: Integrates external CLI tools (Codex, Gemini, Kiro) as Claude Code plugins, bringing their capabilities into the same workflow.
 
 ## Available Plugins
 
-| Plugin | Description | Category | Status |
-|--------|-------------|----------|--------|
-| [CVI](./plugins/cvi) | Claude Voice Integration - Voice notifications for Claude Code on macOS | productivity | Available |
-| [YPM](./plugins/ypm) | Your Project Manager - Project management for Claude Code | productivity | Available |
-| [chezmoi](./plugins/chezmoi) | Dotfiles management integration using chezmoi | productivity | Available |
-| [code](./plugins/code) | Code quality tools and autonomous dev lifecycle (sprint, audit, ship, retro) | developer-tools | Available |
-| [utils](./plugins/utils) | Utility commands for plugin management (cache clearing, etc.) | developer-tools | Available |
-| [codex](./plugins/codex) | OpenAI Codex CLI integration for research and code review | developer-tools | Available |
-| [gemini](./plugins/gemini) | Google Gemini CLI integration for web search | productivity | Available |
-| [kiro](./plugins/kiro) | AWS Kiro CLI integration for AWS expert assistance | developer-tools | Available |
-| [x-article](./plugins/x-article) | X (Twitter) Articles publishing workflow automation | productivity | Available |
+### Development Lifecycle
+
+| Plugin | Commands | Description |
+|--------|----------|-------------|
+| [ypm](./plugins/ypm) | `/ypm:new`, `/ypm:update`, `/ypm:next` | Project management - setup wizard, status tracking, task prioritization |
+| [code](./plugins/code) | `/code:dev-cycle`, `/code:shipping-pr`, `/code:review-commit` | Autonomous dev lifecycle, code review, PR creation gate |
+
+### Supporting Tools
+
+| Plugin | Commands | Description |
+|--------|----------|-------------|
+| [cvi](./plugins/cvi) | `/cvi:speak`, `/cvi:lang`, `/cvi:check` | Voice notifications for Claude Code on macOS |
+| [codex](./plugins/codex) | `/codex:research`, `/codex:review` | OpenAI Codex CLI integration for research and code review |
+| [gemini](./plugins/gemini) | `/gemini:search` | Google Gemini CLI integration for web search |
+| [kiro](./plugins/kiro) | `/kiro:research` | AWS Kiro CLI integration for AWS expert assistance |
+| [chezmoi](./plugins/chezmoi) | `/chezmoi:check`, `/chezmoi:sync` | Dotfiles management integration using chezmoi |
+| [utils](./plugins/utils) | `/utils:clear-plugin-cache` | Utility commands for plugin cache management |
+| [x-article](./plugins/x-article) | `/x-article:draft`, `/x-article:publish` | X (Twitter) Articles publishing workflow |
 
 ## Quick Start
 
@@ -35,10 +85,10 @@ This repository serves as a marketplace for Claude Code plugins developed by Sig
 /plugin    # Opens the Discover tab
 
 # 3. Install a plugin
-/plugin install cvi@claude-tools
+/plugin install code@claude-tools
 
-# 4. Use plugin commands
-/cvi:status
+# 4. Run the dev cycle
+/code:dev-cycle docs/plans/my-plan.md
 ```
 
 ## Installation
@@ -63,6 +113,7 @@ You can browse and install plugins using the interactive `/plugin` command, or u
 /plugin install codex@claude-tools
 /plugin install gemini@claude-tools
 /plugin install kiro@claude-tools
+/plugin install x-article@claude-tools
 ```
 
 ### Install with Scope (Optional)
@@ -164,4 +215,4 @@ See [docs/development-guide.md](./docs/development-guide.md) for detailed instru
 
 ## License
 
-MIT License
+MIT License - Signal compose Inc.

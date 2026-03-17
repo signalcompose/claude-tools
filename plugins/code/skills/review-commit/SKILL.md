@@ -84,24 +84,17 @@ IF iteration limit reached AND (fresh_critical_count is UNSET OR fresh_critical_
 
 **Only execute if Step 3 succeeds** (critical = 0, important = 0).
 
-Create flag:
+Set the review approval flag:
+
 ```bash
-REPO_ROOT=$(git rev-parse --show-toplevel)
-REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
-FLAG_FILE="/tmp/claude/review-approved-${REPO_HASH}"
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/set-review-flag.sh
+```
 
-mkdir -p /tmp/claude || {
-    echo "Error: Cannot create /tmp/claude directory" >&2
-    exit 1
-}
-touch "$FLAG_FILE" || {
-    echo "Error: Cannot create review flag file: $FLAG_FILE" >&2
-    exit 1
-}
-
-echo "✅ Code review completed in ${iteration} iteration(s)."
-echo "All critical/important issues resolved."
-echo "Ready to create PR: gh pr create --title '...' --body '...'"
+Report to user:
+```
+Code review completed in ${iteration} iteration(s).
+All critical/important issues resolved.
+Ready to create PR: gh pr create --title '...' --body '...'
 ```
 
 ## Step 5: Shutdown Review Team

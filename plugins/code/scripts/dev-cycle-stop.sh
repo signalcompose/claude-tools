@@ -113,9 +113,9 @@ if [[ -n "$REMAINING" && "$REMAINING" != "null" ]]; then
 
   # 閾値判定
   case "$NEXT_STAGE" in
-    audit)         MIN_REMAINING=50 ;;
-    ship)          MIN_REMAINING=30 ;;
-    retrospective) MIN_REMAINING=15 ;;
+    audit)         MIN_REMAINING=15 ;;
+    ship)          MIN_REMAINING=10 ;;
+    retrospective) MIN_REMAINING=5 ;;
     *)             MIN_REMAINING=0 ;;
   esac
 

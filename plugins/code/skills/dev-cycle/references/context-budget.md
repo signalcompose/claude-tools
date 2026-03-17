@@ -3,7 +3,7 @@
 ## 概要
 
 dev-cycle は4ステージ（sprint → audit → ship → retrospective）を1セッションで連鎖実行する。
-200K コンテキスト環境では合計消費量が 75-120% に達し、後半ステージがスキップされることがある。
+1M コンテキスト環境では十分な余裕があるが、長大なスプリントでは後半ステージに影響する可能性がある。
 
 この仕組みは、ステージ間にコンテキスト予算チェックを追加し、予算不足時は状態保存 → 次セッション再開への誘導を行う。
 
@@ -60,16 +60,16 @@ Claude が `.context-budget.json` を読んで自律的に停止判断する。
 
 ## 閾値設計
 
-実消費量分析に基づく閾値:
+1M 環境での暫定閾値（実測結果で最終決定予定）:
 
 | 遷移ポイント | 閾値 | 残りステージの消費見込み |
 |-------------|------|----------------------|
-| sprint → audit | remaining >= 50% | audit(15%) + ship(30%) + retro(15%) = 60% |
-| audit → ship | remaining >= 30% | ship(30%) + retro(15%) = 45% |
-| ship → retro | remaining >= 15% | retro(15%) |
+| sprint → audit | remaining >= 15% | audit + ship + retro |
+| audit → ship | remaining >= 10% | ship + retro |
+| ship → retro | remaining >= 5% | retro |
 
-閾値は「残りステージの合計消費」より少し低めに設定。
-これは、各ステージの消費量にばらつきがあるため。
+1M 環境では余裕があるため、閾値を大幅に引き下げ。
+実測結果に応じて調整する。
 
 ## sidecar ファイル仕様
 
@@ -92,8 +92,7 @@ Claude が `.context-budget.json` を読んで自律的に停止判断する。
 ## shipping-pr でのレビュー反復制限
 
 dev-cycle 中（`.claude/dev-cycle.state.json` が存在する場合）:
-- Fix Loop の上限を 3 → 2 に制限
-- retrospective 用のコンテキストを確保する目的
+- Fix Loop の上限は 3（1M 環境では十分な余裕がある）
 
 ## トラブルシューティング
 
