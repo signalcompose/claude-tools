@@ -90,9 +90,10 @@ Set the review approval flag:
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/set-review-flag.sh
 ```
 
-Report to user:
+Report to user (substitute the actual iteration count):
+
 ```
-Code review completed in ${iteration} iteration(s).
+Code review completed in N iteration(s).
 All critical/important issues resolved.
 Ready to create PR: gh pr create --title '...' --body '...'
 ```

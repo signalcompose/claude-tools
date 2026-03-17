@@ -142,7 +142,7 @@ For post-sprint memory save, read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/serena-i
 
 ## Error Handling
 
-- **Pre-commit hook blocks**: Re-create flag file (Step 5 bash commands), retry commit once
+- **Pre-commit hook blocks**: Re-run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/set-review-flag.sh`, then retry commit once
 - **Push fails**: Check remote URL, try again
 - **PR creation fails**: Fall back to providing manual PR URL
 - **Fix loop exhausted (max_iterations reached)**: Report remaining issues, let user decide
@@ -153,7 +153,7 @@ For post-sprint memory save, read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/serena-i
 - Always use `mcp__github__create_pull_request` for PR creation (not `gh` CLI)
 - Never force push or amend commits
 - Never commit `.env` files or secrets
-- **Create approval flag using the bash commands in Step 5** — do NOT hardcode the hash
+- **Create approval flag using `set-review-flag.sh` in Step 5** — do NOT hardcode the hash
 - **NEVER skip Step 3 (Code Review)** — it must use `pr-review-toolkit:code-reviewer` Agent
 - **This skill is the ONLY authorized path for shipping code** — ad-hoc commits are prohibited
 - Update `docs/research/workflow-recording.md` with Ship metrics after completion

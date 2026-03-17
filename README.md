@@ -14,7 +14,7 @@ These plugins work together to form an end-to-end development lifecycle:
      |
 /code:dev-cycle    Autonomously run: sprint -> audit -> ship -> retrospective
      |
-/code:simplify     (optional) Simplify and refine code post-implementation
+/simplify          (optional) Simplify and refine code post-implementation
      |
 /code:pr-review-team   Team-based PR review with specialized agents
      |
