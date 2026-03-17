@@ -5,7 +5,7 @@ Code quality tools and autonomous development lifecycle for Claude Code.
 ## Features
 
 - **Dev Cycle**: 自律型の開発ライフサイクル（実装→監査→PR作成→振り返り）を1コマンドで実行
-- **Context Budget Management**: 200Kコンテキスト環境でのステージ間予算チェック（3層防御）
+- **Context Budget Management**: 1Mコンテキスト環境でのステージ間予算チェック（3層防御）
 - **Sprint Implementation**: 並列チームエージェントによる計画駆動の実装スプリント
 - **Compliance Audit**: DDD/TDD/DRY/ISSUE/PROCESS の5原則コンプライアンス監査
 - **Team-based Code Review**: 反復的、自動修正レビューループ
@@ -77,14 +77,14 @@ Code quality tools and autonomous development lifecycle for Claude Code.
 
 #### コンテキスト予算管理
 
-200Kコンテキスト環境では、4ステージの合計消費量が75-120%に達する場合があります。
+1Mコンテキスト環境では十分な余裕がありますが、長大なスプリントでは後半に影響する場合があります。
 予算管理機構が各ステージ遷移時にコンテキスト残量をチェックし、不足時は安全に停止します。
 
 | 遷移先 | 必要残量 | 不足時 |
 |-------|---------|-------|
-| audit | >= 50% | 停止→次セッションで `/code:audit-compliance` |
-| ship | >= 30% | 停止→次セッションで `/code:shipping-pr` |
-| retrospective | >= 15% | 停止→次セッションで `/code:retrospective` |
+| audit | >= 15% | 停止→次セッションで `/code:audit-compliance` |
+| ship | >= 10% | 停止→次セッションで `/code:shipping-pr` |
+| retrospective | >= 5% | 停止→次セッションで `/code:retrospective` |
 
 停止時の再開方法は停止メッセージに表示されます。
 
@@ -352,12 +352,11 @@ cat .claude/dev-cycle.state.json
 cat .claude/dev-cycle.state.json
 # → skipped_stages でスキップされたステージを確認
 
-# 新しいセッションで再開
-# state ファイルのリセットは Claude が自動実行
-/code:audit-compliance  # または停止メッセージに表示されたコマンド
+# 新しいセッションで再開（停止メッセージに表示されたコマンドを実行）
+/code:audit-compliance
 ```
 
-新セッションではコンテキストが100%利用可能なため、残りステージを安全に実行できます。
+新セッションではコンテキストが利用可能なため、残りステージを実行できます。
 
 ### Setup check で FAIL が出る
 

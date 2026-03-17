@@ -88,9 +88,7 @@ Include in Step 9 Summary Report: "silent-failure-hunter failed to launch — er
 ### Step 4: Fix Loop (max 3 iterations)
 
 ```
-max_iterations = 3  # default
-if .claude/dev-cycle.state.json exists:
-    max_iterations = 2  # retrospective 用のコンテキストを確保
+max_iterations = 3
 
 while review has critical or important issues AND iteration < max_iterations:
     1. Fix each issue (use Serena find_referencing_symbols if available)
@@ -104,15 +102,10 @@ If iteration >= max_iterations AND still has issues: report and STOP.
 
 ### Step 5: Approve Review
 
-After review passes (0 critical, 0 important), create the approval flag:
+After review passes (0 critical, 0 important), set the review approval flag:
 
 ```bash
-REPO_ROOT=$(git rev-parse --show-toplevel)
-REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
-FLAG_FILE="/tmp/claude/review-approved-${REPO_HASH}"
-mkdir -p /tmp/claude
-touch "$FLAG_FILE"
-echo "Review approved. Flag created: $FLAG_FILE"
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/set-review-flag.sh
 ```
 
 ### Step 6: Commit
@@ -149,7 +142,7 @@ For post-sprint memory save, read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/serena-i
 
 ## Error Handling
 
-- **Pre-commit hook blocks**: Re-create flag file (Step 5 bash commands), retry commit once
+- **Pre-commit hook blocks**: Re-run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/set-review-flag.sh`, then retry commit once
 - **Push fails**: Check remote URL, try again
 - **PR creation fails**: Fall back to providing manual PR URL
 - **Fix loop exhausted (max_iterations reached)**: Report remaining issues, let user decide
@@ -160,7 +153,7 @@ For post-sprint memory save, read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/serena-i
 - Always use `mcp__github__create_pull_request` for PR creation (not `gh` CLI)
 - Never force push or amend commits
 - Never commit `.env` files or secrets
-- **Create approval flag using the bash commands in Step 5** — do NOT hardcode the hash
+- **Create approval flag using `set-review-flag.sh` in Step 5** — do NOT hardcode the hash
 - **NEVER skip Step 3 (Code Review)** — it must use `pr-review-toolkit:code-reviewer` Agent
 - **This skill is the ONLY authorized path for shipping code** — ad-hoc commits are prohibited
 - Update `docs/research/workflow-recording.md` with Ship metrics after completion

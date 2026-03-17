@@ -71,9 +71,9 @@ cat .claude/.context-budget.json 2>/dev/null || echo '{"remaining":100}'
 
 | 遷移先 | 必要残量 | 不足時のアクション |
 |-------|---------|-----------------|
-| audit | >= 50% | 停止。再開: `/code:audit-compliance` |
-| ship | >= 30% | 停止。再開: `/code:shipping-pr` |
-| retrospective | >= 15% | 停止。再開: `/code:retrospective` |
+| audit | >= 15% | 停止。再開: `/code:audit-compliance` |
+| ship | >= 10% | 停止。再開: `/code:shipping-pr` |
+| retrospective | >= 5% | 停止。再開: `/code:retrospective` |
 
 予算データなしの場合は続行（後方互換）。
 
@@ -105,7 +105,7 @@ rm -f .claude/dev-cycle.state.json .claude/.context-budget.json
    ```bash
    cat .claude/.context-budget.json 2>/dev/null
    ```
-   If remaining < 50%: update state file with stopped info, output resumption guide, STOP.
+   If remaining < 15%: update state file with stopped info, output resumption guide, STOP.
 
 2. Save sprint metrics and advance stage:
    ```bash
@@ -135,7 +135,7 @@ After sprint completes, invoke `code:audit-compliance` via Skill tool.
    ```bash
    cat .claude/.context-budget.json 2>/dev/null
    ```
-   If remaining < 30%: update state file with stopped info, output resumption guide, STOP.
+   If remaining < 10%: update state file with stopped info, output resumption guide, STOP.
 
 2. Save audit metrics and advance stage:
    ```bash
@@ -163,7 +163,7 @@ rm -f .claude/dev-cycle.state.json .claude/.context-budget.json
    ```bash
    cat .claude/.context-budget.json 2>/dev/null
    ```
-   If remaining < 15%: update state file with stopped info, output resumption guide, STOP.
+   If remaining < 5%: update state file with stopped info, output resumption guide, STOP.
 
 2. Save ship metrics and advance stage:
    ```bash

@@ -9,6 +9,14 @@ user-invocable: false
 
 # PR Review Team
 
+**MANDATORY**: This skill runs a complete review-fix-re-review loop. The leader MUST:
+1. Launch reviewers and collect findings (Steps 1-4)
+2. If critical > 0 OR important > 0 OR security != "all_pass": enter fix loop (Step 5)
+3. Iterate until critical = 0 AND important = 0 AND security = "all_pass" (max 5 iterations)
+4. Report results (Step 6)
+
+Stopping after Step 4 without entering the fix loop when issues exist is a violation.
+
 ## Step 1: Identify Target PR & Detect Project Context
 
 Resolve the PR number:
@@ -162,6 +170,8 @@ Structure the message to fixer using this template:
 ```
 
 ## Step 5: Iterative Fix Loop
+
+**MANDATORY**: If Step 4 produced ANY critical or important issues, or security checklist failures, this step MUST be executed. Skipping the fix loop and reporting findings without fixing is prohibited.
 
 ```
 MAX_ITERATIONS=5
