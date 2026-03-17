@@ -9,10 +9,11 @@
 
 set -euo pipefail
 
+CLAUDE_TMP="/tmp/claude"
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "unknown")
-REPO_HASH=$(echo "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
-FLAG_FILE="/tmp/claude/review-approved-${REPO_HASH}"
+REPO_HASH=$(printf '%s' "$REPO_ROOT" | shasum -a 256 | cut -c1-16)
+FLAG_FILE="${CLAUDE_TMP}/review-approved-${REPO_HASH}"
 
-mkdir -p /tmp/claude
+mkdir -p "$CLAUDE_TMP"
 touch "$FLAG_FILE"
 echo "Review flag set: ${FLAG_FILE}"
