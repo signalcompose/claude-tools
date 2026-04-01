@@ -11,6 +11,16 @@ if [ ${#STATE_FILES[@]} -eq 0 ]; then
 fi
 
 STATE_FILE="${STATE_FILES[0]}"
+
+# TTL check: stale state files (>1 hour) are from dead sessions — skip re-injection
+STATE_MAX_AGE=3600
+STATE_MTIME=$(stat -f %m "$STATE_FILE" 2>/dev/null || stat -c %Y "$STATE_FILE" 2>/dev/null || echo 0)
+NOW=$(date +%s)
+if [ $((NOW - STATE_MTIME)) -gt $STATE_MAX_AGE ]; then
+    rm -f "$STATE_FILE"
+    exit 0
+fi
+
 STATE=$(cat "$STATE_FILE" 2>/dev/null || echo "{}")
 
 if [ "$STATE" = "{}" ]; then

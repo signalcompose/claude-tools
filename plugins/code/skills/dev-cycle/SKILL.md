@@ -34,18 +34,15 @@ Each phase is self-contained, making it resilient to context window exhaustion.
 
 ### Stage 0: State Initialization (auto-chain enforcement)
 
-Create the state file to enable the Stop hook auto-chain mechanism:
-
-```bash
-if [ ! -f .claude/dev-cycle.state.json ]; then
-  mkdir -p .claude && echo '{"stage": "sprint", "metrics": {}}' > .claude/dev-cycle.state.json
-fi
-```
-
-> **Compaction Resilience**: The UserPromptSubmit hook (`dev-cycle-guard.sh`)
-> pre-creates this file when `/code:dev-cycle` is detected. If compaction occurs
-> before this step executes, the file already exists. The `if` guard ensures
-> idempotency — existing state is never overwritten.
+> **Note**: The UserPromptSubmit hook (`dev-cycle-guard.sh`) pre-creates
+> `.claude/dev-cycle.state.json` when `/code:dev-cycle` is detected in the user message.
+> In normal usage the file already exists by the time this step runs.
+>
+> **Only if the file is missing** (e.g., this skill was invoked programmatically
+> without a user prompt, or the guard hook was bypassed):
+> ```bash
+> mkdir -p .claude && echo '{"stage":"sprint","metrics":{}}' > .claude/dev-cycle.state.json
+> ```
 
 This file drives the Stop hook (`dev-cycle-stop.sh`) which blocks
 Claude from stopping until all 4 stages complete. If Claude tries to stop mid-cycle,

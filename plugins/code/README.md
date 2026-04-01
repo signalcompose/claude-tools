@@ -255,7 +255,6 @@ plugins/code/
 │   │   └── references/
 │   │       ├── context-budget.md
 │   │       ├── main-agent-guide.md
-│   │       ├── prohibitions.md
 │   │       └── package-security-audit.md
 │   ├── sprint-impl/
 │   │   ├── SKILL.md             # Sprint implementation skill

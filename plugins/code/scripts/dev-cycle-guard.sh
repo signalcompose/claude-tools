@@ -39,7 +39,7 @@ fi
 
 # Check for implementation keywords
 if echo "$USER_MSG" | grep -qiE \
-  "(implement|sprint|実装|フェーズ|phase\s*[0-9]|plan|プラン|full.?cycle)"; then
+  "(implement|sprint|実装|full.?cycle|フェーズ\s*[0-9]|phase\s*[0-9])"; then
   echo "🔴 DEV-CYCLE REMINDER: This project uses /code:dev-cycle for implementation tasks."
   echo "Running sprint alone skips: Compliance Audit (DDD/TDD/DRY/ISSUE/PROCESS), Ship (PR creation), and Retrospective."
   echo "If this is a full implementation task, use /code:dev-cycle instead of /code:sprint-impl alone."

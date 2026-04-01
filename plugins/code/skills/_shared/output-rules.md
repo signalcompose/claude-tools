@@ -11,4 +11,4 @@
 ## Enforcement
 
 - Violations are flagged as PROCESS audit findings
-- Referenced from prohibitions.md rule 5
+- Referenced from dev-cycle/SKILL.md Absolute Prohibitions rule 5

@@ -1,9 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-# PR Review Team - Stop Hook (Command-based)
+# PR Review Team - Stop Hook (Command-based, deterministic)
 # Verifies workflow completion using state file + transcript fallback
-# Part of 5-layer defense: Layer 1 (deterministic gate)
+# Includes TTL-based stale state cleanup (1 hour max age)
 
 INPUT=$(cat)
 
@@ -22,8 +22,17 @@ if [ ${#STATE_FILES[@]} -eq 0 ]; then
     exit 0
 fi
 
-# Read progress from state file
+# TTL check: stale state files (>1 hour) are from dead sessions — clean up and allow stop
 STATE_FILE="${STATE_FILES[0]}"
+STATE_MAX_AGE=3600
+STATE_MTIME=$(stat -f %m "$STATE_FILE" 2>/dev/null || stat -c %Y "$STATE_FILE" 2>/dev/null || echo 0)
+NOW=$(date +%s)
+if [ $((NOW - STATE_MTIME)) -gt $STATE_MAX_AGE ]; then
+    rm -f "$STATE_FILE"
+    exit 0
+fi
+
+# Read progress from state file
 STATE=$(cat "$STATE_FILE" 2>/dev/null || echo "{}")
 
 # Extract state fields in a single jq call

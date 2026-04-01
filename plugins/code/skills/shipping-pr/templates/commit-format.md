@@ -27,5 +27,5 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 
 ## Rules
 
-- If pre-commit hook blocks: fix the root cause, then retry commit (see prohibitions.md rule 4)
+- If pre-commit hook blocks: fix the root cause, then retry commit (see dev-cycle/SKILL.md Absolute Prohibitions rule 4)
 - Never use `--no-verify` flag
