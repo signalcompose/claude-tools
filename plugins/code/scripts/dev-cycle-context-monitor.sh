@@ -48,8 +48,8 @@ if [[ -f "$STATE_FILE" ]]; then
   STAGE=$(jq -r '.stage // empty' "$STATE_FILE" 2>/dev/null) || true
 fi
 
-# Atomic write (一時ファイル → mv)
-TMPFILE=$(mktemp "${SIDECAR_FILE}.XXXXXX" 2>/dev/null || mktemp "${TMPDIR:-/tmp}/ctx-budget.XXXXXX" 2>/dev/null) || exit 0
+# Atomic write (一時ファイル → mv; same-dir temp avoids cross-device mv issues)
+TMPFILE=$(mktemp "${SIDECAR_FILE}.XXXXXX" 2>/dev/null) || exit 0
 trap 'rm -f "${TMPFILE:-}"' EXIT
 
 if [[ -n "$STAGE" ]]; then

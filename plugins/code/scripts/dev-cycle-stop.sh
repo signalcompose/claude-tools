@@ -161,7 +161,7 @@ fi
 jq -n \
   --arg reason "🔴 DEV-CYCLE ENFORCEMENT — stage \"${STAGE}\" finished.
 MANDATORY (no text output, no user confirmation):
-  1. Bash: jq --arg s \"${NEXT_STAGE}\" '.stage=\$s' .claude/dev-cycle.state.json > .claude/dev-cycle.state.json.tmp && mv .claude/dev-cycle.state.json.tmp .claude/dev-cycle.state.json
+  1. Bash: if [ -f .claude/dev-cycle.state.json ]; then jq --arg s \"${NEXT_STAGE}\" '.stage=\$s' .claude/dev-cycle.state.json > .claude/dev-cycle.state.json.tmp && mv .claude/dev-cycle.state.json.tmp .claude/dev-cycle.state.json; else printf '{\"stage\":\"%s\"}' \"${NEXT_STAGE}\" > .claude/dev-cycle.state.json; fi
   2. Skill tool: skill=\"${NEXT_SKILL_ID}\"
 Execute step 1 then step 2 immediately." \
   '{"decision": "block", "reason": $reason}'
