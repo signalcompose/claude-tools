@@ -10,6 +10,22 @@
             "timeout": 10000
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/skills/pr-review-team/scripts/verify-workflow.sh",
+            "timeout": 10000
+          },
+          {
+            "type": "agent",
+            "prompt": "If stop_hook_active is true in the input, exit without blocking. Check if /tmp/claude/pr-review-*.state exists. If no state file exists, exit without blocking (not a PR review session). If state file exists, read it and the transcript at .transcript_path. Verify: (1) The LATEST review iteration shows critical=0 AND important=0, (2) Security checklist was evaluated (security_done=true in state or security-checklist.md in transcript), (3) If fixes were applied, re-review was performed AFTER fixes. If ALL conditions met, exit without blocking. If any condition fails, output {\"decision\":\"block\",\"reason\":\"<what's missing>\"} to block the stop.",
+            "model": "haiku",
+            "timeout": 30000
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -52,6 +68,7 @@
         "hooks": [
           {
             "type": "command",
+            "if": "Bash(gh pr create*)",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-pr-review-gate.sh"
           }
         ]
@@ -61,8 +78,21 @@
         "hooks": [
           {
             "type": "command",
+            "if": "Bash(git commit*)",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-gitignore-security.sh",
             "timeout": 3000
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/reinject-review-context.sh",
+            "timeout": 5000
           }
         ]
       }

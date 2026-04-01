@@ -9,51 +9,59 @@ user-invocable: false
 
 # PR Review Team
 
-**MANDATORY**: This skill runs a complete review-fix-re-review loop. The leader MUST:
-1. Launch reviewers and collect findings (Steps 1-4)
-2. If critical > 0 OR important > 0 OR security != "all_pass": enter fix loop (Step 5)
-3. Iterate until critical = 0 AND important = 0 AND security = "all_pass" (max 5 iterations)
-4. Report results (Step 6)
+**MANDATORY**: This skill runs a complete review-fix-re-review loop using Subagents (NOT Agent Teams).
 
-Stopping after Step 4 without entering the fix loop when issues exist is a violation.
+The leader MUST:
+1. Initialize state and gather PR context (Step 1)
+2. Launch 4 parallel reviewer subagents (Step 2)
+3. Run CI checks via script (Step 3)
+4. Integrate results + security checklist (Step 4)
+5. If critical > 0 OR important > 0 OR security != "all_pass": enter fix loop (Step 5)
+6. Report results and cleanup (Step 6)
 
-## Step 1: Identify Target PR & Detect Project Context
+🔴 Stop hooks verify workflow completion. Skipping steps will block the stop request.
 
-Resolve the PR number:
+## Step 1: Initialize & Identify Target PR
+
+### Initialize State
+
+Run immediately (creates the active-review flag file for Stop hook detection):
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh init <PR番号>
+```
+
+### Resolve PR
+
 - If user specified: use that number
-- Otherwise: !`gh pr view --json number --jq '.number' 2>/dev/null`
+- Otherwise: `gh pr view --json number --jq '.number' 2>/dev/null`
 
-Gather context:
-- File overview: `gh pr diff <PR番号> --name-only` (fallback: `git diff <base>...HEAD --name-only`)
+### Gather Context
+
+- File overview: `gh pr diff <PR番号> --name-only`
 - Base branch: `git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||'` (fallback: `main`)
 - Test command: detect from `package.json`, `Makefile`, `pytest.ini`, etc.
 - Project rules: read project's CLAUDE.md if present
 
 **Note**: `gh` commands may require `dangerouslyDisableSandbox: true` for TLS issues.
 
-## Step 2: Create Review Team
+## Step 2: Parallel Review (Subagents)
 
-**MANDATORY**: Use TeamCreate to create the team, then spawn agents with Task tool.
+**MANDATORY**: Launch ALL 4 reviewers in a SINGLE message using parallel Agent tool calls.
+Do NOT use TeamCreate or Task tool. Use the Agent tool directly.
 
-Team structure:
-```
-Team Lead (yourself)
-├─ Reviewer 1: pr-review-toolkit:code-reviewer
-├─ Reviewer 2: pr-review-toolkit:silent-failure-hunter
-├─ Reviewer 3: pr-review-toolkit:pr-test-analyzer
-├─ Reviewer 4: pr-review-toolkit:comment-analyzer
-└─ Fixer: general-purpose (code-fixer)
-```
+Launch in parallel (one message, 4 Agent tool calls):
 
-Launch all 4 reviewers **in parallel** via Task tool.
+1. `Agent(subagent_type: "pr-review-toolkit:code-reviewer", model: "sonnet", prompt: "...")`
+2. `Agent(subagent_type: "pr-review-toolkit:silent-failure-hunter", model: "sonnet", prompt: "...")`
+3. `Agent(subagent_type: "pr-review-toolkit:pr-test-analyzer", model: "sonnet", prompt: "...")`
+4. `Agent(subagent_type: "pr-review-toolkit:comment-analyzer", model: "haiku", prompt: "...")`
 
-**MANDATORY**: Always specify an explicit `model` parameter when spawning each agent. Choose the appropriate model based on task complexity (`haiku` for lightweight, `sonnet` for standard, `opus` for complex reasoning). Never omit `model` (default `inherit` may fail in parallel spawning).
+Results return automatically. No shutdown procedure needed.
 
-Review criteria: agents read `${CLAUDE_PLUGIN_ROOT}/skills/review-commit/references/review-criteria.md` — leader does NOT read this file (agents handle criteria, leader handles integration).
+Review criteria: include `${CLAUDE_PLUGIN_ROOT}/skills/review-commit/references/review-criteria.md` path in each agent prompt — agents read criteria, leader handles integration.
 
 ### Agent Launch Failure Handling
-
-If any reviewer agent fails to launch:
 
 | Agent | Failure Severity | Action |
 |-------|-----------------|--------|
@@ -62,160 +70,118 @@ If any reviewer agent fails to launch:
 | pr-test-analyzer | WARNING | Continue with remaining reviewers. Note in report. |
 | comment-analyzer | WARNING | Continue with remaining reviewers. Note in report. |
 
-If ALL agents fail: report error and STOP.
-
-## Step 3: Collect CI Results
-
-Leader collects CI data (do NOT delegate):
-
-### Check Status
+### Update State
 
 ```bash
-gh pr checks <PR番号>
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> reviewers_done true
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> phase reviewed
 ```
 
-Parse output for FAIL/PASS/PENDING status per check.
+## Step 3: CI Check
 
-### CI Pending Strategy
+Run the CI wait script (requires `dangerouslyDisableSandbox: true`):
 
-If any checks are PENDING:
-
-```
-FOR attempt = 1 TO 3:
-  1. Wait 30 seconds
-  2. Re-check: gh pr checks <PR番号>
-  3. IF all checks resolved → BREAK
-END FOR
-```
-
-If still PENDING after 3 attempts (90 seconds total):
-- Continue review **without CI results**
-- Add to final report: "CI: PENDING (timed out — manual verification recommended)"
-
-### Get Failure Details
-
-For each failed check:
 ```bash
-# Get failed checks
-gh pr checks <PR番号> --json name,bucket,link --jq '.[] | select(.bucket == "fail")'
-
-# Get failed log
-gh run view <run-id> --log-failed
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/wait-ci-checks.sh <PR番号>
 ```
 
-### Collect Review Comments
+Parse the STATUS line from output:
+- **PASS**: All checks passed
+- **FAIL**: Get failure details with `gh run view <run-id> --log-failed`
+- **TIMEOUT**: Continue review, note "CI: PENDING (timed out)" in report
+- **ERROR**: Retry with `dangerouslyDisableSandbox: true`
 
+Also collect review comments:
 ```bash
 gh pr view <PR番号> --json comments --jq '.comments[].body'
 ```
 
-Also check for Claude Code review comments (automated review feedback).
-
 ### HEAD Filtering
 
-Avoid sending already-fixed issues to the fixer.
+Avoid sending already-fixed issues to the fixer:
+- For each CI issue or review comment, check if the referenced line still exists in current HEAD
+- Mark modified/removed lines as "already addressed" — do NOT send to fixer
 
+## Step 4: Integrate & Prepare Fixer Message
+
+🔴 VIOLATION — Direct Editing Prohibited
+ALL fixes MUST be delegated to the fixer subagent in Step 5.
+Using Edit/Write tools directly to apply fixes is a workflow violation.
+The Stop hook will block completion if the fixer agent was not used.
+
+🔴 MANDATORY — Security Checklist
+Read NOW (Stop hook verifies this was read):
+`${CLAUDE_PLUGIN_ROOT}/skills/pr-review-team/references/security-checklist.md`
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> security_done true
 ```
-FOR each CI issue or review comment:
-  1. Extract the file path and line number from the issue
-  2. Get current diff: gh pr diff <PR番号>
-  3. Check if the referenced line still exists in the current HEAD
-  4. IF the line has been modified or removed since the issue was reported:
-       → Mark as "already addressed" — do NOT send to fixer
-  5. ELSE:
-       → Include in the fixer's issue list
-END FOR
-```
-
-### Sandbox Notes
-
-`gh` commands may fail in sandboxed environments due to TLS certificate restrictions.
-Use `dangerouslyDisableSandbox: true` when calling `gh` via Bash tool.
-This is safe for read-only operations like `gh pr view`, `gh pr checks`, and `gh run view`.
-
-## Step 4: Integrate & Send to Fixer
-
-**MANDATORY**: Combine reviewer results + CI results into **one single message** to fixer.
-Split messages are prohibited (message loss risk).
-
-Security checklist: read `${CLAUDE_PLUGIN_ROOT}/skills/pr-review-team/references/security-checklist.md` now (deferred from Step 2 to save context).
 
 ### Fixer Message Template
 
-Structure the message to fixer using this template:
+Structure ALL findings into one single message (split messages prohibited):
 
 ```
 ## Critical Issues
-[List critical issues from all reviewers + CI failures]
 - Source: <reviewer-name>
 - File: <path>:<line>
 - Issue: <description>
 
 ## Important Issues
-[List important issues]
 - Source: <reviewer-name>
 - File: <path>:<line>
 - Issue: <description>
 
 ## Security Checklist Failures
-[List security checklist items that failed]
 - Check: <checklist-item>
 - File: <path>:<line>
 - Issue: <description>
 
 ## Already Addressed (informational — do NOT fix)
-[List issues filtered out by HEAD filtering logic]
 - Source: <reviewer-name or CI>
 - Reason: Line modified/removed in current HEAD
+
+Security Checklist: ALL PASS (N items checked) / HAS FAILURES (list)
 ```
 
-## Step 5: Iterative Fix Loop
+If all pass: "Security Checklist: ALL PASS (N items checked)"
 
-**MANDATORY**: If Step 4 produced ANY critical or important issues, or security checklist failures, this step MUST be executed. Skipping the fix loop and reporting findings without fixing is prohibited.
+## Step 5: Fix Loop
+
+🔴 MANDATORY: If Step 4 produced ANY critical or important issues, or security failures, this step MUST execute.
+
+🔴 VIOLATION — Re-review Required After Fixes
+After fixer applies fixes, ALL 4 reviewers MUST be re-invoked (same parallel pattern as Step 2).
+Skipping re-review is a workflow violation.
 
 ```
-MAX_ITERATIONS=5
-MAX_RETRIES=2
-```
+MAX_ITERATIONS=3
 
-**WARNING: Never use counts from a previous iteration to check the exit condition. Every exit check MUST use counts produced by the re-review in step 4 of the SAME iteration.**
+FOR iteration = 1 TO MAX_ITERATIONS:
+  1. Spawn fixer subagent:
+     Agent(subagent_type: "general-purpose", model: "sonnet", prompt: "<all findings>")
+     Send ALL findings in a single prompt (Critical + Important + Security failures)
 
-```
-FOR iteration = 1 TO $MAX_ITERATIONS:
-  SET fresh_critical = UNSET
-  SET fresh_important = UNSET
-  SET fresh_security = UNSET
-  SET retry_count = 0
-  SET review_retry_count = 0
+  2. Fixer applies fixes and runs tests
+     IF tests fail after 2 retries → report to user, do NOT merge, BREAK
 
-  1. Fixer applies fixes
-  2. Run test command (detected in Step 1)
-  3. IF tests fail:
-       SET retry_count = retry_count + 1
-       IF retry_count >= MAX_RETRIES → report to user ("Test failures persist after MAX_RETRIES retries"), do NOT merge, BREAK outer loop
-       ELSE → Fixer retries (loop back to step 1 of this iteration; do NOT advance to step 4)
-     IF tests pass → CONTINUE to step 4
-  4. Re-review with ALL 4 reviewers in parallel (same failure handling as Step 2):
-     - code-reviewer
-     - silent-failure-hunter
-     - pr-test-analyzer
-     - comment-analyzer
-     ASSIGN fresh_critical, fresh_important, fresh_security FROM this re-review output
-     (fresh_security MUST be one of: "all_pass" or "has_failures". Any other value including empty string is treated as UNSET.)
-  5. Aggregate results (same template as Step 4) using fresh_critical, fresh_important, fresh_security
-  6. MUST VERIFY: fresh_critical, fresh_important, fresh_security are SET (not UNSET).
-     If any is UNSET:
-       SET review_retry_count = review_retry_count + 1
-       IF review_retry_count >= 2 (i.e., any fresh_ variable still remains UNSET after retry), report "Re-review failed" to user and BREAK.
-       ELSE go back to step 4 of THIS iteration (do NOT advance to step 5 or 6; do NOT start a new iteration).
-     IF fresh_critical = 0 AND fresh_important = 0 AND fresh_security = "all_pass":
-       → BREAK
+  3. Re-review: Launch ALL 4 reviewers again (parallel Agent tool calls, same as Step 2)
+
+  4. Collect fresh counts: fresh_critical, fresh_important, fresh_security
+
+  5. Update state:
+     bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> fixer_done true
+     bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> iterations <N>
+     bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> final_critical <count>
+     bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> final_important <count>
+
+  6. IF fresh_critical = 0 AND fresh_important = 0 AND fresh_security = "all_pass" → BREAK
 END FOR
 ```
 
 If iteration limit reached with remaining issues: report to user, do NOT merge.
 
-## Step 6: Report & Shutdown
+## Step 6: Report & Cleanup
 
 Report summary:
 - Issues found / fixed / remaining
@@ -226,20 +192,10 @@ Report summary:
 
 **Do NOT merge** — wait for user's explicit instruction.
 
-### Shutdown Procedure
+### Cleanup
 
-Send `shutdown_request` to all agents individually via SendMessage (one message per agent):
-- code-reviewer, silent-failure-hunter, pr-test-analyzer, comment-analyzer, code-fixer
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh cleanup <PR番号>
+```
 
-Wait up to 30 seconds for `shutdown_response` from each agent.
-
-Then call TeamDelete.
-
-**If TeamDelete fails** (agents did not respond to shutdown):
-1. Note the team name used in the TeamCreate step (store as `TEAM_NAME`)
-2. Force-delete team directories using Bash with `dangerouslyDisableSandbox: true`:
-   ```bash
-   rm -rf ~/.claude/teams/"${TEAM_NAME:?}"/ ~/.claude/tasks/"${TEAM_NAME:?}"/
-   ```
-   The `${TEAM_NAME:?}` guard prevents `rm -rf` from running with an empty path.
-3. Inform user: "Team force-deleted. If agent polling continues, restart Claude Code."
+No shutdown procedure needed — subagents complete automatically.
