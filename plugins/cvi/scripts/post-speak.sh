@@ -116,13 +116,17 @@ debug_log "Lock acquired, calling speak-sync.sh"
 
 # Execute speak-sync.sh in background and record PID
 # Enable job control so speak-sync.sh runs in its own process group,
-# allowing kill-voice.sh to terminate both post-speak.sh and the child say process.
-echo "$$" > "$PID_FILE"  # Parent PID temporarily
+# allowing kill-voice.sh to terminate the speak-sync.sh group (including child say process).
+# Note: post-speak.sh itself is NOT in the killed group — it terminates naturally via wait.
 set -m  # Job control: child gets its own process group
 "${SCRIPT_DIR}/speak-sync.sh" "$TEXT" &
 SAY_PID=$!
-echo "$SAY_PID" > "$PID_FILE"  # Update with actual PID
 set +m  # Restore default
+echo "$SAY_PID" > "$PID_FILE" || {
+    log_error "Failed to write PID file: $PID_FILE"
+    kill "$SAY_PID" 2>/dev/null || true
+    exit 1
+}
 debug_log "speak-sync.sh PID: $SAY_PID"
 
 # Wait for completion

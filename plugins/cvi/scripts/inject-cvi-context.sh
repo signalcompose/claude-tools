@@ -4,7 +4,8 @@ set -o pipefail
 
 # Load shared config
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/lib/config.sh" && load_cvi_config
+source "${SCRIPT_DIR}/lib/config.sh" || { echo "[cvi] Failed to source lib/config.sh" >&2; exit 0; }
+load_cvi_config
 
 # English Practice mode (independent of CVI_ENABLED)
 if [ "$ENGLISH_PRACTICE" = "on" ]; then

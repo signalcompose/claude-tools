@@ -1,6 +1,8 @@
 #!/bin/bash
 # CVI shared config loader
-# Usage: source "$(dirname "${BASH_SOURCE[0]}")/lib/config.sh" && load_cvi_config
+# Usage:
+#   source "$(dirname "${BASH_SOURCE[0]}")/lib/config.sh" || exit 1
+#   load_cvi_config
 
 CVI_CONFIG_FILE="$HOME/.cvi/config"
 
@@ -16,8 +18,14 @@ load_cvi_config() {
     VOICE_FIXED=""
     ENGLISH_PRACTICE="off"
 
-    if [ -f "$CVI_CONFIG_FILE" ] && [ -r "$CVI_CONFIG_FILE" ]; then
-        while IFS='=' read -r key value; do
+    if [ -f "$CVI_CONFIG_FILE" ]; then
+        if [ ! -r "$CVI_CONFIG_FILE" ]; then
+            echo "[cvi] WARNING: config file exists but is not readable: $CVI_CONFIG_FILE (using defaults)" >&2
+            return 0
+        fi
+        while IFS= read -r line; do
+            key="${line%%=*}"
+            value="${line#*=}"
             case "$key" in
                 CVI_ENABLED)      CVI_ENABLED="${value:-on}" ;;
                 SPEECH_RATE)      SPEECH_RATE="${value:-200}" ;;

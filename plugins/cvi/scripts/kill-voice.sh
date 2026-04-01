@@ -45,8 +45,13 @@ if [ -d "$LOCK_DIR" ]; then
                 debug_log "Killing process group: $PID"
                 # Kill process group first (includes child say process),
                 # fall back to regular kill if group kill fails
-                kill -- -"$PID" 2>/dev/null || kill "$PID" 2>/dev/null || true
-                debug_log "Process killed"
+                if kill -- -"$PID" 2>/dev/null; then
+                    debug_log "Process group $PID killed"
+                elif kill "$PID" 2>/dev/null; then
+                    debug_log "Process $PID killed (group kill failed, direct kill succeeded)"
+                else
+                    log_error "Failed to kill process $PID (both group and direct kill failed)"
+                fi
             else
                 debug_log "Process $PID does not exist (already terminated)"
             fi
@@ -60,7 +65,7 @@ if [ -d "$LOCK_DIR" ]; then
         debug_log "Lock directory exists but no PID file found"
     fi
 
-    # Remove lock directory (use rm -rf to handle race condition)
+    # Remove lock directory
     rm -rf "$LOCK_DIR" 2>/dev/null
     debug_log "Cleaned up lock directory"
 else

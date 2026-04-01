@@ -6,11 +6,7 @@
 
 set -euo pipefail
 
-# Load shared config
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/lib/config.sh" && load_cvi_config
-
-# Error logging
+# Error logging (defined before source so failures can be logged)
 ERROR_LOG="$HOME/.cvi/error.log"
 
 log_error() {
@@ -19,6 +15,11 @@ log_error() {
     mkdir -p "$(dirname "$ERROR_LOG")" 2>/dev/null
     echo "[${timestamp}] [speak-sync.sh] ${message}" >> "$ERROR_LOG"
 }
+
+# Load shared config
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/config.sh" || { log_error "Failed to source lib/config.sh"; exit 1; }
+load_cvi_config
 
 # Get the text to speak from arguments
 MSG="$*"

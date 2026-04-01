@@ -1,8 +1,10 @@
 #!/bin/bash
+set -euo pipefail
 
 # Load shared config
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/lib/config.sh" && load_cvi_config
+source "${SCRIPT_DIR}/lib/config.sh" || { echo "[cvi] Failed to source lib/config.sh" >&2; exit 1; }
+load_cvi_config
 
 # Exit early if disabled
 if [ "$CVI_ENABLED" = "off" ]; then
