@@ -80,6 +80,30 @@ git push origin x-article-v0.1.0
 
 **CI ワークフロー**: `.github/workflows/build-cowork-plugins.yml`
 
+## Hook 実行マトリクス
+
+各プラグインが登録している hook の一覧。トラブルシュート時に「どのスクリプトがいつ実行されるか」を把握するための参照。
+
+| Hook イベント | cvi | code | ypm | utils |
+|--------------|-----|------|-----|-------|
+| **SessionStart** | `check-dependencies.sh` (async) | — | `check-ypm-config.sh` | `inject-session-context.sh` |
+| | `cleanup-stale-locks.sh` (async) | | | |
+| | `inject-cvi-context.sh` | | | |
+| **Stop** | `check-speak-called.sh` | `dev-cycle-stop.sh` | — | — |
+| **UserPromptSubmit** | `kill-voice.sh` | `enforce-code-review-rules.sh` | — | — |
+| | `enforce-cvi-rules.sh` | `dev-cycle-guard.sh` | | |
+| **Notification** | `notify-input.sh` (async) | — | — | — |
+| **PostToolUse** | — | `dev-cycle-context-monitor.sh` | — | — |
+| **PreToolUse** | — | `check-pr-review-gate.sh` | — | — |
+| | — | `check-gitignore-security.sh` | | |
+| **SessionEnd** | `kill-voice.sh` | — | — | — |
+
+### 注意事項
+
+- **Stop hook の競合**: cvi と code が同時に Stop を登録。両方とも `stop_hook_active` フラグをチェックし、2回目の Stop では無条件で許可する（無限ループ防止）
+- **UserPromptSubmit のオーバーヘッド**: 4スクリプトが毎プロンプトで実行されるが、Claude Code が並列実行するため通常は問題にならない
+- **async hook**: SessionStart の依存チェック/ロッククリーンアップ、Notification は非ブロッキング実行。コンテキスト注入を行う hook は同期のまま
+
 ## データフロー
 
 ```

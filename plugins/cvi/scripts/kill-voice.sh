@@ -42,8 +42,10 @@ if [ -d "$LOCK_DIR" ]; then
         if [[ "$PID" =~ ^[0-9]+$ ]]; then
             # Check if process exists before killing
             if ps -p "$PID" > /dev/null 2>&1; then
-                debug_log "Killing process: $PID"
-                kill "$PID" 2>/dev/null || true
+                debug_log "Killing process group: $PID"
+                # Kill process group first (includes child say process),
+                # fall back to regular kill if group kill fails
+                kill -- -"$PID" 2>/dev/null || kill "$PID" 2>/dev/null || true
                 debug_log "Process killed"
             else
                 debug_log "Process $PID does not exist (already terminated)"

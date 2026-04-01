@@ -6,6 +6,10 @@
 
 set -euo pipefail
 
+# Load shared config
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/config.sh" && load_cvi_config
+
 # Error logging
 ERROR_LOG="$HOME/.cvi/error.log"
 
@@ -26,37 +30,11 @@ if [ -z "$MSG" ]; then
     exit 1
 fi
 
-# Check if CVI is enabled
-CONFIG_FILE="$HOME/.cvi/config"
-if [ -f "$CONFIG_FILE" ]; then
-    CVI_ENABLED=$(grep "^CVI_ENABLED=" "$CONFIG_FILE" | cut -d'=' -f2)
-fi
-CVI_ENABLED=${CVI_ENABLED:-on}
-
 # Exit early if disabled
 if [ "$CVI_ENABLED" = "off" ]; then
     echo "CVI is disabled. Enable with: /cvi:state on"
     exit 0
 fi
-
-# Load configuration from file
-if [ -f "$CONFIG_FILE" ]; then
-    SPEECH_RATE=$(grep "^SPEECH_RATE=" "$CONFIG_FILE" | cut -d'=' -f2- || echo "")
-    VOICE_LANG=$(grep "^VOICE_LANG=" "$CONFIG_FILE" | cut -d'=' -f2- || echo "")
-    VOICE_EN=$(grep "^VOICE_EN=" "$CONFIG_FILE" | cut -d'=' -f2- || echo "")
-    VOICE_JA=$(grep "^VOICE_JA=" "$CONFIG_FILE" | cut -d'=' -f2- || echo "")
-    AUTO_DETECT_LANG=$(grep "^AUTO_DETECT_LANG=" "$CONFIG_FILE" | cut -d'=' -f2- || echo "")
-    VOICE_MODE=$(grep "^VOICE_MODE=" "$CONFIG_FILE" | cut -d'=' -f2- || echo "")
-    VOICE_FIXED=$(grep "^VOICE_FIXED=" "$CONFIG_FILE" | cut -d'=' -f2- || echo "")
-fi
-
-# Set defaults (handle empty strings from malformed config)
-[ -z "$SPEECH_RATE" ] && SPEECH_RATE=200
-[ -z "$VOICE_LANG" ] && VOICE_LANG=ja
-[ -z "$VOICE_EN" ] && VOICE_EN=Samantha
-[ -z "$VOICE_JA" ] && VOICE_JA=system
-[ -z "$AUTO_DETECT_LANG" ] && AUTO_DETECT_LANG=false
-[ -z "$VOICE_MODE" ] && VOICE_MODE=auto
 
 # Detect language if AUTO_DETECT_LANG is enabled
 if [ "$AUTO_DETECT_LANG" = "true" ]; then
