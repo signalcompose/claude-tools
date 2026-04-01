@@ -22,20 +22,18 @@ if [ ${#STATE_FILES[@]} -eq 0 ]; then
     exit 0
 fi
 
-# Read progress from state file
-STATE_FILE="${STATE_FILES[0]}"
-STATE=$(cat "$STATE_FILE" 2>/dev/null || echo "{}")
-
 # TTL check: stale state files (>1 hour) are from dead sessions — clean up and allow stop
+STATE_FILE="${STATE_FILES[0]}"
 STATE_MAX_AGE=3600
-if [ -f "$STATE_FILE" ]; then
-    STATE_MTIME=$(stat -f %m "$STATE_FILE" 2>/dev/null || stat -c %Y "$STATE_FILE" 2>/dev/null || echo 0)
-    NOW=$(date +%s)
-    if [ $((NOW - STATE_MTIME)) -gt $STATE_MAX_AGE ]; then
-        rm -f "$STATE_FILE"
-        exit 0
-    fi
+STATE_MTIME=$(stat -f %m "$STATE_FILE" 2>/dev/null || stat -c %Y "$STATE_FILE" 2>/dev/null || echo 0)
+NOW=$(date +%s)
+if [ $((NOW - STATE_MTIME)) -gt $STATE_MAX_AGE ]; then
+    rm -f "$STATE_FILE"
+    exit 0
 fi
+
+# Read progress from state file
+STATE=$(cat "$STATE_FILE" 2>/dev/null || echo "{}")
 
 # Extract state fields in a single jq call
 read -r SECURITY_DONE FIXER_DONE < <(echo "$STATE" | jq -r '[(.security_done // false | tostring), (.fixer_done // false | tostring)] | @tsv' 2>/dev/null || echo "false false")
