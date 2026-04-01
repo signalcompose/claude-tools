@@ -7,16 +7,17 @@
 3. DDD spec creation + commit
 4. Type definitions + typecheck + commit
 
-## During Sprint (Team Agent Management)
+## During Sprint (Subagents)
 
-1. TeamCreate to create team
-2. TaskCreate + dependency setup
-3. Agent spawn (`subagent_type: "general-purpose"`, `mode: "acceptEdits"`, `model: "<choose per task>"`)
+> **Note**: Use Subagents (direct `Agent()` calls). Do NOT use TeamCreate/TeamDelete/Task tool.
+> When `sprint-impl/SKILL.md Phase 6` is updated to Subagents, it will be the authoritative source.
 
-**MANDATORY**: Always specify an explicit `model` parameter. Choose the appropriate model based on task complexity (`haiku` for lightweight, `sonnet` for standard, `opus` for complex reasoning). Never omit `model` (default `inherit` may fail in parallel spawning).
-4. Wait for agent completion + verify each agent's output
-5. **Commit per-agent individually** (lead performs commits, not agents)
-6. After all agents complete: shutdown + TeamDelete
+1. Spawn agents in parallel via Agent tool (NOT Task tool):
+   `Agent(subagent_type: "general-purpose", mode: "acceptEdits", model: "<choose per task>", prompt: "...")`
+   **MANDATORY**: Always specify an explicit `model` parameter (`haiku` for lightweight, `sonnet` for standard, `opus` for complex reasoning). Never omit `model` (default `inherit` may fail in parallel spawning).
+2. Wait for all agents to report completion (each Agent call blocks until the subagent returns)
+3. No shutdown procedure needed — subagents complete automatically
+4. **Commit per-agent individually** (lead performs commits, not agents)
 
 ## Post-Sprint
 

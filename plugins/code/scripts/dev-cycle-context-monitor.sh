@@ -2,9 +2,10 @@
 # dev-cycle-context-monitor.sh — PostToolUse hook
 # dev-cycle 中のみ remaining_percentage を sidecar ファイルに記録
 # Matcher in hooks.json limits firing to file/content tools (Bash, Edit, Write, Read, Grep, Glob,
-# NotebookEdit, WebFetch, WebSearch). Meta-tools (Agent, SendMessage, etc.) do not match the
-# current matcher. The case guard below provides defense-in-depth: it actively filters tools whose
-# payloads lack context_window data, and future-proofs against matcher broadening.
+# NotebookEdit, WebFetch, WebSearch). Meta-tools (Agent, Skill, SendMessage, etc.) are excluded
+# because their PostToolUse payloads do NOT include context_window.remaining_percentage.
+# Coverage is maintained: tools called WITHIN a skill (Bash, Read, etc.) fire this hook normally.
+# The case guard below provides defense-in-depth and future-proofs against matcher broadening.
 # When adding new tools, update BOTH the matcher AND the case guard below.
 
 set -euo pipefail
@@ -48,7 +49,7 @@ if [[ -f "$STATE_FILE" ]]; then
 fi
 
 # Atomic write (一時ファイル → mv)
-TMPFILE=$(mktemp "${SIDECAR_FILE}.XXXXXX" 2>/dev/null || mktemp /tmp/ctx-budget.XXXXXX 2>/dev/null) || exit 0
+TMPFILE=$(mktemp "${SIDECAR_FILE}.XXXXXX" 2>/dev/null || mktemp "${TMPDIR:-/tmp}/ctx-budget.XXXXXX" 2>/dev/null) || exit 0
 trap 'rm -f "${TMPFILE:-}"' EXIT
 
 if [[ -n "$STAGE" ]]; then

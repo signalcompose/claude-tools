@@ -69,7 +69,15 @@ Claude が `.context-budget.json` を読んで自律的に停止判断する。
 | ship → retro | remaining >= 5% | retro |
 
 1M 環境では余裕があるため、閾値を大幅に引き下げ。
-実測結果に応じて調整する。
+
+### 閾値調整ガイドライン
+
+現行閾値（15%/10%/5%）は 1M コンテキスト環境での保守的下限値。
+実測に基づく調整手順:
+1. `docs/research/workflow-recording.md` の実績データを参照
+2. sprint → audit 遷移時の `remaining` 実測値を収集（5サンプル以上）
+3. 最低値の 50% を新閾値の候補として検討
+4. 調整後は本セクションの「暫定」表記を削除
 
 ## sidecar ファイル仕様
 
@@ -107,6 +115,12 @@ dev-cycle 中（`.claude/dev-cycle.state.json` が存在する場合）:
 1. `.context-budget.json` のタイムスタンプが5分以内か確認
 2. Stop hook の stdin に `context_window` が含まれていれば、sidecar ファイルは不要
 3. 両方とも取得できない場合、現行動作（強制続行）にフォールバック
+
+### Skill tool 呼び出しが追跡されない
+
+**これは想定動作**。Skill tool の PostToolUse payload には `context_window.remaining_percentage` が
+含まれない（メタ操作ツールのため）。Skill 内部で呼ばれる Bash/Read 等は通常通り追跡されるため、
+実質的なカバレッジは維持される。Skill tool を matcher に追加しても `remaining` が取れないため不要。
 
 ### 予算停止後に再開できない
 

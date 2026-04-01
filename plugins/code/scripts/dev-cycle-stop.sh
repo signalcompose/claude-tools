@@ -15,6 +15,8 @@ if ! command -v jq &>/dev/null; then
 fi
 
 STATE_FILE="${CLAUDE_PROJECT_DIR:-.}/.claude/dev-cycle.state.json"
+SIDECAR_RECOVERY_SECS=600  # Max age for sidecar-based state recovery (compaction may delay hook)
+SIDECAR_BUDGET_STALE_SECS=300  # Max age for sidecar budget data to be considered fresh
 
 # No state file → try recovery from sidecar
 if [[ ! -f "$STATE_FILE" ]]; then
@@ -25,7 +27,7 @@ if [[ ! -f "$STATE_FILE" ]]; then
     SIDECAR_TS=$(echo "$SIDECAR_DATA" | jq -r '.ts // 0')
     NOW=$(date +%s)
     # 10分以内 + stage あり → 復元
-    if [[ -n "$SIDECAR_STAGE" && $((NOW - SIDECAR_TS)) -le 600 ]]; then
+    if [[ -n "$SIDECAR_STAGE" && $((NOW - SIDECAR_TS)) -le $SIDECAR_RECOVERY_SECS ]]; then
       mkdir -p "$(dirname "$STATE_FILE")"
       jq -n --arg stage "$SIDECAR_STAGE" '{stage:$stage}' > "$STATE_FILE"
     else
@@ -100,7 +102,7 @@ if [[ -z "$REMAINING" || "$REMAINING" == "null" ]]; then
       SIDECAR_TS=$(echo "$SIDECAR_DATA" | jq -r '.ts // 0')
       NOW=$(date +%s)
       # 5分以上古いデータは無視
-      if [[ $((NOW - SIDECAR_TS)) -gt 300 ]]; then
+      if [[ $((NOW - SIDECAR_TS)) -gt $SIDECAR_BUDGET_STALE_SECS ]]; then
         REMAINING=""
       fi
     fi
@@ -159,7 +161,7 @@ fi
 jq -n \
   --arg reason "🔴 DEV-CYCLE ENFORCEMENT — stage \"${STAGE}\" finished.
 MANDATORY (no text output, no user confirmation):
-  1. Bash: echo '{\"stage\":\"${NEXT_STAGE}\"}' > .claude/dev-cycle.state.json
+  1. Bash: jq --arg s \"${NEXT_STAGE}\" '.stage=\$s' .claude/dev-cycle.state.json > .claude/dev-cycle.state.json.tmp && mv .claude/dev-cycle.state.json.tmp .claude/dev-cycle.state.json
   2. Skill tool: skill=\"${NEXT_SKILL_ID}\"
 Execute step 1 then step 2 immediately." \
   '{"decision": "block", "reason": $reason}'
