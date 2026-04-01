@@ -24,19 +24,26 @@ debug_log() {
     fi
 }
 
-# Read hook input from STDIN
-HOOK_INPUT=$(cat)
-debug_log "Hook input received: $HOOK_INPUT"
+# Determine input mode: CLI arguments or stdin JSON
+if [ $# -gt 0 ]; then
+    # CLI argument mode (called from speak.md command)
+    TEXT="$*"
+    debug_log "CLI mode, text: $TEXT"
+else
+    # Stdin JSON mode (called from PostToolUse hook)
+    HOOK_INPUT=$(cat)
+    debug_log "Hook input received: $HOOK_INPUT"
 
-# Extract text from hook input (JSON)
-# Expected format: {"tool": "Skill", "args": {"skill": "cvi:speak", "args": "<text>"}}
-TEXT=$(echo "$HOOK_INPUT" | jq -r '.args.args // empty' 2>/dev/null || echo "")
+    # Extract text from hook input (JSON)
+    # Expected format: {"tool": "Skill", "args": {"skill": "cvi:speak", "args": "<text>"}}
+    TEXT=$(echo "$HOOK_INPUT" | jq -r '.args.args // empty' 2>/dev/null || echo "")
 
-# If text extraction failed, try alternative format
-if [ -z "$TEXT" ]; then
-    debug_log "Failed to extract text from .args.args, trying alternative formats"
-    # Try direct args field
-    TEXT=$(echo "$HOOK_INPUT" | jq -r '.args // empty' 2>/dev/null || echo "")
+    # If text extraction failed, try alternative format
+    if [ -z "$TEXT" ]; then
+        debug_log "Failed to extract text from .args.args, trying alternative formats"
+        # Try direct args field
+        TEXT=$(echo "$HOOK_INPUT" | jq -r '.args // empty' 2>/dev/null || echo "")
+    fi
 fi
 
 # Validate text
@@ -108,10 +115,18 @@ trap cleanup EXIT SIGTERM SIGINT SIGHUP
 debug_log "Lock acquired, calling speak-sync.sh"
 
 # Execute speak-sync.sh in background and record PID
-echo "$$" > "$PID_FILE"  # Parent PID temporarily
+# Enable job control so speak-sync.sh runs in its own process group,
+# allowing kill-voice.sh to terminate the speak-sync.sh group (including child say process).
+# Note: post-speak.sh itself is NOT in the killed group — it terminates naturally via wait.
+set -m  # Job control: child gets its own process group
 "${SCRIPT_DIR}/speak-sync.sh" "$TEXT" &
 SAY_PID=$!
-echo "$SAY_PID" > "$PID_FILE"  # Update with actual PID
+set +m  # Restore default
+echo "$SAY_PID" > "$PID_FILE" || {
+    log_error "Failed to write PID file: $PID_FILE"
+    kill "$SAY_PID" 2>/dev/null || true
+    exit 1
+}
 debug_log "speak-sync.sh PID: $SAY_PID"
 
 # Wait for completion

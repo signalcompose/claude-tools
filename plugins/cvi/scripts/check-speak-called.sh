@@ -12,6 +12,15 @@
 # Read hook input from stdin
 INPUT=$(cat)
 
+# Guard: if stop_hook_active is true, a previous Stop hook already blocked and
+# Claude retried. Allow stop unconditionally to prevent infinite loops.
+# Reference: plugins/code/scripts/dev-cycle-stop.sh uses the same pattern.
+STOP_HOOK_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false' 2>/dev/null || true)
+# If stop_hook_active is true OR jq failed (empty string), allow stop to prevent infinite loops
+if [ "$STOP_HOOK_ACTIVE" = "true" ] || [ -z "$STOP_HOOK_ACTIVE" ]; then
+    exit 0
+fi
+
 # Check if jq is available
 if ! command -v jq &> /dev/null; then
     # jq not available, allow stop to avoid blocking user
@@ -55,12 +64,10 @@ if is_sandbox_enabled; then
     exit 0
 fi
 
-# Check if CVI is enabled
-CONFIG_FILE="$HOME/.cvi/config"
-if [ -f "$CONFIG_FILE" ]; then
-    CVI_ENABLED=$(grep "^CVI_ENABLED=" "$CONFIG_FILE" | cut -d'=' -f2)
-fi
-CVI_ENABLED=${CVI_ENABLED:-on}
+# Load shared config
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/config.sh" || { exit 0; }  # Fail open: allow stop if config unavailable
+load_cvi_config
 
 # Exit early if disabled - allow stop
 if [ "$CVI_ENABLED" = "off" ]; then
@@ -96,16 +103,13 @@ fi
 # This catches direct script execution
 if grep -q '"type":"tool_use"' "$TRANSCRIPT_PATH" 2>/dev/null && \
    grep -q '"name":"Bash"' "$TRANSCRIPT_PATH" 2>/dev/null && \
-   grep -q 'scripts/speak-sync\.sh' "$TRANSCRIPT_PATH" 2>/dev/null; then
+   grep -qE 'scripts/(speak-sync|post-speak)\.sh' "$TRANSCRIPT_PATH" 2>/dev/null; then
     # speak-sync.sh was executed via Bash tool, allow stop
     exit 0
 fi
 
 # /cvi:speak was NOT called - block stop and instruct Claude
-# Load language setting for the instruction message
-VOICE_LANG=$(grep "^VOICE_LANG=" "$CONFIG_FILE" 2>/dev/null | cut -d'=' -f2)
-VOICE_LANG=${VOICE_LANG:-ja}
-
+# VOICE_LANG is already loaded via lib/config.sh
 if [ "$VOICE_LANG" = "en" ]; then
     EXAMPLE_MSG="Task completed successfully."
 else

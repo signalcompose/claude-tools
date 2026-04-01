@@ -160,7 +160,10 @@ CVI/
 ├── hooks/                   # hooks定義
 │   └── hooks.json           # プラグイン用hooks設定
 ├── scripts/                 # スクリプト
-│   ├── notify-end.sh        # タスク完了通知
+│   ├── lib/
+│   │   └── config.sh        # 共通config読み込みライブラリ
+│   ├── post-speak.sh        # ロック管理付き音声再生ラッパー
+│   ├── speak-sync.sh        # コアTTSエンジン
 │   ├── notify-input.sh      # 入力確認通知
 │   ├── kill-voice.sh        # 読み上げ中断
 │   ├── cvi                  # 有効/無効制御
@@ -277,10 +280,18 @@ cat ~/.claude/settings.json
 - [x] 入力確認通知（Notification Hook）
 - [x] プラグインシステム対応
 
-### Phase 3（将来）
+### Phase 3（完了）
+- [x] Stop hook の stop_hook_active 安全弁
+- [x] post-speak.sh によるロック/PID管理統合
+- [x] SessionEnd hook でのクリーンアップ
+- [x] SessionStart / Notification hook の async 化
+- [x] 共通 lib/config.sh による config 読み込み統合
+
+### Phase 4（将来）
 - [ ] GUI設定ツール
 - [ ] プロジェクトごとの設定
 - [ ] 音声ファイルのカスタマイズ
+- [ ] README / examples / cvi-setup からの notify-end.sh 参照削除
 
 ---
 

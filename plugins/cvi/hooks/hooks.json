@@ -8,12 +8,14 @@
           {
             "type": "command",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-dependencies.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "async": true
           },
           {
             "type": "command",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-stale-locks.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "async": true
           },
           {
             "type": "command",
@@ -30,7 +32,7 @@
           {
             "type": "command",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-speak-called.sh",
-            "timeout": 5000
+            "timeout": 10000
           }
         ]
       }
@@ -59,7 +61,20 @@
           {
             "type": "command",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/notify-input.sh",
-            "timeout": 30000
+            "timeout": 30000,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/kill-voice.sh",
+            "timeout": 3000
           }
         ]
       }
