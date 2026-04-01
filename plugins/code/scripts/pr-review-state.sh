@@ -35,22 +35,16 @@ case "$ACTION" in
       exit 1
     fi
     TMP=$(mktemp)
-    trap 'rm -f "$TMP"' EXIT
+    trap 'rm -f "${TMP:-}"' EXIT
     jq --arg k "$KEY" --arg v "$VALUE" \
       '.[$k] = ($v | if . == "true" then true elif . == "false" then false else (try tonumber // .) end)' \
       "$STATE_FILE" > "$TMP" && mv "$TMP" "$STATE_FILE"
     echo "State updated: $KEY=$VALUE"
     ;;
-  get)
+  get|verify)
     if [ ! -f "$STATE_FILE" ]; then
-      echo "{}"
-      exit 0
-    fi
-    cat "$STATE_FILE"
-    ;;
-  verify)
-    if [ ! -f "$STATE_FILE" ]; then
-      echo "NO_STATE"
+      # get returns empty JSON; verify returns sentinel string
+      if [ "$ACTION" = "verify" ]; then echo "NO_STATE"; else echo "{}"; fi
       exit 0
     fi
     cat "$STATE_FILE"

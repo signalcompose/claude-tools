@@ -17,16 +17,12 @@ if [ "$STATE" = "{}" ]; then
     exit 0
 fi
 
-PR=$(echo "$STATE" | jq -r '.pr // "unknown"' 2>/dev/null)
-PHASE=$(echo "$STATE" | jq -r '.phase // "unknown"' 2>/dev/null)
-ITERATIONS=$(echo "$STATE" | jq -r '.iterations // 0' 2>/dev/null)
+read -r PR PHASE ITERATIONS < <(echo "$STATE" | jq -r '[.pr // "unknown", .phase // "unknown", (.iterations // 0 | tostring)] | @tsv' 2>/dev/null || echo "unknown unknown 0")
 
 cat << EOF
 🔴 PR REVIEW IN PROGRESS (recovered after compaction)
 PR: #$PR | Phase: $PHASE | Iterations: $ITERATIONS
-State file: $STATE_FILE
 Full state: $STATE
 
 Continue the pr-review-team workflow from where you left off.
-Read the state file for details: cat $STATE_FILE
 EOF
