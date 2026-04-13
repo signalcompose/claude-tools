@@ -43,7 +43,7 @@ Required entries in `.claude/settings.local.json` for dev-cycle workflows.
 ### Other (optional)
 
 ```json
-"Skill(codex:codex-research)",
+"Skill(ask-codex:codex-research)",
 "WebFetch(domain:registry.npmjs.org)"
 ```
 
