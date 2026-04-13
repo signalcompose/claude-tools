@@ -74,6 +74,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Acquire project-specific lock using mkdir (atomic operation)
 debug_log "Acquiring lock: $LOCK_DIR"
 
+# Ensure parent lock directory exists (may be cleaned on reboot)
+mkdir -p "/tmp/cvi"
+
 # Try to acquire lock (wait up to 30 seconds)
 TIMEOUT=30
 START_TIME=$(date +%s)
