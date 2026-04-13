@@ -25,7 +25,7 @@ Run `gemini` once to complete OAuth authentication with your Google account.
 ## Installation
 
 ```bash
-/plugin install gemini@claude-tools
+/plugin install ask-gemini@claude-tools
 ```
 
 ## Usage
@@ -33,7 +33,7 @@ Run `gemini` once to complete OAuth authentication with your Google account.
 ### Command
 
 ```
-/gemini:search <query>
+/ask-gemini:search <query>
 ```
 
 ### Skill
@@ -43,9 +43,9 @@ The `gemini-search` skill is automatically available for Claude to use when web 
 ### Examples
 
 ```
-/gemini:search Claude Code latest features 2026
-/gemini:search OpenAI API rate limits
-/gemini:search React 19 new features
+/ask-gemini:search Claude Code latest features 2026
+/ask-gemini:search OpenAI API rate limits
+/ask-gemini:search React 19 new features
 ```
 
 ## How It Works

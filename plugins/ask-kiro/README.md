@@ -20,19 +20,19 @@ AWS Kiro CLI integration for Claude Code - your AWS expert assistant.
 ## Installation
 
 ```bash
-/plugin install kiro@claude-tools
+/plugin install ask-kiro@claude-tools
 ```
 
 ## Commands
 
-### `/kiro:research`
+### `/ask-kiro:research`
 
 Research AWS topics using Kiro CLI.
 
 ```bash
-/kiro:research What is AWS Lambda?
-/kiro:research How to troubleshoot CloudFormation stack failures
-/kiro:research Best practices for AWS CDK project structure
+/ask-kiro:research What is AWS Lambda?
+/ask-kiro:research How to troubleshoot CloudFormation stack failures
+/ask-kiro:research Best practices for AWS CDK project structure
 ```
 
 ## Kiro CLI Options

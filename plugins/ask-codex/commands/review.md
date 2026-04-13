@@ -48,10 +48,10 @@ After execution:
 ## Usage Examples
 
 ```
-/codex:review --staged
-/codex:review src/index.ts
-/codex:review ./lib
-/codex:review package.json
+/ask-codex:review --staged
+/ask-codex:review src/index.ts
+/ask-codex:review ./lib
+/ask-codex:review package.json
 ```
 
 ## Notes

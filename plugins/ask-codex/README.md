@@ -21,28 +21,28 @@ OpenAI Codex CLI integration for Claude Code.
 ## Installation
 
 ```bash
-/plugin install codex@claude-tools
+/plugin install ask-codex@claude-tools
 ```
 
 ## Commands
 
-### `/codex:research`
+### `/ask-codex:research`
 
 Research technical topics using Codex CLI.
 
 ```bash
-/codex:research What is dependency injection
-/codex:research How to implement retry logic in TypeScript
+/ask-codex:research What is dependency injection
+/ask-codex:research How to implement retry logic in TypeScript
 ```
 
-### `/codex:review`
+### `/ask-codex:review`
 
 Review code using Codex CLI.
 
 ```bash
-/codex:review --staged        # Review staged git changes
-/codex:review src/index.ts    # Review specific file
-/codex:review ./lib           # Review directory
+/ask-codex:review --staged        # Review staged git changes
+/ask-codex:review src/index.ts    # Review specific file
+/ask-codex:review ./lib           # Review directory
 ```
 
 ## Configuration
