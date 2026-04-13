@@ -12,9 +12,9 @@ claude-tools/
 │   ├── chezmoi/           # Direct（マーケットプレイス内配置）
 │   ├── code/              # Direct（マーケットプレイス内配置）
 │   ├── utils/             # Direct
-│   ├── codex/             # Direct
-│   ├── gemini/            # Direct
-│   ├── kiro/              # Direct
+│   ├── ask-codex/         # Direct
+│   ├── ask-gemini/        # Direct
+│   ├── ask-kiro/          # Direct
 │   └── x-article/         # Direct
 ├── docs/
 │   ├── INDEX.md
@@ -38,9 +38,9 @@ claude-tools/
 | chezmoi | Direct | plugins/chezmoi | dotfiles管理 |
 | code | Direct | plugins/code | コードレビュー |
 | utils | Direct | plugins/utils | ユーティリティ |
-| codex | Direct | plugins/codex | Codex統合 |
-| gemini | Direct | plugins/gemini | Gemini統合 |
-| kiro | Direct | plugins/kiro | Kiro統合 |
+| ask-codex | Direct | plugins/ask-codex | Codex統合 |
+| ask-gemini | Direct | plugins/ask-gemini | Gemini統合 |
+| ask-kiro | Direct | plugins/ask-kiro | Kiro統合 |
 | x-article | Direct | plugins/x-article | X Articles投稿自動化 |
 
 ## プラグイン管理方式
@@ -63,7 +63,7 @@ git subtree push --prefix=plugins/<plugin> https://github.com/signalcompose/<plu
 
 マーケットプレイス内に直接配置。シンプルだが独立管理はできない。
 
-**使用プラグイン**: chezmoi, code, utils, codex, gemini, kiro, x-article
+**使用プラグイン**: chezmoi, code, utils, ask-codex, ask-gemini, ask-kiro, x-article
 
 ## Cowork 向け配布（GitHub Releases）
 

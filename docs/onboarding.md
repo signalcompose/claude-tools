@@ -24,9 +24,9 @@ claude-tools/
 │   ├── chezmoi/         # dotfiles管理
 │   ├── code/            # コードレビュー
 │   ├── utils/           # ユーティリティ
-│   ├── codex/           # Codex統合
-│   ├── gemini/          # Gemini統合
-│   └── kiro/            # Kiro統合
+│   ├── ask-codex/       # Codex統合
+│   ├── ask-gemini/      # Gemini統合
+│   └── ask-kiro/        # Kiro統合
 ├── docs/                # ドキュメント
 │   ├── INDEX.md
 │   ├── specifications.md
@@ -102,7 +102,7 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>  # Claude使用時
 ### 例
 
 ```
-feat(plugins): add gemini plugin
+feat(plugins): add ask-gemini plugin
 
 Gemini CLIを使用したWeb検索機能を追加
 

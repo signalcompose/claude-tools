@@ -42,10 +42,10 @@ After execution:
 ## Usage Examples
 
 ```
-/kiro:research What is AWS Lambda?
-/kiro:research How to troubleshoot CloudFormation stack failures
-/kiro:research Best practices for AWS CDK project structure
-/kiro:research Explain AWS VPC peering configuration
+/ask-kiro:research What is AWS Lambda?
+/ask-kiro:research How to troubleshoot CloudFormation stack failures
+/ask-kiro:research Best practices for AWS CDK project structure
+/ask-kiro:research Explain AWS VPC peering configuration
 ```
 
 ## Input Sanitization

@@ -40,9 +40,9 @@ After execution:
 ## Usage Examples
 
 ```
-/codex:research What is dependency injection
-/codex:research How to implement retry logic in TypeScript
-/codex:research Best practices for error handling in Node.js
+/ask-codex:research What is dependency injection
+/ask-codex:research How to implement retry logic in TypeScript
+/ask-codex:research Best practices for error handling in Node.js
 ```
 
 ## Notes

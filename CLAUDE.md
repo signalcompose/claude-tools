@@ -184,9 +184,9 @@ claude-tools/
 │   ├── chezmoi/       # chezmoi plugin
 │   ├── code/          # code plugin
 │   ├── utils/         # utils plugin
-│   ├── codex/         # codex plugin
-│   ├── gemini/        # gemini plugin
-│   └── kiro/          # kiro plugin
+│   ├── ask-codex/     # ask-codex plugin
+│   ├── ask-gemini/    # ask-gemini plugin
+│   └── ask-kiro/      # ask-kiro plugin
 ├── docs/              # ドキュメント
 │   ├── INDEX.md
 │   ├── specifications.md

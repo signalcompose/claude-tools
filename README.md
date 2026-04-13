@@ -68,9 +68,9 @@ One command. Four stages run autonomously.
 | Plugin | Commands | Description |
 |--------|----------|-------------|
 | [cvi](./plugins/cvi) | `/cvi:speak`, `/cvi:lang`, `/cvi:check` | Voice notifications for Claude Code on macOS |
-| [codex](./plugins/codex) | `/codex:research`, `/codex:review` | OpenAI Codex CLI integration for research and code review |
-| [gemini](./plugins/gemini) | `/gemini:search` | Google Gemini CLI integration for web search |
-| [kiro](./plugins/kiro) | `/kiro:research` | AWS Kiro CLI integration for AWS expert assistance |
+| [ask-codex](./plugins/ask-codex) | `/ask-codex:research`, `/ask-codex:review` | OpenAI Codex CLI integration for research and code review |
+| [ask-gemini](./plugins/ask-gemini) | `/ask-gemini:search` | Google Gemini CLI integration for web search |
+| [ask-kiro](./plugins/ask-kiro) | `/ask-kiro:research` | AWS Kiro CLI integration for AWS expert assistance |
 | [chezmoi](./plugins/chezmoi) | `/chezmoi:check`, `/chezmoi:sync` | Dotfiles management integration using chezmoi |
 | [utils](./plugins/utils) | `/utils:clear-plugin-cache` | Utility commands for plugin cache management |
 | [x-article](./plugins/x-article) | `/x-article:draft`, `/x-article:publish` | X (Twitter) Articles publishing workflow |
@@ -110,9 +110,9 @@ You can browse and install plugins using the interactive `/plugin` command, or u
 /plugin install chezmoi@claude-tools
 /plugin install code@claude-tools
 /plugin install utils@claude-tools
-/plugin install codex@claude-tools
-/plugin install gemini@claude-tools
-/plugin install kiro@claude-tools
+/plugin install ask-codex@claude-tools
+/plugin install ask-gemini@claude-tools
+/plugin install ask-kiro@claude-tools
 /plugin install x-article@claude-tools
 ```
 

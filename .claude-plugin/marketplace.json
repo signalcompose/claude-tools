@@ -43,25 +43,25 @@
       "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/utils"
     },
     {
-      "name": "codex",
+      "name": "ask-codex",
       "description": "OpenAI Codex CLI integration for research and code review",
-      "source": "./plugins/codex",
+      "source": "./plugins/ask-codex",
       "category": "developer-tools",
-      "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/codex"
+      "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/ask-codex"
     },
     {
-      "name": "gemini",
+      "name": "ask-gemini",
       "description": "Google Gemini CLI integration for web search",
-      "source": "./plugins/gemini",
+      "source": "./plugins/ask-gemini",
       "category": "productivity",
-      "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/gemini"
+      "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/ask-gemini"
     },
     {
-      "name": "kiro",
+      "name": "ask-kiro",
       "description": "AWS Kiro CLI integration for research and troubleshooting",
-      "source": "./plugins/kiro",
+      "source": "./plugins/ask-kiro",
       "category": "developer-tools",
-      "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/kiro"
+      "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/ask-kiro"
     },
     {
       "name": "x-article",
