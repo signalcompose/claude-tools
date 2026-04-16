@@ -40,7 +40,7 @@ The diagnostic script measures:
 Bottleneck: Template expansion (1Password/Age)
 
 Recommendations:
-- Increase timeout: export CHEZMOI_STATUS_TIMEOUT=10
+- Increase timeout: export CHEZMOI_STATUS_TIMEOUT=60
 - Optimize 1Password API calls
 - Consider caching template results
 

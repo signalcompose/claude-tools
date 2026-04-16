@@ -169,7 +169,7 @@ This will measure timing for:
 **Increase timeout**:
 ```bash
 # Add to ~/.zshrc
-export CHEZMOI_STATUS_TIMEOUT=10  # seconds
+export CHEZMOI_STATUS_TIMEOUT=60  # seconds
 ```
 
 **Common causes**:

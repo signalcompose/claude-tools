@@ -37,7 +37,7 @@ This measures timing for:
 #### Option A: Increase Timeout (Quick Fix)
 ```bash
 # Add to ~/.zshrc
-export CHEZMOI_STATUS_TIMEOUT=10  # seconds
+export CHEZMOI_STATUS_TIMEOUT=60  # seconds
 ```
 
 #### Option B: Reduce API Calls (Performance Fix)
@@ -76,7 +76,7 @@ export MY_SECRET="value"
 
 #### Option A: Increase Timeout
 ```bash
-export CHEZMOI_STATUS_TIMEOUT=8
+export CHEZMOI_STATUS_TIMEOUT=60
 ```
 
 #### Option B: Optimize Encrypted Files
@@ -148,7 +148,7 @@ EOF
 #### Increase Timeout for Slow Networks
 ```bash
 # Conservative timeout for slow networks
-export CHEZMOI_STATUS_TIMEOUT=15
+export CHEZMOI_STATUS_TIMEOUT=60
 ```
 
 #### Use Offline Mode (Advanced)
@@ -174,13 +174,13 @@ export MY_SECRET=$(op read "op://vault/item/field")
 ### Standard (Balanced)
 ```bash
 # ~/.zshrc
-export CHEZMOI_STATUS_TIMEOUT=8  # Allow some 1Password/Age overhead
+export CHEZMOI_STATUS_TIMEOUT=45  # Allow some 1Password/Age overhead
 ```
 
 ### High Security (Slower)
 ```bash
 # ~/.zshrc
-export CHEZMOI_STATUS_TIMEOUT=15  # Allow extensive 1Password API + Age
+export CHEZMOI_STATUS_TIMEOUT=60  # Allow extensive 1Password API + Age
 ```
 
 ## When Timeout is Normal vs. Concerning
