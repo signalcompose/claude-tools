@@ -35,12 +35,12 @@ The diagnostic script measures:
    → Normal
 
 3. chezmoi status (total): 3.8s
-   → Timeout threshold: 5s
+   → Timeout threshold: 30s
 
 Bottleneck: Template expansion (1Password/Age)
 
 Recommendations:
-- Increase timeout: export CHEZMOI_STATUS_TIMEOUT=10
+- Increase timeout: export CHEZMOI_STATUS_TIMEOUT=60
 - Optimize 1Password API calls
 - Consider caching template results
 

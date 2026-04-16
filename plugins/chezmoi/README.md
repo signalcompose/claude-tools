@@ -154,7 +154,7 @@ Ensure `~/.config/chezmoi/key.txt` exists and matches the encryption key.
 
 ### chezmoi status timeout
 
-If `chezmoi status` takes longer than expected (default 5 seconds):
+If `chezmoi status` takes longer than expected (default 30 seconds):
 
 **Diagnose the issue**:
 ```
@@ -169,7 +169,7 @@ This will measure timing for:
 **Increase timeout**:
 ```bash
 # Add to ~/.zshrc
-export CHEZMOI_STATUS_TIMEOUT=10  # seconds
+export CHEZMOI_STATUS_TIMEOUT=60  # seconds
 ```
 
 **Common causes**:

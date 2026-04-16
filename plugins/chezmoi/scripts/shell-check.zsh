@@ -103,7 +103,7 @@ function _chezmoi_check_sync() {
   fi
 
   # Check local changes with timeout (configurable via CHEZMOI_STATUS_TIMEOUT)
-  local timeout_seconds=${CHEZMOI_STATUS_TIMEOUT:-5}
+  local timeout_seconds=${CHEZMOI_STATUS_TIMEOUT:-30}
   local chezmoi_output chezmoi_exit
   local -a chezmoi_status_cmd=(chezmoi status)
   if command -v timeout &>/dev/null; then
@@ -146,7 +146,7 @@ function _chezmoi_check_sync() {
     }
     $has_status_timeout && {
       print -P "  %F{yellow}⚠%f Sync status unknown (timeout)"
-      print -P "    → Increase timeout: %F{green}export CHEZMOI_STATUS_TIMEOUT=10%f"
+      print -P "    → Increase timeout: %F{green}export CHEZMOI_STATUS_TIMEOUT=60%f"
     }
     print -P "%F{yellow}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%f"
   else

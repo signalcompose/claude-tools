@@ -5,7 +5,7 @@
 set -euo pipefail
 
 CHEZMOI_DIR="$HOME/.local/share/chezmoi"
-TIMEOUT_THRESHOLD=${CHEZMOI_STATUS_TIMEOUT:-5}
+TIMEOUT_THRESHOLD=${CHEZMOI_STATUS_TIMEOUT:-30}
 
 # Color codes
 RED='\033[0;31m'
@@ -106,7 +106,7 @@ echo ""
 # Recommendations
 echo -e "${CYAN}Recommendations:${NC}"
 if (( $(awk "BEGIN {print ($STATUS_TIME > $TIMEOUT_THRESHOLD)}") )); then
-  echo -e "  • Increase timeout: ${GREEN}export CHEZMOI_STATUS_TIMEOUT=$((TIMEOUT_THRESHOLD + 5))${NC}"
+  echo -e "  • Increase timeout: ${GREEN}export CHEZMOI_STATUS_TIMEOUT=$((TIMEOUT_THRESHOLD * 2))${NC}"
 fi
 
 if (( $(awk "BEGIN {print ($TEMPLATE_TIME > 2.0)}") )); then
