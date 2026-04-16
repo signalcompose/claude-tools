@@ -35,7 +35,7 @@ The diagnostic script measures:
    → Normal
 
 3. chezmoi status (total): 3.8s
-   → Timeout threshold: 5s
+   → Timeout threshold: 30s
 
 Bottleneck: Template expansion (1Password/Age)
 

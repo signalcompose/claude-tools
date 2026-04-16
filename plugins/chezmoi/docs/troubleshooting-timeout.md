@@ -4,10 +4,10 @@ This guide helps diagnose and resolve slow `chezmoi status` performance.
 
 ## Overview
 
-The shell sync checker runs `chezmoi status` with a timeout (default: 5 seconds). If the command takes too long, you'll see:
+The shell sync checker runs `chezmoi status` with a timeout (default: 30 seconds). If the command takes too long, you'll see:
 
 ```
-⚠ chezmoi status timed out (>5s)
+⚠ chezmoi status timed out (>30s)
    → Run: /chezmoi:diagnose-timeout to investigate
 ```
 

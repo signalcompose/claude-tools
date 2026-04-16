@@ -154,7 +154,7 @@ Ensure `~/.config/chezmoi/key.txt` exists and matches the encryption key.
 
 ### chezmoi status timeout
 
-If `chezmoi status` takes longer than expected (default 5 seconds):
+If `chezmoi status` takes longer than expected (default 30 seconds):
 
 **Diagnose the issue**:
 ```
