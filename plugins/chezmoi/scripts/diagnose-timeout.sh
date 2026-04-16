@@ -5,7 +5,7 @@
 set -euo pipefail
 
 CHEZMOI_DIR="$HOME/.local/share/chezmoi"
-TIMEOUT_THRESHOLD=${CHEZMOI_STATUS_TIMEOUT:-5}
+TIMEOUT_THRESHOLD=${CHEZMOI_STATUS_TIMEOUT:-30}
 
 # Color codes
 RED='\033[0;31m'
