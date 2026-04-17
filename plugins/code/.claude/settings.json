@@ -14,6 +14,14 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Edit(**)"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(sudo *)",
+      "Bash(chmod 777 *)",
+      "Read(./.env)",
+      "Read(./.env.*)"
     ]
   }
 }
