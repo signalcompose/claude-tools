@@ -37,9 +37,15 @@ The leader MUST:
 
 ## Step 1: Create Auto-Mode Sentinel (CRITICAL)
 
-Use the `Write` tool to create an empty sentinel file at `${CLAUDE_PROJECT_DIR}/.claude/code-plan-pending.flag`. The full rationale (why ExitPlanMode restore timing requires this) lives in `plugins/code/scripts/autopilot-permission-on-enter.sh`'s header — the short version is that this sentinel signals the hook to switch the session to auto mode before `EnterPlanMode` captures its "previous mode".
+Use the `Bash` tool to create the sentinel (the `mkdir -p` guards against fresh projects where `.claude/` does not yet exist — `Write` alone would fail silently in that case):
 
-Write the sentinel, then immediately call `EnterPlanMode` — no interleaved tool calls.
+```bash
+mkdir -p "${CLAUDE_PROJECT_DIR}/.claude" && touch "${CLAUDE_PROJECT_DIR}/.claude/code-plan-pending.flag"
+```
+
+The full rationale (why ExitPlanMode restore timing requires this) lives in `plugins/code/scripts/autopilot-permission-on-enter.sh`'s header — the short version is that this sentinel signals the hook to switch the session to auto mode before `EnterPlanMode` captures its "previous mode".
+
+Create the sentinel, then immediately call `EnterPlanMode` — no interleaved tool calls.
 
 ## Step 2: Enter Plan Mode
 
