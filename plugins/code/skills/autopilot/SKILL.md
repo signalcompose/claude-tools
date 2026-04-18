@@ -98,6 +98,14 @@ Both must be `0`. If not, `autopilot-stop.sh` cleans up state and exits. The use
 - If a phase fails (critical error, classifier block 3x, test failure):
   - Record the failure via `autopilot-state.sh set last_failure "..."` and exit the cycle cleanly. Do NOT retry indefinitely.
 
+**State hygiene — do not manually advance `phase`**:
+
+The Stop hook owns `phase` transitions. It reads the current phase to pick `NEXT_SKILL`, invokes the next skill, and advances the state atomically (see `autopilot-stop.sh` switch). Manually running `autopilot-state.sh set phase ...` while the pipeline is in flight *skips the next-skill dispatch* for the intermediate phase. Concrete failure mode previously observed: running `set phase post-pr-review` after the ship phase caused the hook to read that phase and jump directly to retrospective — `pr-review-team` was never invoked, and the PR shipped without its post-merge review.
+
+- ✅ OK: `autopilot-state.sh advance` (explicit single-step)
+- ✅ OK: `autopilot-state.sh set <non-phase-key> ...` (e.g. `last_successful_stage`, `issue_number`, `auto_mode_confidence`)
+- ❌ NOT OK: `autopilot-state.sh set phase ...` during normal flow — blocked by the script unless `AUTOPILOT_STATE_ALLOW_SET_PHASE=1` is set (reserved for manual resume-from-crash recovery)
+
 ## Step 4: Ready-to-merge stop
 
 After `retrospective` phase completes, the Stop hook cleans up the state file and allows stopping. At this point:

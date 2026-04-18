@@ -112,6 +112,15 @@ cmd_set() {
   [ -f "$STATE_FILE" ] || die "no state file; run init first"
   # Reject keys containing shell/jq metacharacters (defense against injection via arg)
   [[ "$key" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || die "invalid key: $key"
+  # Guard against bypassing the stop-hook's phase advance. Direct `set phase`
+  # skips the next-skill invocation step (the stop hook reads the current
+  # phase to pick NEXT_SKILL; manually jumping the phase forward silently
+  # omits the skill for the skipped phase — e.g. pr-review-team vanished
+  # when `set phase post-pr-review` was run after ship). `advance` is the
+  # intended API; direct `set phase` is reserved for resume-after-crash.
+  if [ "$key" = "phase" ] && [ -z "${AUTOPILOT_STATE_ALLOW_SET_PHASE:-}" ]; then
+    die "use 'advance' to move phases. Direct 'set phase' skips stop-hook skill dispatch. Set AUTOPILOT_STATE_ALLOW_SET_PHASE=1 only for manual recovery."
+  fi
   local now; now=$(iso_now)
   local tmp; tmp=$(mktemp)
   trap 'rm -f "$tmp"' RETURN
