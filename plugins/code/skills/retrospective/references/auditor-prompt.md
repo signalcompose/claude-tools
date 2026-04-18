@@ -25,7 +25,7 @@
    - Check `docs/dev-cycle-learnings.md` if it exists — were Active Learnings addressed in this sprint?
    - Was `/code:shipping-pr` skill used? (not ad-hoc push + PR)
    - Was `pr-review-toolkit:code-reviewer` Agent used for review? (not manual)
-   - Was `approve-review.sh` used for approval? (no manual hash creation)
+   - Was `set-review-flag.sh` used for approval? (no manual hash creation)
    - Were pre-commit hooks respected? (no `--no-verify`)
 
    **Detection methods**:

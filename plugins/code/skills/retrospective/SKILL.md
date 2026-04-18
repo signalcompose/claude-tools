@@ -68,7 +68,7 @@ Based on Auditor/Researcher findings:
 - Skill-level issues: Output a GitHub Issue suggestion (see Learnings PDCA below) — do NOT modify cached SKILL.md files
 - Process issues: Record lessons in MEMORY.md / CLAUDE.md
 
-After fixes: `code:review-commit` via Skill tool + `approve-review.sh` + commit.
+After fixes: `code:review-commit` via Skill tool + `set-review-flag.sh` + commit.
 
 ### Step 5: Commit Retrospective Artifacts
 

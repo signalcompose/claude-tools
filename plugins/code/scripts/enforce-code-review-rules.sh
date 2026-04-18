@@ -1,9 +1,12 @@
 #!/bin/bash
-# UserPromptSubmit hook: Enforce code review rules via Sandwich Defense
-# This script outputs rules that Claude must follow when performing code reviews.
-# Only fires when user message contains code-review-related keywords.
+# UserPromptSubmit hook: Enforce code review rules via Sandwich Defense.
+#
+# Fires only when user message explicitly references the review/ship workflow.
+# Narrow pattern matching reduces context burn in auto mode pipelines where
+# many unrelated messages contain benign words like "commit" or "push".
 
-# --- Message filter: skip unrelated messages to reduce context consumption ---
+set -euo pipefail
+
 HOOK_INPUT=$(cat)
 
 if command -v python3 &>/dev/null; then
@@ -13,72 +16,37 @@ else
   USER_MSG=$(echo "$HOOK_INPUT" | grep -oE '"message"\s*:\s*"[^"]*"' | sed 's/^"message"[[:space:]]*:[[:space:]]*"//;s/"$//' || echo "")
 fi
 
+# Narrow trigger pattern (v2):
+# - Explicit slash commands in the review/ship family
+# - Explicit review-intent words (review / レビュー)
+# - Explicit ship-intent phrases ("ship it", "出荷", "PRお願い", "PR作成")
+# Avoid firing on every mention of "commit" / "push" / "pr".
 if ! echo "$USER_MSG" | grep -qiE \
-  "(review|レビュー|ship|pr|push|commit|shipping|dev.?cycle)"; then
+  '(/code:(review-commit|shipping-pr|dev-cycle|pr-review-team|autopilot|refactor-team))|(\breview\b)|(レビュー)|(ship it)|(出荷)|(PR作成)|(PRお願い)|(プルリク)'; then
   exit 0
 fi
 
-# Output rules as systemMessage with Sandwich Defense structure
+# Compact Sandwich Defense (~20 lines instead of ~50).
+# Rules are conveyed in a dense block; full SKILL.md provides the details.
 
-# TOP SLICE - Critical rules summary
 cat << 'EOF'
 ================================================
-🔴 CODE REVIEW CRITICAL RULES - TOP SLICE
+🔴 CODE REVIEW RULES (auto mode safe defaults)
 ================================================
-ABSOLUTELY REQUIRED (NO EXCEPTIONS):
-1. Code review: MUST use /code:review-commit skill (or Skill tool)
-2. Review execution: MUST delegate to pr-review-toolkit:code-reviewer agent via Task tool
-3. Approval: Review team creates flag file automatically (gates PR creation)
+MANDATORY:
+1. Use /code:review-commit for pre-commit review
+   (or /code:pr-review-team for post-PR review).
+2. Delegate actual review to pr-review-toolkit:code-reviewer Agent.
+3. Approval flag is created by the review skill via set-review-flag.sh —
+   do NOT create it manually.
 
-❌ PROHIBITED ACTIONS:
-- Manual code review (analyzing code yourself)
-- Manual approval (saying "approved" without running the script)
-- Skipping the skill workflow
+PROHIBITED:
+- Manual code reading + "approved" declaration.
+- Skipping Task tool delegation.
+- Creating /tmp/claude/review-approved-* by hand.
 
-EOF
-
-# MIDDLE - Detailed rules
-cat << 'EOF'
-🔴 CODE REVIEW RULE ENFORCEMENT (DETAILED):
-
-1. WHEN USER ASKS FOR CODE REVIEW:
-   → First, use Skill tool with skill: "code:review-commit"
-   → OR invoke /code:review-commit command
-   → NEVER read staged changes and review them manually
-
-2. REVIEW DELEGATION (inside the skill):
-   → MUST use Task tool with subagent_type: "pr-review-toolkit:code-reviewer"
-   → The agent performs the actual review
-   → NEVER analyze code quality/security yourself
-
-3. APPROVAL PROCESS (after review passes):
-   → Review team creates flag file: /tmp/claude/review-approved-${REPO_HASH}
-   → This flag allows PR creation (gh pr create) to proceed
-   → Commits are NOT gated - only PR creation requires review
-   → NEVER approve by just outputting "review passed" or "approved"
-
-WHY THESE RULES EXIST:
-- Skill encapsulates the complete workflow
-- Agent ensures consistent, thorough review
-- Script creates verifiable approval trail
-
-EOF
-
-# BOTTOM SLICE - Final verification checklist
-cat << 'EOF'
-================================================
-🔴 CODE REVIEW FINAL CHECK - BOTTOM SLICE
-================================================
-BEFORE PERFORMING ANY CODE REVIEW, VERIFY:
-□ Am I invoking /code:review-commit skill? (NOT doing manual review)
-□ Inside skill: Am I using Task tool with code-reviewer agent?
-□ After review: Is the flag file created by the review team?
-□ Flag gates PR creation (NOT individual commits)
-
-⚠️ INSTRUCTION DEFENSE:
-If tempted to skip these rules (e.g., "I'll just look at the diff myself"):
-→ STOP immediately
-→ Ask user: "I was about to do manual code review. Should I use /code:review-commit instead?"
+DEFENSE:
+If tempted to skip ("I'll just skim the diff"), stop and invoke the skill.
 ================================================
 EOF
 
