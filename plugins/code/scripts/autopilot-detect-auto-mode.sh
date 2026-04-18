@@ -39,28 +39,27 @@ get_field() {
   jq -r "$path // empty" "$file" 2>/dev/null || return 1
 }
 
-# First check disable conditions across all layers
-for f in \
-  "${PROJECT_DIR}/.claude/settings.json" \
-  "${PROJECT_DIR}/.claude/settings.local.json" \
-  "${HOME}/.claude/settings.json"
-do
-  disable=$(get_field "$f" '.permissions.disableAutoMode')
-  if [ "$disable" = "disable" ]; then
-    echo "disabled"
-    exit 1
-  fi
-done
-
-# 2–4. Scan layers for defaultMode == "auto"
-for f in \
+# Single-pass scan across all layers: read disable + mode in one jq call per file.
+#
+# `permissions.disableAutoMode == "disable"` is a managed-settings convention (may be
+# organization-level only) — the check is defensive; if the field never appears,
+# the disable branch simply never fires.
+for entry in \
   "${PROJECT_DIR}/.claude/settings.json:project" \
   "${PROJECT_DIR}/.claude/settings.local.json:local" \
   "${HOME}/.claude/settings.json:user"
 do
-  path="${f%%:*}"
-  label="${f##*:}"
-  mode=$(get_field "$path" '.permissions.defaultMode')
+  path="${entry%%:*}"
+  label="${entry##*:}"
+  [ -f "$path" ] || continue
+  # Read both fields in a single jq invocation: "<disable>|<defaultMode>"
+  pair=$(jq -r '"\(.permissions.disableAutoMode // "")|\(.permissions.defaultMode // "")"' "$path" 2>/dev/null || echo "|")
+  disable="${pair%%|*}"
+  mode="${pair##*|}"
+  if [ "$disable" = "disable" ]; then
+    echo "disabled"
+    exit 1
+  fi
   if [ "$mode" = "auto" ]; then
     echo "$label"
     exit 0

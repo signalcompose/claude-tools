@@ -24,11 +24,10 @@ STATE_FILE="${PROJECT_DIR}/.claude/autopilot.state.json"
 # Read hook input (guard: stop_hook_active prevents infinite loops)
 HOOK_INPUT=$(cat || true)
 
-if echo "$HOOK_INPUT" | jq empty 2>/dev/null; then
-  STOP_HOOK_ACTIVE=$(echo "$HOOK_INPUT" | jq -r '.stop_hook_active // false')
-  if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
-    exit 0
-  fi
+# Single jq pass: validate + extract. Default to false on invalid JSON.
+STOP_HOOK_ACTIVE=$(echo "$HOOK_INPUT" | jq -r '.stop_hook_active // false' 2>/dev/null || echo "false")
+if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
+  exit 0
 fi
 
 # Read current phase (fail-open if state file is stale)
@@ -42,6 +41,8 @@ case "$PHASE" in
     NEXT_PHASE="audit"
     ;;
   audit)
+    # `simplify` here refers to the plugin-registered skill of the same name
+    # (Review changed code for reuse, quality, efficiency). Invoke via Skill tool.
     NEXT_SKILL="simplify"
     NEXT_PHASE="simplify"
     ;;

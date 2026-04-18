@@ -80,10 +80,17 @@ Phase map (handled by Stop hook; documented here for transparency):
 |-------|----------------|------|
 | sprint | `code:sprint-impl` | plan file path |
 | audit | `code:audit-compliance` | — |
-| simplify | `simplify` (built-in) | — |
-| ship | `code:shipping-pr` | `--skip-review` |
+| simplify | `simplify` (plugin-registered skill) | — |
+| ship | `code:shipping-pr` | `--skip-review` (only after simplify metrics.critical == 0 AND metrics.important == 0) |
 | post-pr-review | `code:pr-review-team` | PR number (auto-detected) |
 | retrospective | `code:retrospective` | — |
+
+**Pre-ship gate**: before invoking `code:shipping-pr --skip-review`, the leader MUST verify:
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-state.sh get .metrics.critical
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-state.sh get .metrics.important
+```
+Both must be `0`. If not, re-enter the simplify phase (do not ship with unresolved review findings).
 
 **Leader behavior during pipeline**:
 - After completing a phase's work, invoke `Skill` for the next phase. The Stop hook detects phase transitions from the state file.

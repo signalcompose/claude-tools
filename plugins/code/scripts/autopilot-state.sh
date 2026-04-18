@@ -110,17 +110,22 @@ cmd_set() {
   local key="$1" value="$2"
   [ -n "$key" ] && [ -n "${value+x}" ] || die "usage: set <key> <value>"
   [ -f "$STATE_FILE" ] || die "no state file; run init first"
+  # Reject keys containing shell/jq metacharacters (defense against injection via arg)
+  [[ "$key" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || die "invalid key: $key"
   local now; now=$(iso_now)
   local tmp; tmp=$(mktemp)
-  # Always try to parse value as JSON; fall back to string
-  if jq -e ".$key = $value" "$STATE_FILE" >"$tmp" 2>/dev/null; then
+  # Prefer --argjson (typed JSON). Fall back to --arg (string) if value is not valid JSON.
+  # Single-pass write that also stamps updated_at; no secondary jq call.
+  if jq --arg key "$key" --argjson v "$value" --arg now "$now" \
+        '.[$key] = $v | .updated_at = $now' \
+        "$STATE_FILE" >"$tmp" 2>/dev/null; then
     :
   else
-    jq ".$key = \$v | .updated_at = \$now" --arg v "$value" --arg now "$now" "$STATE_FILE" >"$tmp"
+    jq --arg key "$key" --arg v "$value" --arg now "$now" \
+       '.[$key] = $v | .updated_at = $now' \
+       "$STATE_FILE" >"$tmp"
   fi
-  # Always stamp updated_at
-  jq --arg now "$now" '.updated_at = $now' "$tmp" > "$STATE_FILE"
-  rm -f "$tmp"
+  mv "$tmp" "$STATE_FILE"
   echo "set $key = $value"
 }
 
@@ -146,15 +151,19 @@ cmd_metric() {
   local name="$1" value="$2"
   [ -n "$name" ] && [ -n "${value+x}" ] || die "usage: metric <name> <value>"
   [ -f "$STATE_FILE" ] || die "no state file"
+  [[ "$name" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || die "invalid metric name: $name"
   local now; now=$(iso_now)
   local tmp; tmp=$(mktemp)
-  if jq -e ".metrics.$name = $value" "$STATE_FILE" >"$tmp" 2>/dev/null; then
+  if jq --arg name "$name" --argjson v "$value" --arg now "$now" \
+        '.metrics[$name] = $v | .updated_at = $now' \
+        "$STATE_FILE" >"$tmp" 2>/dev/null; then
     :
   else
-    jq ".metrics.$name = \$v | .updated_at = \$now" --arg v "$value" --arg now "$now" "$STATE_FILE" >"$tmp"
+    jq --arg name "$name" --arg v "$value" --arg now "$now" \
+       '.metrics[$name] = $v | .updated_at = $now' \
+       "$STATE_FILE" >"$tmp"
   fi
-  jq --arg now "$now" '.updated_at = $now' "$tmp" > "$STATE_FILE"
-  rm -f "$tmp"
+  mv "$tmp" "$STATE_FILE"
   echo "metric.$name = $value"
 }
 

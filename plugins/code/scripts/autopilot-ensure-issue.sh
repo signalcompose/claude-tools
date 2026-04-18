@@ -30,11 +30,16 @@ PLAN="${1:-}"
 [ -n "$PLAN" ] || die "usage: autopilot-ensure-issue.sh <plan-file>" 2
 [ -f "$PLAN" ] || die "plan file not found: $PLAN" 2
 
-# Read frontmatter block (between first two --- markers)
+# Temp file cleanup on any exit
+TMP_PLAN=""
+cleanup() { [ -n "$TMP_PLAN" ] && rm -f "$TMP_PLAN"; }
+trap cleanup EXIT
+
+# Read frontmatter block (between first two --- markers) - scoped lookup only
 frontmatter=$(awk '/^---$/{count++; if (count==2) exit; next} count==1' "$PLAN")
 
-issue_line=$(echo "$frontmatter" | grep -E '^issue:' || true)
-issue_raw=$(echo "$issue_line" | sed -E 's/^issue:[[:space:]]*//' | tr -d '[:space:]')
+# Look up `issue:` only inside frontmatter (prevents false match on body text)
+issue_raw=$(echo "$frontmatter" | awk '/^issue:/{sub(/^issue:[[:space:]]*/,""); print; exit}' | tr -d '[:space:]')
 
 # Normalize null/empty
 case "$issue_raw" in
@@ -65,30 +70,44 @@ if [ -z "$title" ]; then
 fi
 [ -n "$title" ] || die "could not derive title from plan" 2
 
-# Body: full plan content (strip the directive block marker since Issue shouldn't duplicate it)
-body=$(cat "$PLAN")
+# Body: strip the MANDATORY autopilot directive block and frontmatter before posting.
+# The directive is an internal routing signal; the GitHub issue should carry only
+# the human-readable content (Goal, Acceptance, Files, Test Strategy, Risks, References).
+body=$(awk '
+  /^🔴 \*\*MANDATORY\*\*/{skip_directive=1; next}
+  skip_directive && /^---$/{skip_directive=0; in_frontmatter=1; next}
+  in_frontmatter && /^---$/{in_frontmatter=0; next}
+  !skip_directive && !in_frontmatter{print}
+' "$PLAN")
 
-# Create issue
-url=$(gh issue create --title "$title" --body "$body" --label enhancement 2>&1 | tail -1)
+# If the directive/frontmatter strip resulted in an empty body, fall back to full content.
+[ -n "$body" ] || body=$(cat "$PLAN")
+
+# Create issue (label is optional - omit if repository lacks it)
+gh_args=(--title "$title" --body "$body")
+if gh label list --limit 50 --json name --jq '.[].name' 2>/dev/null | grep -qx enhancement; then
+  gh_args+=(--label enhancement)
+fi
+url=$(gh issue create "${gh_args[@]}" 2>&1 | tail -1)
 new_num=$(echo "$url" | grep -oE '[0-9]+$')
 [ -n "$new_num" ] || die "failed to parse issue number from: $url"
 
-# Update plan frontmatter: set issue: <new_num>
-# Use sed to replace 'issue: null' or missing issue line with new number
-if grep -qE '^issue:' "$PLAN"; then
-  # Replace existing issue line inside frontmatter only (first occurrence after first ---)
+# Update plan frontmatter: set issue: <new_num>. Use trap-tracked temp file.
+TMP_PLAN=$(mktemp)
+# Detect whether the frontmatter already contains an issue line
+has_issue=$(echo "$frontmatter" | awk '/^issue:/{found=1} END{print found+0}')
+if [ "$has_issue" = "1" ]; then
   awk -v num="$new_num" '
     /^---$/{count++; print; next}
     count==1 && /^issue:/{print "issue: " num; updated=1; next}
     {print}
     END{if (!updated) exit 2}
-  ' "$PLAN" > "$PLAN.tmp" && mv "$PLAN.tmp" "$PLAN"
+  ' "$PLAN" > "$TMP_PLAN" && mv "$TMP_PLAN" "$PLAN" && TMP_PLAN=""
 else
-  # Inject into frontmatter (after first --- line)
   awk -v num="$new_num" '
     /^---$/{count++; print; if (count==1) print "issue: " num; next}
     {print}
-  ' "$PLAN" > "$PLAN.tmp" && mv "$PLAN.tmp" "$PLAN"
+  ' "$PLAN" > "$TMP_PLAN" && mv "$TMP_PLAN" "$PLAN" && TMP_PLAN=""
 fi
 
 echo "$new_num"
