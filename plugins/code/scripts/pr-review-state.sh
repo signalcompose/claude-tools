@@ -16,6 +16,17 @@ fi
 
 STATE_DIR="/tmp/claude"
 STATE_FILE="${STATE_DIR}/pr-review-${PR_NUMBER}.state"
+DONE_FILE="${STATE_DIR}/pr-review-${PR_NUMBER}.done"
+
+# Create a temporary file inside $STATE_DIR rather than the default $TMPDIR.
+# Rationale: Claude Code's sandbox denies writes to /var/folders (the default
+# macOS TMPDIR) while allowing writes inside /tmp/claude once it's been
+# mkdir -p'd. Keeping scratch files alongside the real state avoids the
+# sandbox deny that broke `set` / `metric` in sandbox-enabled sessions.
+state_mktemp() {
+  mkdir -p "$STATE_DIR"
+  mktemp "${STATE_DIR}/.pr-review.tmp.XXXXXX"
+}
 
 case "$ACTION" in
   init)
@@ -34,7 +45,7 @@ case "$ACTION" in
       echo "ERROR: jq is required but not found" >&2
       exit 1
     fi
-    TMP=$(mktemp)
+    TMP=$(state_mktemp)
     trap 'rm -f "${TMP:-}"' EXIT
     jq --arg k "$KEY" --arg v "$VALUE" \
       '.[$k] = ($v | if . == "true" then true elif . == "false" then false else (try tonumber // .) end)' \
@@ -50,8 +61,26 @@ case "$ACTION" in
     cat "$STATE_FILE"
     ;;
   cleanup)
-    rm -f "$STATE_FILE"
-    echo "State cleaned up for PR #$PR_NUMBER"
+    # If the state shows a converged review (critical=0 AND important=0 AND
+    # rereview_done=true), preserve it as a `.done` marker so the Stop hook
+    # can recognize a legitimate completed review in future sessions — even
+    # after the transcript still carries evidence of the pr-review-team run.
+    # Otherwise (unconverged / missing fields), remove the state file
+    # unchanged — we don't want to leave misleading "done" markers for
+    # reviews that never finished.
+    if [ -f "$STATE_FILE" ] && command -v jq >/dev/null 2>&1 && \
+       jq -e '.final_critical == 0 and .final_important == 0 and .rereview_done == true' \
+          "$STATE_FILE" >/dev/null 2>&1; then
+      # mv -f: overwrite a prior .done for the same PR. The newer converged
+      # state supersedes any older marker — TTL-based GC in verify-workflow.sh
+      # would have pruned it eventually, but explicit overwrite here keeps
+      # behavior deterministic and avoids relying on mv's default.
+      mv -f "$STATE_FILE" "$DONE_FILE"
+      echo "State marked as .done for PR #$PR_NUMBER (converged)"
+    else
+      rm -f "$STATE_FILE"
+      echo "State cleaned up for PR #$PR_NUMBER"
+    fi
     ;;
   *)
     echo "Unknown action: $ACTION" >&2
