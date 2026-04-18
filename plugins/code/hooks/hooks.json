@@ -20,6 +20,16 @@
             "timeout": 10000
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-stop.sh",
+            "timeout": 10000
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
