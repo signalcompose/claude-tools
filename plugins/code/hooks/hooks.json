@@ -72,6 +72,16 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/auto-approve-plugin-scripts.sh",
+            "timeout": 2000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
             "if": "Bash(gh pr create*)",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-pr-review-gate.sh"
           }
