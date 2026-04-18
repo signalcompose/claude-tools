@@ -19,13 +19,15 @@ STATE_FILE="${STATE_DIR}/pr-review-${PR_NUMBER}.state"
 DONE_FILE="${STATE_DIR}/pr-review-${PR_NUMBER}.done"
 
 # Create a temporary file inside $STATE_DIR rather than the default $TMPDIR.
-# Rationale: Claude Code's sandbox denies writes to /var/folders (the default
-# macOS TMPDIR) while allowing writes inside /tmp/claude once it's been
-# mkdir -p'd. Keeping scratch files alongside the real state avoids the
-# sandbox deny that broke `set` / `metric` in sandbox-enabled sessions.
+# Claude Code's sandbox allow-list permits writes within /tmp/claude (once
+# mkdir -p'd) but denies the default macOS $TMPDIR (/var/folders/...).
+# Co-locating scratch files with the real state avoids the sandbox deny
+# that broke `set` / `metric` in sandbox-enabled sessions. Errors are
+# surfaced via stderr + non-zero return so callers' command substitution
+# sees the failure (bash's `local`/assignment swallows exit codes).
 state_mktemp() {
-  mkdir -p "$STATE_DIR"
-  mktemp "${STATE_DIR}/.pr-review.tmp.XXXXXX"
+  mkdir -p "$STATE_DIR" || { echo "pr-review-state: mkdir failed: $STATE_DIR" >&2; return 1; }
+  mktemp "${STATE_DIR}/.pr-review.tmp.XXXXXX" || { echo "pr-review-state: mktemp failed in $STATE_DIR" >&2; return 1; }
 }
 
 case "$ACTION" in
@@ -45,7 +47,7 @@ case "$ACTION" in
       echo "ERROR: jq is required but not found" >&2
       exit 1
     fi
-    TMP=$(state_mktemp)
+    TMP=$(state_mktemp) || exit 1
     trap 'rm -f "${TMP:-}"' EXIT
     jq --arg k "$KEY" --arg v "$VALUE" \
       '.[$k] = ($v | if . == "true" then true elif . == "false" then false else (try tonumber // .) end)' \
@@ -75,7 +77,13 @@ case "$ACTION" in
       # state supersedes any older marker — TTL-based GC in verify-workflow.sh
       # would have pruned it eventually, but explicit overwrite here keeps
       # behavior deterministic and avoids relying on mv's default.
-      mv -f "$STATE_FILE" "$DONE_FILE"
+      # Failure (cross-device, permissions) must NOT be silent: if mv doesn't
+      # complete, the stale .state would be mistaken for an in-progress review
+      # in the next Stop hook fire.
+      mv -f "$STATE_FILE" "$DONE_FILE" || {
+        echo "ERROR: mv failed: $STATE_FILE -> $DONE_FILE" >&2
+        exit 1
+      }
       echo "State marked as .done for PR #$PR_NUMBER (converged)"
     else
       rm -f "$STATE_FILE"

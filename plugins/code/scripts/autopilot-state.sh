@@ -43,13 +43,16 @@ iso_now() { date -u +"%Y-%m-%dT%H:%M:%SZ"; }
 die() { echo "autopilot-state: $*" >&2; exit 1; }
 
 # Create a temporary file next to $STATE_FILE rather than the default $TMPDIR.
-# Rationale: Claude Code's sandbox denies writes to /var/folders (the default
-# macOS TMPDIR) while allowing writes inside the project .claude/ directory.
-# Using the state file's dir keeps every write on the already-permitted path.
+# Claude Code's sandbox allow-list permits writes within the repository tree
+# (including the project's .claude/ directory) but denies the default macOS
+# $TMPDIR (/var/folders/...). Co-locating scratch files with the real state
+# keeps every write on an already-permitted path. Errors are surfaced via
+# stderr + non-zero return so callers' command substitution sees the failure
+# (bash's `local` swallows exit codes, hence the explicit `|| return 1`).
 state_mktemp() {
   local dir; dir=$(dirname "$STATE_FILE")
-  mkdir -p "$dir"
-  mktemp "$dir/.autopilot.tmp.XXXXXX"
+  mkdir -p "$dir" || { echo "autopilot-state: mkdir failed: $dir" >&2; return 1; }
+  mktemp "$dir/.autopilot.tmp.XXXXXX" || { echo "autopilot-state: mktemp failed in $dir" >&2; return 1; }
 }
 
 ensure_state_dir() {
@@ -132,7 +135,7 @@ cmd_set() {
     die "use 'advance' to move phases. Direct 'set phase' skips stop-hook skill dispatch. Set AUTOPILOT_STATE_ALLOW_SET_PHASE=1 only for manual recovery."
   fi
   local now; now=$(iso_now)
-  local tmp; tmp=$(state_mktemp)
+  local tmp; tmp=$(state_mktemp) || die "state_mktemp failed"
   trap 'rm -f "$tmp"' RETURN
   # Prefer --argjson (typed JSON). Fall back to --arg (string) if value is not valid JSON.
   # Single-pass write that also stamps updated_at; no secondary jq call.
@@ -154,7 +157,7 @@ cmd_advance() {
   local cur; cur=$(jq -r '.phase' "$STATE_FILE")
   local nxt; nxt=$(next_phase "$cur")
   local now; now=$(iso_now)
-  local tmp; tmp=$(state_mktemp)
+  local tmp; tmp=$(state_mktemp) || die "state_mktemp failed"
   trap 'rm -f "$tmp"' RETURN
   jq \
     --arg cur "$cur" \
@@ -174,7 +177,7 @@ cmd_metric() {
   [ -f "$STATE_FILE" ] || die "no state file"
   [[ "$name" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || die "invalid metric name: $name"
   local now; now=$(iso_now)
-  local tmp; tmp=$(state_mktemp)
+  local tmp; tmp=$(state_mktemp) || die "state_mktemp failed"
   trap 'rm -f "$tmp"' RETURN
   if jq --arg name "$name" --argjson v "$value" --arg now "$now" \
         '.metrics[$name] = $v | .updated_at = $now' \
