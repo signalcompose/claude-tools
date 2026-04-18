@@ -35,8 +35,20 @@ TMP_PLAN=""
 cleanup() { [ -n "$TMP_PLAN" ] && rm -f "$TMP_PLAN"; }
 trap cleanup EXIT
 
-# Read frontmatter block (between first two --- markers) - scoped lookup only
-frontmatter=$(awk '/^---$/{count++; if (count==2) exit; next} count==1' "$PLAN")
+# Extract frontmatter block.
+# Plan file canonical structure:
+#   [optional directive preamble (including "🔴 MANDATORY" lines)]
+#   ---                      <- frontmatter open (1st --- in file)
+#   <frontmatter content>
+#   ---                      <- frontmatter close (2nd --- in file)
+#   <body>
+# The directive preamble has no `---` terminator of its own — frontmatter's opening
+# --- is what ends it. So the frontmatter is simply the block between the FIRST
+# and SECOND --- markers in the file. Anything before the first --- is preamble.
+frontmatter=$(awk '
+  /^---$/ { count++; if (count==1) next; if (count==2) exit }
+  count==1 { print }
+' "$PLAN")
 
 # Look up `issue:` only inside frontmatter (prevents false match on body text)
 issue_raw=$(echo "$frontmatter" | awk '/^issue:/{sub(/^issue:[[:space:]]*/,""); print; exit}' | tr -d '[:space:]')
@@ -70,30 +82,12 @@ if [ -z "$title" ]; then
 fi
 [ -n "$title" ] || die "could not derive title from plan" 2
 
-# Body: strip the MANDATORY autopilot directive block and YAML frontmatter before posting.
-# The directive is an internal routing signal; the GitHub issue should carry only
-# the human-readable content (Goal, Acceptance, Files, Test Strategy, Risks, References).
-#
-# State machine handles the canonical plan structure:
-#   [directive: "🔴 MANDATORY..." ending with "---"]
-#   [optional frontmatter: "---...---"]
-#   [content]
-#
-# States: print (default) → skip_directive (hit 🔴) → post_directive (hit dir's ---)
-#         → skip_frontmatter (hit opening ---) OR print (non-dash content line)
-#         → print (hit closing ---)
+# Body: strip everything up to and including the frontmatter closing `---`.
+# The plan file layout is: [preamble/directive] → `---` → frontmatter → `---` → body.
+# We skip until the 2nd `---` (frontmatter close) and print everything after.
 body=$(awk '
-  BEGIN { mode="print" }
-  mode=="print" && /^🔴 \*\*MANDATORY\*\*/  { mode="skip_directive"; next }
-  mode=="skip_directive" && /^---$/          { mode="post_directive"; next }
-  mode=="skip_directive"                     { next }
-  # post_directive: blank lines between directive end and frontmatter start are skipped.
-  mode=="post_directive" && /^[[:space:]]*$/ { next }
-  mode=="post_directive" && /^---$/          { mode="skip_frontmatter"; next }
-  mode=="post_directive"                     { mode="print"; print; next }
-  mode=="skip_frontmatter" && /^---$/        { mode="print"; next }
-  mode=="skip_frontmatter"                   { next }
-  mode=="print"                              { print }
+  /^---$/ { count++; next }
+  count >= 2 { print }
 ' "$PLAN")
 
 # If the directive/frontmatter strip resulted in an empty body, fall back to full content.
@@ -110,22 +104,28 @@ new_num=$(echo "$url" | grep -oE '[0-9]+$')
 
 # Update plan frontmatter: set issue: <new_num>. Use trap-tracked temp file.
 # If this step fails after gh issue create, we must NOT silently leak the new issue number.
+# Frontmatter is the block between the 1st and 2nd `---` markers in the file.
 TMP_PLAN=$(mktemp)
 has_issue=$(echo "$frontmatter" | awk '/^issue:/{found=1} END{print found+0}')
 update_ok=0
-if [ "$has_issue" = "1" ]; then
-  awk -v num="$new_num" '
-    /^---$/{count++; print; next}
-    count==1 && /^issue:/{print "issue: " num; updated=1; next}
-    {print}
-    END{if (!updated) exit 2}
-  ' "$PLAN" > "$TMP_PLAN" && update_ok=1
-else
-  awk -v num="$new_num" '
-    /^---$/{count++; print; if (count==1) print "issue: " num; next}
-    {print}
-  ' "$PLAN" > "$TMP_PLAN" && update_ok=1
-fi
+awk -v num="$new_num" -v has_issue="$has_issue" '
+  /^---$/ {
+    count++
+    if (count == 2 && has_issue == "0" && !injected) {
+      print "issue: " num
+      injected = 1
+    }
+    print
+    next
+  }
+  count == 1 && /^issue:/ && has_issue == "1" {
+    print "issue: " num
+    injected = 1
+    next
+  }
+  { print }
+  END { if (!injected) exit 2 }
+' "$PLAN" > "$TMP_PLAN" && update_ok=1
 
 if [ "$update_ok" = "1" ]; then
   mv "$TMP_PLAN" "$PLAN"
