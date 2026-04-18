@@ -13,10 +13,10 @@
 #       → If CLOSED or missing: exit 1 with error.
 #   - Emits the resolved issue number on stdout.
 #
-# Requires: yq (v4+), gh, jq.
+# Requires: gh, jq, awk (all standard).
 # Exit codes:
 #   0 — OK, issue number on stdout
-#   1 — referenced issue is closed or missing
+#   1 — referenced issue is closed or missing, or plan update failed post-create
 #   2 — usage error / dependency missing
 
 set -euo pipefail
@@ -70,14 +70,30 @@ if [ -z "$title" ]; then
 fi
 [ -n "$title" ] || die "could not derive title from plan" 2
 
-# Body: strip the MANDATORY autopilot directive block and frontmatter before posting.
+# Body: strip the MANDATORY autopilot directive block and YAML frontmatter before posting.
 # The directive is an internal routing signal; the GitHub issue should carry only
 # the human-readable content (Goal, Acceptance, Files, Test Strategy, Risks, References).
+#
+# State machine handles the canonical plan structure:
+#   [directive: "🔴 MANDATORY..." ending with "---"]
+#   [optional frontmatter: "---...---"]
+#   [content]
+#
+# States: print (default) → skip_directive (hit 🔴) → post_directive (hit dir's ---)
+#         → skip_frontmatter (hit opening ---) OR print (non-dash content line)
+#         → print (hit closing ---)
 body=$(awk '
-  /^🔴 \*\*MANDATORY\*\*/{skip_directive=1; next}
-  skip_directive && /^---$/{skip_directive=0; in_frontmatter=1; next}
-  in_frontmatter && /^---$/{in_frontmatter=0; next}
-  !skip_directive && !in_frontmatter{print}
+  BEGIN { mode="print" }
+  mode=="print" && /^🔴 \*\*MANDATORY\*\*/  { mode="skip_directive"; next }
+  mode=="skip_directive" && /^---$/          { mode="post_directive"; next }
+  mode=="skip_directive"                     { next }
+  # post_directive: blank lines between directive end and frontmatter start are skipped.
+  mode=="post_directive" && /^[[:space:]]*$/ { next }
+  mode=="post_directive" && /^---$/          { mode="skip_frontmatter"; next }
+  mode=="post_directive"                     { mode="print"; print; next }
+  mode=="skip_frontmatter" && /^---$/        { mode="print"; next }
+  mode=="skip_frontmatter"                   { next }
+  mode=="print"                              { print }
 ' "$PLAN")
 
 # If the directive/frontmatter strip resulted in an empty body, fall back to full content.
@@ -93,21 +109,32 @@ new_num=$(echo "$url" | grep -oE '[0-9]+$')
 [ -n "$new_num" ] || die "failed to parse issue number from: $url"
 
 # Update plan frontmatter: set issue: <new_num>. Use trap-tracked temp file.
+# If this step fails after gh issue create, we must NOT silently leak the new issue number.
 TMP_PLAN=$(mktemp)
-# Detect whether the frontmatter already contains an issue line
 has_issue=$(echo "$frontmatter" | awk '/^issue:/{found=1} END{print found+0}')
+update_ok=0
 if [ "$has_issue" = "1" ]; then
   awk -v num="$new_num" '
     /^---$/{count++; print; next}
     count==1 && /^issue:/{print "issue: " num; updated=1; next}
     {print}
     END{if (!updated) exit 2}
-  ' "$PLAN" > "$TMP_PLAN" && mv "$TMP_PLAN" "$PLAN" && TMP_PLAN=""
+  ' "$PLAN" > "$TMP_PLAN" && update_ok=1
 else
   awk -v num="$new_num" '
     /^---$/{count++; print; if (count==1) print "issue: " num; next}
     {print}
-  ' "$PLAN" > "$TMP_PLAN" && mv "$TMP_PLAN" "$PLAN" && TMP_PLAN=""
+  ' "$PLAN" > "$TMP_PLAN" && update_ok=1
+fi
+
+if [ "$update_ok" = "1" ]; then
+  mv "$TMP_PLAN" "$PLAN"
+  TMP_PLAN=""
+else
+  echo "autopilot-ensure-issue: WARNING: issue #$new_num was created on GitHub but the plan file" >&2
+  echo "  could not be updated with the link. Manual fix required: add 'issue: $new_num' to the" >&2
+  echo "  frontmatter of $PLAN, or re-run this script after fixing the frontmatter format." >&2
+  exit 1
 fi
 
 echo "$new_num"

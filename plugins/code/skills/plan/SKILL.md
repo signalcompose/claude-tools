@@ -103,12 +103,29 @@ Once the plan file is complete (including the directive and frontmatter), call `
 
 **MANDATORY after approval**: Immediately invoke `/code:autopilot` with the plan file path as argument. Do not ask "should I proceed?" — the directive at the top of the plan makes this step obligatory.
 
-Example first action after approval:
+### Availability check
+
+Before invoking, verify `/code:autopilot` is installed:
+
+```bash
+test -f "${CLAUDE_PLUGIN_ROOT}/skills/autopilot/SKILL.md" && echo "autopilot: installed" || echo "autopilot: missing"
+```
+
+If installed → invoke:
 ```
 Next: /code:autopilot /Users/.../.claude/plans/<plan-file>.md
 ```
 
-If `/code:autopilot` is not yet installed (bootstrap paradox), state so explicitly and proceed with the manual pipeline equivalent (sprint-impl → audit-compliance → simplify → shipping-pr --skip-review → pr-review-team → retrospective).
+If missing (bootstrap paradox, or user has an older code plugin version) → state this explicitly in the response, then proceed with the manual pipeline equivalent by invoking each skill in order:
+
+1. `code:sprint-impl` with the plan file
+2. `code:audit-compliance`
+3. `simplify` (plugin-registered skill)
+4. `code:shipping-pr --skip-review`
+5. `code:pr-review-team`
+6. `code:retrospective`
+
+The manual sequence has no Stop hook enforcement, so transitions between skills are driven by the leader's compliance with the plan's directive.
 
 ## Error Handling
 

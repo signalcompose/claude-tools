@@ -114,6 +114,7 @@ cmd_set() {
   [[ "$key" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || die "invalid key: $key"
   local now; now=$(iso_now)
   local tmp; tmp=$(mktemp)
+  trap 'rm -f "$tmp"' RETURN
   # Prefer --argjson (typed JSON). Fall back to --arg (string) if value is not valid JSON.
   # Single-pass write that also stamps updated_at; no secondary jq call.
   if jq --arg key "$key" --argjson v "$value" --arg now "$now" \
@@ -135,6 +136,7 @@ cmd_advance() {
   local nxt; nxt=$(next_phase "$cur")
   local now; now=$(iso_now)
   local tmp; tmp=$(mktemp)
+  trap 'rm -f "$tmp"' RETURN
   jq \
     --arg cur "$cur" \
     --arg nxt "$nxt" \
@@ -154,6 +156,7 @@ cmd_metric() {
   [[ "$name" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || die "invalid metric name: $name"
   local now; now=$(iso_now)
   local tmp; tmp=$(mktemp)
+  trap 'rm -f "$tmp"' RETURN
   if jq --arg name "$name" --argjson v "$value" --arg now "$now" \
         '.metrics[$name] = $v | .updated_at = $now' \
         "$STATE_FILE" >"$tmp" 2>/dev/null; then

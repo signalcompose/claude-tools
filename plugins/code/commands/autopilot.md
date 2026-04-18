@@ -19,17 +19,27 @@ auto mode 前提のフルパイプライン orchestrator。プラン承認から
 
 ## パイプライン
 
+実行フェーズ（`.claude/autopilot.state.json` の `.phase` フィールド）:
+
 ```
-Stage 0: Auto mode 検出 + State 初期化
-Stage 1: sprint-impl        (実装、per-module commit)
-Stage 2: audit-compliance   (DDD/TDD/DRY/ISSUE/PROCESS)
-Stage 3: simplify           (built-in /simplify、3 agents 並列レビュー)
-Stage 3.5: ensure-issue     (plan.issue が null なら gh issue create)
-Stage 4: shipping-pr        (--skip-review で commit + push + PR 作成)
-Stage 5: pr-review-team     (CI 待機 + 4 agents + iterate)
-Stage 6: retrospective      (学習記録、Serena memory 保存)
-Stage 7: Ready-to-merge で停止 (マージは user 指示待ち)
+Prep:  Auto mode 検出 + state 初期化 + ensure-issue (plan.issue が null なら gh issue create)
+  ↓
+sprint          (code:sprint-impl — 実装、per-module commit)
+  ↓
+audit           (code:audit-compliance — DDD/TDD/DRY/ISSUE/PROCESS)
+  ↓
+simplify        (simplify — 3 agents 並列レビュー、critical+important=0 まで iterate)
+  ↓
+ship            (code:shipping-pr --skip-review — commit/push/PR 作成、simplify 収束後のみ)
+  ↓
+post-pr-review  (code:pr-review-team — CI 待機 + 4 agents + iterate)
+  ↓
+retrospective   (code:retrospective — 学習記録、Serena memory 保存)
+  ↓
+complete        (Ready-to-merge で停止、マージは user 指示待ち)
 ```
+
+`ensure-issue` は phase ではなく Prep 内の一括処理として実行される。
 
 停止条件: `critical + important = 0` AND `security pass` AND `CI SUCCESS`
 

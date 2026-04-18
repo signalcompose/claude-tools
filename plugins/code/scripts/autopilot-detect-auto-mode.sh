@@ -52,8 +52,12 @@ do
   path="${entry%%:*}"
   label="${entry##*:}"
   [ -f "$path" ] || continue
-  # Read both fields in a single jq invocation: "<disable>|<defaultMode>"
-  pair=$(jq -r '"\(.permissions.disableAutoMode // "")|\(.permissions.defaultMode // "")"' "$path" 2>/dev/null || echo "|")
+  # Read both fields in a single jq invocation. Distinguish jq parse errors
+  # (malformed JSON) from "field absent" so users get actionable guidance.
+  if ! pair=$(jq -r '"\(.permissions.disableAutoMode // "")|\(.permissions.defaultMode // "")"' "$path" 2>/dev/null); then
+    echo "autopilot-detect: warning: $path is malformed JSON; skipping" >&2
+    continue
+  fi
   disable="${pair%%|*}"
   mode="${pair##*|}"
   if [ "$disable" = "disable" ]; then

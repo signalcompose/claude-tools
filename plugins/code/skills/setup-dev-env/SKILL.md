@@ -202,7 +202,7 @@ jq '.permissions.allow | length' .claude/settings.local.json 2>/dev/null
 - **PASS**: All checks pass
 - **WARN**: Any bloat/staleness detected — list specific entries; propose removal via diff
 - **SKIP**: File does not exist
-- **Auto-fix**: Yes (with `--fix`) — present diff, apply after user approval. **Preserve personal-dependent entries** (browser sessions, 1Password CLI, personal MCP server allows) — never remove these even if flagged.
+- **Auto-fix**: Yes (with `--fix`) — present diff, apply after user approval. **Preserve personal-dependent entries** (browser sessions, 1Password CLI, personal MCP server allows) — never remove these even if flagged. If user declines or approves only a subset: apply exactly what was approved, leave the rest unchanged, and report which entries were skipped in the summary.
 
 ### Check 11: settings.json (Project) Triage
 
@@ -219,7 +219,7 @@ Inspect `.claude/settings.json` (committed, team-shared) for promotion candidate
 - **PASS**: Promotion pool is empty (or small) AND CLAUDE.md alignment OK
 - **WARN**: Promotion candidates found OR missing expected deny/ask entries — list with diff proposal
 - **SKIP**: File does not exist AND `settings.local.json` is also empty
-- **Auto-fix**: Yes (with `--fix`) — diff proposal, apply after user approval
+- **Auto-fix**: Yes (with `--fix`) — diff proposal, apply after user approval. If user declines or approves only a subset: apply exactly what was approved and report skipped entries in the summary. Never partial-write (either full approved-subset is applied, or nothing is changed).
 
 ### Check 12: Plugin-Bundled Settings Inspection (Read-only)
 

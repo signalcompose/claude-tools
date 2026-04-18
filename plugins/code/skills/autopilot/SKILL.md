@@ -90,7 +90,7 @@ Phase map (handled by Stop hook; documented here for transparency):
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-state.sh get .metrics.critical
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-state.sh get .metrics.important
 ```
-Both must be `0`. If not, re-enter the simplify phase (do not ship with unresolved review findings).
+Both must be `0`. If not, `autopilot-stop.sh` cleans up state and exits. The user must investigate the unresolved findings manually. Autopilot does not auto-loop back to simplify — convergence failure is a terminal state in the current design (rationale: 5 simplify iterations × N reviewers already represents meaningful budget; further auto-retries may mask structural issues).
 
 **Leader behavior during pipeline**:
 - After completing a phase's work, invoke `Skill` for the next phase. The Stop hook detects phase transitions from the state file.
