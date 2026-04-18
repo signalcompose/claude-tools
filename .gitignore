@@ -7,6 +7,8 @@
 .claude/.context-budget.json
 .claude/dev-cycle-checkpoint.md
 .claude/dev-cycle.state.json
+.claude/*.flag
+.claude/autopilot.state.json
 
 # Playwright MCP
 .playwright-mcp/
