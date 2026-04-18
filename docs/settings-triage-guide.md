@@ -117,8 +117,8 @@ allow 数が 50 を超えていたら次ステップへ。
 
 プロジェクトのチーム全員が使う汎用操作:
 
-- Git 書き込み基本: `Bash(git add:*)`, `Bash(git commit:*)`, `Bash(git push origin :*)`, `Bash(git push -u origin :*)`
-- GitHub 操作: `Bash(gh pr list:*)`, `Bash(gh pr create:*)`, `Bash(gh issue create:*)`
+- Git 書き込み基本: `Bash(git add :*)`, `Bash(git commit :*)`, `Bash(git push origin :*)`, `Bash(git push -u origin :*)`
+- GitHub 操作: `Bash(gh pr list :*)`, `Bash(gh pr create :*)`, `Bash(gh issue create :*)`
 - 共通 WebFetch: `WebFetch(domain:api.anthropic.com)`, `WebFetch(domain:docs.github.com)`
 - 共通 Skill: `Skill(code:review-commit)`, `Skill(pr-review-toolkit:review-pr)`
 - 共通 MCP: Serena, Context7 (プロジェクトで依存するもの)
@@ -145,7 +145,7 @@ allow 数が 50 を超えていたら次ステップへ。
 |------|-------------|
 | `Bash(git push --force :*)` | **deny** (完全禁止) |
 | `Bash(git push -f :*)` | **deny** |
-| `Bash(git push --force-with-lease :*)` | **ask** (rebase 後のみ許可) |
+| `Bash(git push --force-with-lease :*)` | **ask** (rebase 後の用途に限定して運用。`ask` はプロンプトで確認するのみで rebase の有無は検証しない) |
 | `Bash(git push :*)` in **allow** | ⚠️ narrow pattern 推奨。`ask` ルールで `--force-with-lease` を個別 gate すれば precedence (`deny > ask > allow`) により bypass はされないが、意図より広い許可になりやすい |
 | `Bash(git push origin :*)` in **allow** | ✅ 通常 push は narrow pattern で allow |
 
@@ -216,7 +216,7 @@ CLAUDE.md のルールは **どのツール経由でも** 適用すべき:
    → CLAUDE.md 違反。ask に移動。
 
 2. **`--force-with-lease` が allow を通過する**
-   → `Bash(git push:*)` 形式の broad allow が bypass 原因。narrow `Bash(git push origin :*)` に分離し、broad は ask に。
+   → `Bash(git push :*)` 形式の broad allow が bypass 原因。narrow `Bash(git push origin :*)` に分離し、broad は ask に。
 
 3. **MCP が permission gate を bypass**
    → `mcp__github__merge_pull_request`, `mcp__github__create_or_update_file`, `mcp__github__update_pull_request` は gh CLI 相当の gate で ask に。
