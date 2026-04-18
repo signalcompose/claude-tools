@@ -23,7 +23,7 @@ Verify and configure the development environment for dev-cycle workflows.
 
 ## Execution Flow
 
-Run all 8 checks in sequence. Collect results, then output a summary table.
+Run all 13 checks in sequence. Collect results, then output a summary table.
 
 ### Check 1: Node.js Version
 
@@ -163,6 +163,104 @@ grep -o 'code:security-patterns:[a-f0-9]*' .gitignore 2>/dev/null | head -1 | cu
 
 **Important**: A PreToolUse hook (`check-gitignore-security.sh`) blocks `git commit` when the marker is missing. Running `/code:setup-dev-env --fix` resolves this by adding the patterns.
 
+### Check 9: Auto Mode Heuristic
+
+Determine whether Claude Code is (or can be) running in auto mode for `/code:autopilot`.
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-detect-auto-mode.sh
+```
+
+Exit code semantics:
+- `0` — auto mode detected. Source printed to stdout (`opt-in-flag` / `project` / `local` / `user`).
+- `1` — disabled by a managed setting (`disableAutoMode == "disable"`).
+- `2` — not detected in any of the three layers.
+
+Status mapping:
+
+- **PASS**: detected (code 0)
+- **WARN (not detected)**: code 2 — `/code:autopilot` will refuse. Guidance: set `permissions.defaultMode: "auto"` in a settings layer, or touch `.claude/autopilot.auto-mode-confirmed` for a single-project opt-in.
+- **FAIL (disabled)**: code 1 — `/code:autopilot` cannot run. Guidance: managed setting disallows auto mode; escalate per organization policy.
+- **Auto-fix**: No — changing permission mode affects safety posture. Guidance only.
+
+### Check 10: settings.local.json Triage
+
+Inspect `.claude/settings.local.json` (gitignored, personal) for bloat and stale patterns. Reference: `docs/settings-triage-guide.md`.
+
+**Checks**:
+1. `allow` count < 50 (warn if >= 50)
+2. No project-absolute paths (e.g., `/Users/.../plugins/*/scripts/*.sh:*` — should use `${CLAUDE_PLUGIN_ROOT}`)
+3. No stale plugin cache paths (`~/.claude/plugins/cache/*/<commit-hash>/` where the commit is not current)
+4. No shell keywords in allow (`do`, `done`, `fi`, `then`, `else`)
+5. No one-shot HEREDOC commit commands in allow
+
+```bash
+# Quick sanity: count allow entries
+jq '.permissions.allow | length' .claude/settings.local.json 2>/dev/null
+```
+
+- **PASS**: All checks pass
+- **WARN**: Any bloat/staleness detected — list specific entries; propose removal via diff
+- **SKIP**: File does not exist
+- **Auto-fix**: Yes (with `--fix`) — present diff, apply after user approval. **Preserve personal-dependent entries** (browser sessions, 1Password CLI, personal MCP server allows) — never remove these even if flagged.
+
+### Check 11: settings.json (Project) Triage
+
+Inspect `.claude/settings.json` (committed, team-shared) for promotion candidates and CLAUDE.md alignment.
+
+**Checks**:
+1. Promotion candidates: entries in `settings.local.json` that are generic enough to share with teammates (git write operations, common `gh pr create`, common WebFetch domains, etc.)
+2. CLAUDE.md alignment:
+   - Force-push deny patterns present (`Bash(git push --force :*)`, `Bash(git push -f :*)`)
+   - `Bash(gh pr merge :*)` in `ask` (not `allow`) per CLAUDE.md merge rule
+   - `Bash(gh pr merge --squash :*)` in `deny` if project rejects squash merge (check project CLAUDE.md)
+3. `Read(./.env)` / `Read(./.env.*)` in `deny`
+
+- **PASS**: Promotion pool is empty (or small) AND CLAUDE.md alignment OK
+- **WARN**: Promotion candidates found OR missing expected deny/ask entries — list with diff proposal
+- **SKIP**: File does not exist AND `settings.local.json` is also empty
+- **Auto-fix**: Yes (with `--fix`) — diff proposal, apply after user approval
+
+### Check 12: Plugin-Bundled Settings Inspection (Read-only)
+
+Inspect `plugins/*/.claude/settings.json` across all installed plugins. **Read-only — never edit these files** (they are managed by each plugin's own repository).
+
+```bash
+find plugins -type f -path '*/.claude/settings.json' -print
+```
+
+For each plugin, report:
+- Exists? (yes/no)
+- Minimum deny list present? (force-push, sudo, chmod 777, Read(./.env))
+- Any suspicious broad allow (`Bash(*)`, `Bash(python *)`, `Bash(npm run *)`) — these are auto mode hazards
+
+- **PASS**: All inspected plugins have a minimum deny list and no broad allows
+- **WARN**: A plugin is missing recommended deny entries or has broad allow — report to user; propose upstream fix (PR to that plugin's repository)
+- **SKIP**: No `plugins/` directory OR no plugin-bundled settings found
+- **Auto-fix**: No — plugin-bundled settings are canonical in the upstream repository
+
+### Check 13: CLAUDE.md Integrity
+
+Verify that `./CLAUDE.md` (project-level) covers the required sections. `~/.claude/CLAUDE.md` (global) is read-only reference — never propose edits.
+
+Required sections (for projects in this marketplace):
+- Git workflow absolute prohibitions (main direct commit, force push, etc.)
+- Conventional Commits convention (commit title format, Co-Authored-By)
+- Humility principle (no superlatives, accurate reporting)
+- (For plugin projects) Plugin development conventions
+
+```bash
+# Very lightweight existence check (headings or keyword presence)
+grep -qE '(Git workflow|git 規約|禁止事項)'  CLAUDE.md && echo "git-rules: present" || echo "git-rules: missing"
+grep -qE '(Conventional Commits|コミット規約)' CLAUDE.md && echo "commit-rules: present" || echo "commit-rules: missing"
+grep -qE '(Humility|humility|謙虚|superlative)' CLAUDE.md && echo "humility: present" || echo "humility: missing"
+```
+
+- **PASS**: All required sections present
+- **WARN (missing)**: Specific sections missing — diff proposal with canonical text from `${CLAUDE_PLUGIN_ROOT}/skills/setup-dev-env/references/claude-md-template.md`
+- **SKIP**: `./CLAUDE.md` does not exist — guidance: "Consider adding a project CLAUDE.md to capture project-specific conventions"
+- **Auto-fix**: Yes (with `--fix`) — diff proposal, apply after user approval. **Never auto-append without user approval** — CLAUDE.md content is project-specific and context-dependent.
+
 ## Output Format
 
 After all checks complete, output a summary table:
@@ -180,6 +278,11 @@ After all checks complete, output a summary table:
 | 6 | Code review skill | PASS | code:review-commit available |
 | 7 | Permissions | PASS | All entries present |
 | 8 | .gitignore Security | PASS | Security patterns present |
+| 9 | Auto mode | PASS | detected via user settings |
+| 10 | settings.local triage | WARN | 135 allow entries (bloat) |
+| 11 | settings.json triage | PASS | aligned with CLAUDE.md |
+| 12 | Plugin-bundled settings | PASS | all 8 plugins OK (read-only) |
+| 13 | CLAUDE.md integrity | PASS | all required sections present |
 ```
 
 Status values:
