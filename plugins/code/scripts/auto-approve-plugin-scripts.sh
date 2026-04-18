@@ -49,11 +49,18 @@ command -v jq >/dev/null 2>&1 || exit 0
 cmd=$(echo "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null || true)
 [ -n "$cmd" ] || exit 0
 
-# Match: `bash <absolute-cache-path-to-.sh>` possibly followed by arguments.
-# The regex pins the path structure to a plugin cache directory to avoid
-# approving arbitrary system scripts. Example matched command:
-#   bash /Users/alice/.claude/plugins/cache/claude-tools/cvi/abc123/scripts/post-speak.sh "text"
-if echo "$cmd" | grep -qE '^bash[[:space:]]+/[^[:space:]]+/\.claude/plugins/cache/[^/]+/[^/]+/[^/]+/scripts/[^[:space:]]+\.sh([[:space:]]|$)'; then
+# Match: `bash <absolute-path>/plugins/<plugin-name>/scripts/<file>.sh` possibly
+# followed by arguments. This covers BOTH:
+#   - Installed cache paths: /Users/alice/.claude/plugins/cache/claude-tools/cvi/abc123/scripts/post-speak.sh
+#   - Local dev repo paths:  /Users/alice/Src/claude-tools/plugins/cvi/scripts/post-speak.sh
+# Both share the canonical `/plugins/<name>/scripts/*.sh` tail structure.
+#
+# Security note: a maliciously-crafted repo at /tmp/evil/plugins/x/scripts/y.sh
+# would also match. Deny rules (e.g. `Bash(rm *)`) still override hook decisions,
+# so destructive commands remain blocked regardless. For the intended use case
+# (trusted plugin scripts), this trade-off is acceptable and matches the
+# established plugin-script convention used across claude-tools.
+if echo "$cmd" | grep -qE '^bash[[:space:]]+/[^[:space:]]+/plugins/[^[:space:]]*/scripts/[^[:space:]]+\.sh([[:space:]]|$)'; then
   cat <<'JSON'
 {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"claude-tools plugin script"}}
 JSON
