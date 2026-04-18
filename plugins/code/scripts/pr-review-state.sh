@@ -16,6 +16,19 @@ fi
 
 STATE_DIR="/tmp/claude"
 STATE_FILE="${STATE_DIR}/pr-review-${PR_NUMBER}.state"
+DONE_FILE="${STATE_DIR}/pr-review-${PR_NUMBER}.done"
+
+# Create a temporary file inside $STATE_DIR rather than the default $TMPDIR.
+# Claude Code's sandbox allow-list permits writes within /tmp/claude (once
+# mkdir -p'd) but denies the default macOS $TMPDIR (/var/folders/...).
+# Co-locating scratch files with the real state avoids the sandbox deny
+# that broke `set` / `metric` in sandbox-enabled sessions. Errors are
+# surfaced via stderr + non-zero return so callers' command substitution
+# sees the failure (bash's `local`/assignment swallows exit codes).
+state_mktemp() {
+  mkdir -p "$STATE_DIR" || { echo "pr-review-state: mkdir failed: $STATE_DIR" >&2; return 1; }
+  mktemp "${STATE_DIR}/.pr-review.tmp.XXXXXX" || { echo "pr-review-state: mktemp failed in $STATE_DIR" >&2; return 1; }
+}
 
 case "$ACTION" in
   init)
@@ -34,7 +47,7 @@ case "$ACTION" in
       echo "ERROR: jq is required but not found" >&2
       exit 1
     fi
-    TMP=$(mktemp)
+    TMP=$(state_mktemp) || exit 1
     trap 'rm -f "${TMP:-}"' EXIT
     jq --arg k "$KEY" --arg v "$VALUE" \
       '.[$k] = ($v | if . == "true" then true elif . == "false" then false else (try tonumber // .) end)' \
@@ -50,8 +63,32 @@ case "$ACTION" in
     cat "$STATE_FILE"
     ;;
   cleanup)
-    rm -f "$STATE_FILE"
-    echo "State cleaned up for PR #$PR_NUMBER"
+    # If the state shows a converged review (critical=0 AND important=0 AND
+    # rereview_done=true), preserve it as a `.done` marker so the Stop hook
+    # can recognize a legitimate completed review in future sessions — even
+    # after the transcript still carries evidence of the pr-review-team run.
+    # Otherwise (unconverged / missing fields), remove the state file
+    # unchanged — we don't want to leave misleading "done" markers for
+    # reviews that never finished.
+    if [ -f "$STATE_FILE" ] && command -v jq >/dev/null 2>&1 && \
+       jq -e '.final_critical == 0 and .final_important == 0 and .rereview_done == true' \
+          "$STATE_FILE" >/dev/null 2>&1; then
+      # mv -f: overwrite a prior .done for the same PR. The newer converged
+      # state supersedes any older marker — TTL-based GC in verify-workflow.sh
+      # would have pruned it eventually, but explicit overwrite here keeps
+      # behavior deterministic and avoids relying on mv's default.
+      # Failure (cross-device, permissions) must NOT be silent: if mv doesn't
+      # complete, the stale .state would be mistaken for an in-progress review
+      # in the next Stop hook fire.
+      mv -f "$STATE_FILE" "$DONE_FILE" || {
+        echo "ERROR: mv failed: $STATE_FILE -> $DONE_FILE" >&2
+        exit 1
+      }
+      echo "State marked as .done for PR #$PR_NUMBER (converged)"
+    else
+      rm -f "$STATE_FILE"
+      echo "State cleaned up for PR #$PR_NUMBER"
+    fi
     ;;
   *)
     echo "Unknown action: $ACTION" >&2

@@ -13,18 +13,61 @@ if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
     exit 0
 fi
 
-# Session detection via flag file (state file doubles as active-review flag)
-# If no state file exists, this is not a pr-review-team session → pass immediately
+# Session detection via flag file.
+#   .state → an in-progress review (active workflow)
+#   .done  → a completed, converged review preserved by cleanup
+# pass-through priority: if a matching .done exists we trust it (review was
+# properly completed earlier) and skip the workflow checks. Otherwise we look
+# for .state; if neither exists but transcript shows pr-review-team, block so
+# the leader surfaces the missing initialization.
+# Initialize arrays before the glob so `set -u` doesn't trip on empty matches
+# in bash 3.2 (macOS default). nullglob makes the pattern expand to nothing,
+# leaving the pre-initialized empty array intact — safe to count with `${#arr[@]}`.
+STATE_FILES=()
+DONE_FILES=()
 shopt -s nullglob
 STATE_FILES=(/tmp/claude/pr-review-*.state)
+DONE_FILES=(/tmp/claude/pr-review-*.done)
 shopt -u nullglob
 
-# If no state file exists but the transcript shows pr-review-team was
-# launched, the skill skipped the mandatory `pr-review-state.sh init`
-# step — block stop so the leader surfaces the missing initialization.
-# Otherwise (no state + no pr-review-team evidence), this isn't a
-# pr-review-team session and we pass through.
+NOW=$(date +%s)
+
+# Garbage-collect expired .done markers (24h) so they don't accumulate.
+# `.done` is auto-kept longer than `.state` (24h vs 1h) because it legitimately
+# spans multiple sessions — a merged PR's done marker needs to outlive the
+# session that produced it.
+DONE_MAX_AGE=86400
+if [ ${#DONE_FILES[@]} -gt 0 ]; then
+    for f in "${DONE_FILES[@]}"; do
+        mtime=$(stat -f %m "$f" 2>/dev/null || stat -c %Y "$f" 2>/dev/null || echo 0)
+        if [ $((NOW - mtime)) -gt $DONE_MAX_AGE ]; then
+            rm -f "$f"
+        fi
+    done
+    # Rescan .done after GC
+    DONE_FILES=()
+    shopt -s nullglob
+    DONE_FILES=(/tmp/claude/pr-review-*.done)
+    shopt -u nullglob
+fi
+
+# Ordering is deliberate: if a `.state` exists we ALWAYS run the workflow
+# checks on it, even if an unrelated `.done` from a prior merged PR is still
+# present. Using `.done` to short-circuit here would let a stale marker from
+# PR X mask an in-progress, unconverged review of PR Y.
+#
+# `.done` pass-through only applies when there is NO active `.state` —
+# i.e. the session has no in-flight review and we're looking for whether to
+# credit a recently-completed one against the transcript evidence below.
+
+# If no .state either, decide between pass (no workflow in progress) and
+# block (pr-review-team launched without state init). A lingering `.done`
+# is treated as corroborating evidence that a review was properly completed
+# this session, so the transcript reference doesn't trigger a false block.
 if [ ${#STATE_FILES[@]} -eq 0 ]; then
+    if [ ${#DONE_FILES[@]} -gt 0 ]; then
+        exit 0
+    fi
     TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || echo "")
     if [ -n "$TRANSCRIPT_PATH" ] && [ -f "$TRANSCRIPT_PATH" ]; then
         if grep -qE 'Launching skill: code:pr-review-team|code:pr-review-team' "$TRANSCRIPT_PATH" 2>/dev/null; then
@@ -40,7 +83,6 @@ fi
 STATE_FILE="${STATE_FILES[0]}"
 STATE_MAX_AGE=3600
 STATE_MTIME=$(stat -f %m "$STATE_FILE" 2>/dev/null || stat -c %Y "$STATE_FILE" 2>/dev/null || echo 0)
-NOW=$(date +%s)
 if [ $((NOW - STATE_MTIME)) -gt $STATE_MAX_AGE ]; then
     rm -f "$STATE_FILE"
     exit 0

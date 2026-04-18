@@ -198,4 +198,9 @@ Report summary:
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh cleanup <PR番号>
 ```
 
+`cleanup` の挙動は state の状態によって分岐:
+
+- **converged** (`final_critical=0` AND `final_important=0` AND `rereview_done=true`): `.state` → `.done` にリネーム。`verify-workflow.sh` (Stop hook) は `.done` を「完了済みレビュー」として認識し、後続 session で transcript に pr-review-team 起動痕跡があっても誤 block しない。`.done` は 24 時間後に TTL で自動削除
+- **未 converged**: `.state` を `rm -f` (従来通り)。完了していない review の痕跡を残さない
+
 No shutdown procedure needed — subagents complete automatically.
