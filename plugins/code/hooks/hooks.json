@@ -1,5 +1,17 @@
 {
   "hooks": {
+    "PermissionRequest": [
+      {
+        "matcher": "EnterPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-permission-on-enter.sh",
+            "timeout": 2000
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "",
