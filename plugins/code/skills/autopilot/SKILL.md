@@ -100,7 +100,7 @@ Both must be `0`. If not, `autopilot-stop.sh` cleans up state and exits. The use
 
 **State hygiene — do not manually advance `phase`**:
 
-The Stop hook owns `phase` transitions. It reads the current phase to pick `NEXT_SKILL`, invokes the next skill, and advances the state atomically (see `autopilot-stop.sh` switch). Manually running `autopilot-state.sh set phase ...` while the pipeline is in flight *skips the next-skill dispatch* for the intermediate phase. Concrete failure mode previously observed: running `set phase post-pr-review` after the ship phase caused the hook to read that phase and jump directly to retrospective — `pr-review-team` was never invoked, and the PR shipped without its post-merge review.
+The Stop hook owns `phase` transitions. It reads the current phase to pick `NEXT_SKILL`, invokes the next skill, and advances the state atomically (see `autopilot-stop.sh` switch). Manually running `autopilot-state.sh set phase ...` while the pipeline is in flight *skips the next-skill dispatch* for the intermediate phase. Concrete failure mode previously observed: while phase was still `ship` (before the Stop hook had advanced it to `post-pr-review`), running `set phase post-pr-review` caused the next Stop hook fire to read `post-pr-review` as the current phase and dispatch `code:retrospective` — `pr-review-team` was never invoked, and the PR shipped without its post-merge review.
 
 - ✅ OK: `autopilot-state.sh advance` (explicit single-step)
 - ✅ OK: `autopilot-state.sh set <non-phase-key> ...` (e.g. `last_successful_stage`, `issue_number`, `auto_mode_confidence`)

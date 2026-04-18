@@ -52,13 +52,20 @@ SENTINEL="$PROJECT_DIR/.claude/code-plan-pending.flag"
 [ -f "$SENTINEL" ] || exit 0
 
 # Consume the sentinel (one-shot) before emitting the decision. If the rm
-# fails (read-only filesystem, race with /code:plan's cleanup), fail-open
-# rather than double-apply.
-rm -f "$SENTINEL" 2>/dev/null || exit 0
+# fails for any reason other than a benign race (e.g. permission error,
+# path is a directory), log to stderr so Claude Code's hook diagnostics
+# surface the failure — otherwise the user sees no error but auto mode
+# silently fails to activate, which is the exact failure this hook exists
+# to prevent.
+if ! rm -f "$SENTINEL" 2>/dev/null; then
+  echo "autopilot-permission-on-enter: rm sentinel failed ($?) — skipping auto-mode injection" >&2
+  exit 0
+fi
 
 # Emit PermissionRequest allow decision with session-scoped setMode.
-# The hook output format is documented in Claude Code's hooks-guide
-# (auto-approve-specific-permission-prompts section).
+# Also log to stderr so operators can confirm the hook fired during
+# empirical testing of the undocumented setMode/mode:auto contract.
+echo "autopilot-permission-on-enter: emitting setMode auto (session)" >&2
 cat <<'JSON'
 {"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow","updatedPermissions":[{"type":"setMode","mode":"auto","destination":"session"}]}}}
 JSON

@@ -40,10 +40,12 @@ The leader MUST:
 Use the `Bash` tool to create the sentinel (the `mkdir -p` guards against fresh projects where `.claude/` does not yet exist — `Write` alone would fail silently in that case):
 
 ```bash
-mkdir -p "${CLAUDE_PROJECT_DIR}/.claude" && touch "${CLAUDE_PROJECT_DIR}/.claude/code-plan-pending.flag"
+mkdir -p "${CLAUDE_PROJECT_DIR}/.claude" && touch "${CLAUDE_PROJECT_DIR}/.claude/code-plan-pending.flag" && echo OK
 ```
 
-The full rationale (why ExitPlanMode restore timing requires this) lives in `plugins/code/scripts/autopilot-permission-on-enter.sh`'s header — the short version is that this sentinel signals the hook to switch the session to auto mode before `EnterPlanMode` captures its "previous mode".
+**Error handling**: the `&& echo OK` tail makes success observable. If the Bash tool returns a non-zero exit or omits `OK` (directory not writable, disk full, etc.), the sentinel was not created and the hook will not fire — **surface this failure to the user and do not proceed to Step 2**. Silent continuation would leave autopilot in non-auto mode.
+
+The sentinel signals the `PermissionRequest` hook (`autopilot-permission-on-enter.sh`) to emit a `setMode auto` decision during the `EnterPlanMode` permission flow. The precise timing of when `setMode` takes effect relative to `EnterPlanMode`'s snapshot of the previous mode is undocumented — see the hook script header for the full mechanism description and known risks.
 
 Create the sentinel, then immediately call `EnterPlanMode` — no interleaved tool calls.
 
