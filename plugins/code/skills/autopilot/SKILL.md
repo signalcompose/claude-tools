@@ -130,12 +130,25 @@ To resume an interrupted cycle (new session, context recovered):
 
 The skill detects existing state and jumps to the recorded phase instead of reinitializing.
 
+## Sandbox bypass policy — do not use `dangerouslyDisableSandbox`
+
+The `Bash` tool accepts a `dangerouslyDisableSandbox: true` parameter. In auto mode this parameter **forces a user confirmation prompt** (auto mode intentionally refuses to auto-approve sandbox bypass, regardless of permission rules or hooks), breaking the autopilot flow. Empirical observations (2026-04-18):
+
+- `dangerouslyDisableSandbox` is evaluated on a layer *above* permission rules and PreToolUse hooks — neither can pre-approve it.
+- Auto mode's classifier auto-approves normal `Bash` calls (via `autoAllowBashIfSandboxed: true`) *inside* the sandbox; the plugin's `auto-approve-plugin-scripts.sh` hook further ensures plugin scripts pass without prompts.
+- Most operations the pipeline runs — `autopilot-state.sh` set/get, `autopilot-ensure-issue.sh`, `pr-review-state.sh`, `git`/`gh` CLI — touch only project-directory files and work correctly inside the sandbox. They do **not** need bypass.
+
+**Rule**: do not pass `dangerouslyDisableSandbox: true` from this skill or any phase it delegates to (sprint / simplify / ship / pr-review-team / retrospective). Let auto mode + the auto-approve hook handle permissions. The bypass is reserved for the narrow set of skills that genuinely need macOS audio/GUI system APIs (e.g. `cvi:speak` — which documents the requirement in its own skill file, tied to `say`/`afplay`/`osascript` failing inside the sandbox).
+
+If you encounter a bash command that actually fails inside the sandbox, surface the specific failure (filesystem / network / audio / etc.) before considering bypass. Defensive bypass on unrelated commands converts a silent auto-approval path into a blocking user prompt — which is exactly the regression this note exists to prevent.
+
 ## Important Notes
 
 - This skill runs **autonomously** in auto mode — no inter-phase confirmations
 - `/code:autopilot` is the **only authorized entry** for the full pipeline. Do NOT invoke `sprint-impl` → `audit-compliance` → ... manually in sequence outside autopilot.
 - The `skip_review` flag on `shipping-pr` is set automatically during the `ship` phase; do not set it manually.
 - The merge step (`gh pr merge`) is NEVER automatic. It requires explicit user instruction per CLAUDE.md rules.
+- **Do NOT pass `dangerouslyDisableSandbox: true`** on `Bash` tool calls. See the "Sandbox bypass policy" section above — the flag forces a blocking user prompt that auto mode intentionally refuses to auto-approve, breaking autopilot flow.
 - **When /code:autopilot is not available** (bootstrap): manually follow the pipeline in the same order. The plan directive's enforcement is via Claude's reading, not a runtime check.
 
 ## Related
