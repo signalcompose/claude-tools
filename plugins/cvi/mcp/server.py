@@ -2,7 +2,9 @@
 # /// script
 # requires-python = ">=3.10"
 # dependencies = [
-#     "mcp>=1.0",
+#     # Pin below 2.0 to guard against silent breakage on a future major
+#     # release (``from mcp.server.fastmcp import FastMCP`` could move).
+#     "mcp>=1.0,<2.0",
 # ]
 # ///
 """
