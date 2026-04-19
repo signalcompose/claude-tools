@@ -11,8 +11,11 @@
 CVI Voice MCP Server — interim TTS server while parrotvox is in development.
 
 Exposes a single `speak` tool that invokes macOS `say` for text-to-speech.
-The tool signature deliberately mirrors the planned parrotvox MCP shape so
-the migration reduces to swapping the server registration.
+This is the CVI plugin's own minimal implementation, independent of
+parrotvox (https://github.com/signalcompose/parrotvox) — the forthcoming
+standalone macOS TTS application that is planned to replace CVI entirely.
+When parrotvox becomes distribution-ready, CVI plugin is expected to be
+deprecated and users migrate to parrotvox directly.
 
 This server runs as a subprocess of Claude Code via .mcp.json registration
 and communicates over stdio JSON-RPC. Because MCP servers execute outside
