@@ -131,7 +131,10 @@ def speak(text: str, voice: str | None = None, rate: int | None = None) -> str:
     # Use the cached absolute path so the `_SAY_PATH is None` guard above
     # fully describes resolvability — avoids a second PATH lookup during
     # subprocess.run that could re-resolve under a changed environment.
-    cmd: list[str] = [_SAY_PATH, "-r", effective_rate]
+    # Local rebind narrows the module-level `str | None` to `str` for
+    # strict type-checkers; the None case has already raised.
+    say_path: str = _SAY_PATH
+    cmd: list[str] = [say_path, "-r", effective_rate]
     if effective_voice:
         cmd.extend(["-v", effective_voice])
     cmd.append(text)
