@@ -221,6 +221,19 @@ cat ~/.claude/settings.json
 
 ## 技術仕様
 
+### Speak 実行経路（2 本立て）
+
+CVI の speak は **2 つの経路**を持つ（Issue #233 で MCP 経路を追加、bash 経路は互換のため温存）:
+
+| 経路 | 実装 | Sandbox | `dangerouslyDisableSandbox` |
+|------|------|---------|-----|
+| **MCP（優先）** | `mcp/server.py` (FastMCP, Python) | 外（subprocess） | 不要 |
+| **Bash（fallback）** | `scripts/post-speak.sh` → `speak-sync.sh` | 内 | 必要 |
+
+優先順位は `commands/speak.md` の指示に従い、`mcp__cvi-voice__speak` が利用可能なら MCP、
+失敗時は bash fallback。parrotvox が配布可能になったら speak.md の server 指定を
+`mcp__parrotvox__speak` に差し替えるだけで移行できる設計。
+
 ### 音声合成
 
 - **日本語**: `say -v Kyoko`（macOS標準）

@@ -24,6 +24,8 @@ Claude Codeのタスク完了時に音声通知を行うシステム
 - **OS**: macOS（`say`, `afplay`コマンド使用）
 - **Claude Code**: 最新版
 - **権限**: スクリプト実行権限
+- **Python 3**: MCP server 経路で使用（標準の `python3` で可）
+- **`mcp` パッケージ**: `pip install mcp` （MCP server 経路が有効な場合のみ必須。Bash fallback のみで運用する場合は不要）
 
 ---
 
@@ -38,7 +40,18 @@ Claude Codeのプラグインシステムを使用してインストールでき
 /plugin add signalcompose/cvi
 ```
 
-これだけで完了です。hooks、コマンド、スキルが自動的に設定されます。
+これだけで完了です。hooks、コマンド、スキル、MCP server (`cvi-voice`) が自動的に設定されます。
+
+### MCP server の Python 依存
+
+MCP 経路を使う場合、初回のみ以下を実行してください:
+
+```bash
+pip install mcp
+```
+
+インストール省略でも Bash fallback（`dangerouslyDisableSandbox: true` 経由）で従来通り動作します。
+auto mode 下で permission prompt を出したくない場合は MCP 経路を推奨します。
 
 ### 初期設定
 
