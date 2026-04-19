@@ -39,7 +39,9 @@ _SAY_PATH = shutil.which("say")
 _CONFIG_DEFAULTS: dict[str, str] = {
     "CVI_ENABLED": "on",
     "VOICE_LANG": "en",
-    "SPEECH_RATE": "185",
+    # Aligned with bash `lib/config.sh` (default 200 wpm) — keep synchronized
+    # so switching between MCP and Bash fallback does not change voice pacing.
+    "SPEECH_RATE": "200",
     "VOICE_EN": "Zoe",
     "VOICE_JA": "Kyoko",
     "VOICE_MODE": "auto",
