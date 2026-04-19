@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "mcp>=1.0",
+# ]
+# ///
 """
 CVI Voice MCP Server — interim TTS server while parrotvox is in development.
 
