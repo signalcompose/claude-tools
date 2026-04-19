@@ -70,7 +70,14 @@ if [ ${#STATE_FILES[@]} -eq 0 ]; then
     fi
     TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || echo "")
     if [ -n "$TRANSCRIPT_PATH" ] && [ -f "$TRANSCRIPT_PATH" ]; then
-        if grep -qE 'Launching skill: code:pr-review-team|code:pr-review-team' "$TRANSCRIPT_PATH" 2>/dev/null; then
+        # Use a narrow match: only the explicit "Launching skill:" marker signals an
+        # actual invocation. The broader `code:pr-review-team` pattern also matched
+        # the skill listing injected into the session's system-reminder (available
+        # skills), producing false positives in sessions that never invoked the
+        # skill. See Issue #230.
+        # Word boundary on the right prevents matching a future sibling skill
+        # such as `code:pr-review-team-advanced`.
+        if grep -qE 'Launching skill: code:pr-review-team($|[^a-zA-Z0-9_-])' "$TRANSCRIPT_PATH" 2>/dev/null; then
             printf 'pr-review-team ran without pr-review-state.sh init. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh init <PR>` at the start of the skill — iteration convergence cannot be verified without state.' \
               | jq -Rs '{"decision":"block","reason":.}'
             exit 0

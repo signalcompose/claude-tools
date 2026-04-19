@@ -64,8 +64,13 @@ debug_log "Project root: $PROJECT_ROOT"
 PROJECT_HASH=$(echo "$PROJECT_ROOT" | md5 | cut -c1-16)
 debug_log "Project hash: $PROJECT_HASH"
 
-# Project-specific lock directory and PID file
-LOCK_DIR="/tmp/cvi/${PROJECT_HASH}.lock"
+# Project-specific lock directory and PID file.
+# Placed under /tmp/claude/ (Claude Code sandbox-writable prefix) so the skill
+# can acquire a lock without `dangerouslyDisableSandbox: true`. Previously
+# /tmp/cvi lived outside the sandbox write allowlist and forced bypass. See
+# Issue #231.
+LOCK_ROOT="/tmp/claude/cvi"
+LOCK_DIR="${LOCK_ROOT}/${PROJECT_HASH}.lock"
 PID_FILE="${LOCK_DIR}/pid"
 
 # Get script directory
@@ -75,7 +80,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 debug_log "Acquiring lock: $LOCK_DIR"
 
 # Ensure parent lock directory exists (may be cleaned on reboot)
-mkdir -p "/tmp/cvi"
+mkdir -p "$LOCK_ROOT"
 
 # Try to acquire lock (wait up to 30 seconds)
 TIMEOUT=30

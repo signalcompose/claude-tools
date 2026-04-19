@@ -5,7 +5,7 @@ description: |
   It loops until all critical/important review issues reach zero, then creates a PR.
   This skill should be used when the user says "ship it", "create PR", "commit and review", "出荷して", "PRお願い".
 user-invocable: true
-argument-hint: [--skip-review] [commit-message-hint]
+argument-hint: "[--skip-review] [commit-message-hint]"
 ---
 
 # Shipping PR
