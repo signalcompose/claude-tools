@@ -39,14 +39,19 @@ case "$ACTION" in
     # session_id is recorded as supplementary telemetry — verify-workflow.sh
     # currently keys off project_path only, but storing session_id now keeps
     # future debug / cross-session correlation cheap.
-    PROJECT_PATH="$(pwd -P)"
+    PROJECT_PATH="$(pwd -P 2>/dev/null || pwd)"
     SESSION_ID="${CLAUDE_SESSION_ID:-}"
     if ! command -v jq >/dev/null 2>&1; then
-      # jq unavailable: fall back to printf with manual escaping.
-      # Slashes in paths are JSON-safe; we assume no double-quote in paths
-      # (macOS / Linux project paths don't contain ").
+      # jq unavailable: fall back to printf. Escape backslash and double-quote
+      # to keep the emitted JSON valid even for unusual filesystem paths. We
+      # do not attempt full JSON escape (control chars, unicode) since POSIX
+      # filesystem conventions disallow those in directory names.
+      PROJECT_PATH_ESC="${PROJECT_PATH//\\/\\\\}"
+      PROJECT_PATH_ESC="${PROJECT_PATH_ESC//\"/\\\"}"
+      SESSION_ID_ESC="${SESSION_ID//\\/\\\\}"
+      SESSION_ID_ESC="${SESSION_ID_ESC//\"/\\\"}"
       printf '{"pr":"%s","session_id":"%s","project_path":"%s","phase":"started","reviewers_done":false,"security_done":false,"fixer_done":false,"rereview_done":false,"iterations":0,"final_critical":-1,"final_important":-1}' \
-        "$PR_NUMBER" "$SESSION_ID" "$PROJECT_PATH" > "$STATE_FILE"
+        "$PR_NUMBER" "$SESSION_ID_ESC" "$PROJECT_PATH_ESC" > "$STATE_FILE"
     else
       jq -n \
         --arg pr "$PR_NUMBER" \

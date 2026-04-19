@@ -98,9 +98,20 @@ fi
 # Read progress from state file
 STATE=$(cat "$STATE_FILE" 2>/dev/null || echo "{}")
 
+# Validate STATE is parseable JSON before field extraction. A corrupt / empty
+# / truncated state file would otherwise produce an empty STATE_PROJECT via
+# the `//` fallback, which the legacy-state branch below would silently
+# interpret as "no binding" and skip — masking a genuine in-progress review.
+# On indeterminate data we skip (TTL-based GC removes the file eventually)
+# rather than block, because raising a hard error on a race-induced truncated
+# state would create a different false-block pattern.
+if ! echo "$STATE" | jq -e . >/dev/null 2>&1; then
+    exit 0
+fi
+
 # Extract all state fields in a single jq call — includes project_path for
 # the Issue #236 cross-project binding check alongside the workflow fields.
-read -r STATE_PROJECT SECURITY_DONE FIXER_DONE REREVIEW_DONE FINAL_CRITICAL FINAL_IMPORTANT < <(echo "$STATE" | jq -r '[(.project_path // ""), (.security_done // false | tostring), (.fixer_done // false | tostring), (.rereview_done // false | tostring), (.final_critical // -1 | tostring), (.final_important // -1 | tostring)] | @tsv' 2>/dev/null || echo $'\tfalse\tfalse\tfalse\t-1\t-1')
+read -r STATE_PROJECT SECURITY_DONE FIXER_DONE REREVIEW_DONE FINAL_CRITICAL FINAL_IMPORTANT < <(echo "$STATE" | jq -r '[(.project_path // ""), (.security_done // false | tostring), (.fixer_done // false | tostring), (.rereview_done // false | tostring), (.final_critical // -1 | tostring), (.final_important // -1 | tostring)] | @tsv')
 
 # Project binding check (Issue #236): skip state files that belong to a
 # different project. Without this, a stale state from session A (working on
@@ -114,9 +125,11 @@ if [ -n "$STATE_PROJECT" ] && [ "$STATE_PROJECT" != "$CURRENT_PROJECT" ]; then
     # State belongs to another project — not our concern, let Stop proceed.
     exit 0
 fi
-# Legacy state files (pre-#236) lack project_path. Treat them as safe to
-# ignore for Stop purposes — the TTL cleanup above removes them eventually.
-# Blocking on them causes the exact bug Issue #236 describes.
+# Legacy state files (pre-#236) genuinely lack a project_path field. Since we
+# validated JSON above, an empty STATE_PROJECT at this point reflects the
+# real schema rather than a parse failure. Treat legacy state as safe to
+# ignore for Stop purposes — blocking on it causes the exact Issue #236
+# regression. The TTL cleanup above removes legacy files eventually.
 if [ -z "$STATE_PROJECT" ]; then
     exit 0
 fi

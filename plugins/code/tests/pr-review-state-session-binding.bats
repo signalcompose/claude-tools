@@ -10,8 +10,19 @@ setup() {
     export STATE_DIR="${TEST_DIR}/claude"
     mkdir -p "$STATE_DIR"
 
-    # Override /tmp/claude so we don't clobber real state files.
-    export TMPDIR_ORIG="${TMPDIR:-/tmp}"
+    # Isolate from any existing /tmp/claude/pr-review-*.state files: the
+    # production script picks STATE_FILES[0] (glob-sorted first), so a
+    # real-session state present at test time would be selected instead of
+    # ours. Move them to a per-test backup and restore in teardown.
+    mkdir -p /tmp/claude
+    export TEST_STATE_BACKUP="${TEST_DIR}/state-backup"
+    mkdir -p "$TEST_STATE_BACKUP"
+    shopt -s nullglob
+    local existing=(/tmp/claude/pr-review-*.state /tmp/claude/pr-review-*.done)
+    shopt -u nullglob
+    if [ "${#existing[@]}" -gt 0 ]; then
+        mv "${existing[@]}" "$TEST_STATE_BACKUP/" 2>/dev/null || true
+    fi
 
     # Resolve script paths relative to this test file.
     PLUGIN_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
@@ -24,10 +35,19 @@ setup() {
 }
 
 teardown() {
-    rm -rf "$TEST_DIR"
-    # Clean any test state files we may have created under the real
-    # /tmp/claude to prevent cross-test pollution.
+    # Remove test-created state files before restoring backups.
     rm -f /tmp/claude/pr-review-9999.state /tmp/claude/pr-review-9999.done
+
+    # Restore any pre-existing state files that setup moved aside.
+    if [ -d "$TEST_STATE_BACKUP" ]; then
+        shopt -s nullglob
+        local restored=("$TEST_STATE_BACKUP"/pr-review-*.state "$TEST_STATE_BACKUP"/pr-review-*.done)
+        shopt -u nullglob
+        if [ "${#restored[@]}" -gt 0 ]; then
+            mv "${restored[@]}" /tmp/claude/ 2>/dev/null || true
+        fi
+    fi
+    rm -rf "$TEST_DIR"
 }
 
 # Helper: invoke verify-workflow.sh with a minimal hook input JSON.
