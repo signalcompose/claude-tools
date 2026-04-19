@@ -33,7 +33,30 @@ state_mktemp() {
 case "$ACTION" in
   init)
     mkdir -p "$STATE_DIR"
-    printf '{"pr":"%s","phase":"started","reviewers_done":false,"security_done":false,"fixer_done":false,"rereview_done":false,"iterations":0,"final_critical":-1,"final_important":-1}' "$PR_NUMBER" > "$STATE_FILE"
+    # Record project_path so verify-workflow.sh can skip state files left by
+    # unrelated projects (Issue #236). `pwd -P` resolves symlinks for stable
+    # comparison; trailing slashes are stripped by pwd by default.
+    # session_id is recorded as supplementary telemetry — verify-workflow.sh
+    # currently keys off project_path only, but storing session_id now keeps
+    # future debug / cross-session correlation cheap.
+    PROJECT_PATH="$(pwd -P)"
+    SESSION_ID="${CLAUDE_SESSION_ID:-}"
+    if ! command -v jq >/dev/null 2>&1; then
+      # jq unavailable: fall back to printf with manual escaping.
+      # Slashes in paths are JSON-safe; we assume no double-quote in paths
+      # (macOS / Linux project paths don't contain ").
+      printf '{"pr":"%s","session_id":"%s","project_path":"%s","phase":"started","reviewers_done":false,"security_done":false,"fixer_done":false,"rereview_done":false,"iterations":0,"final_critical":-1,"final_important":-1}' \
+        "$PR_NUMBER" "$SESSION_ID" "$PROJECT_PATH" > "$STATE_FILE"
+    else
+      jq -n \
+        --arg pr "$PR_NUMBER" \
+        --arg session "$SESSION_ID" \
+        --arg project "$PROJECT_PATH" \
+        '{pr:$pr, session_id:$session, project_path:$project, phase:"started",
+          reviewers_done:false, security_done:false, fixer_done:false,
+          rereview_done:false, iterations:0, final_critical:-1, final_important:-1}' \
+        > "$STATE_FILE"
+    fi
     echo "State initialized for PR #$PR_NUMBER"
     ;;
   set)

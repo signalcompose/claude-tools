@@ -98,8 +98,28 @@ fi
 # Read progress from state file
 STATE=$(cat "$STATE_FILE" 2>/dev/null || echo "{}")
 
-# Extract state fields in a single jq call
-read -r SECURITY_DONE FIXER_DONE REREVIEW_DONE FINAL_CRITICAL FINAL_IMPORTANT < <(echo "$STATE" | jq -r '[(.security_done // false | tostring), (.fixer_done // false | tostring), (.rereview_done // false | tostring), (.final_critical // -1 | tostring), (.final_important // -1 | tostring)] | @tsv' 2>/dev/null || echo "false false false -1 -1")
+# Extract all state fields in a single jq call — includes project_path for
+# the Issue #236 cross-project binding check alongside the workflow fields.
+read -r STATE_PROJECT SECURITY_DONE FIXER_DONE REREVIEW_DONE FINAL_CRITICAL FINAL_IMPORTANT < <(echo "$STATE" | jq -r '[(.project_path // ""), (.security_done // false | tostring), (.fixer_done // false | tostring), (.rereview_done // false | tostring), (.final_critical // -1 | tostring), (.final_important // -1 | tostring)] | @tsv' 2>/dev/null || echo $'\tfalse\tfalse\tfalse\t-1\t-1')
+
+# Project binding check (Issue #236): skip state files that belong to a
+# different project. Without this, a stale state from session A (working on
+# project /foo) would block Stop in session B (working on project /bar). We
+# do NOT delete mismatched states here — the owning session may still be
+# active and will clean up on its own; TTL-based GC above handles truly
+# abandoned ones. `pwd -P` resolves symlinks so a checkout accessed via a
+# symlinked path still matches the canonical path recorded at init time.
+CURRENT_PROJECT="$(pwd -P 2>/dev/null || pwd)"
+if [ -n "$STATE_PROJECT" ] && [ "$STATE_PROJECT" != "$CURRENT_PROJECT" ]; then
+    # State belongs to another project — not our concern, let Stop proceed.
+    exit 0
+fi
+# Legacy state files (pre-#236) lack project_path. Treat them as safe to
+# ignore for Stop purposes — the TTL cleanup above removes them eventually.
+# Blocking on them causes the exact bug Issue #236 describes.
+if [ -z "$STATE_PROJECT" ]; then
+    exit 0
+fi
 
 # Load transcript once for all checks (avoid repeated file reads)
 TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || echo "")
