@@ -1,8 +1,10 @@
 {
   "mcpServers": {
     "cvi-voice": {
-      "command": "python3",
+      "command": "uv",
       "args": [
+        "run",
+        "--script",
         "${CLAUDE_PLUGIN_ROOT}/mcp/server.py"
       ]
     }
