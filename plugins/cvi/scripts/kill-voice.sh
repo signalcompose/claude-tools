@@ -30,7 +30,7 @@ PROJECT_HASH=$(echo "$PROJECT_ROOT" | md5 | cut -c1-16)
 debug_log "Project hash: $PROJECT_HASH"
 
 # Project-specific lock directory and PID file
-LOCK_DIR="/tmp/cvi/${PROJECT_HASH}.lock"
+LOCK_DIR="/tmp/claude/cvi/${PROJECT_HASH}.lock"
 PID_FILE="${LOCK_DIR}/pid"
 
 # If lock directory exists, read PID and kill the specific process

@@ -18,7 +18,7 @@ PROJECT_ROOT=$(pwd)
 PROJECT_HASH=$(echo "$PROJECT_ROOT" | md5 | cut -c1-16)
 
 # Project-specific lock directory
-LOCK_DIR="/tmp/cvi/${PROJECT_HASH}.lock"
+LOCK_DIR="/tmp/claude/cvi/${PROJECT_HASH}.lock"
 
 # If lock directory exists, voice is playing, skip this notification
 if [ -d "$LOCK_DIR" ]; then

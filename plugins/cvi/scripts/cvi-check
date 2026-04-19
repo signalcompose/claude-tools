@@ -35,7 +35,10 @@ echo ""
 # Check Siri voice
 echo -n "Siri音声: "
 if command -v say >/dev/null 2>&1; then
-    TEST_AUDIO="/tmp/cvi_voice_test_$$.aiff"
+    # Use /tmp/claude (sandbox-writable prefix) so diagnostics run inside the
+    # Claude Code sandbox without needing bypass. See Issue #231.
+    mkdir -p /tmp/claude
+    TEST_AUDIO="/tmp/claude/cvi_voice_test_$$.aiff"
     say -o "$TEST_AUDIO" "test" 2>/dev/null
 
     if [ -f "$TEST_AUDIO" ]; then

@@ -352,7 +352,7 @@ afplay -v 1.0 /System/Library/Sounds/Ping.aiff &
 
 #### Phase 2: プロジェクト分離
 
-- **プロジェクト固有のロック**: `/tmp/cvi/${PROJECT_HASH}.lock`
+- **プロジェクト固有のロック**: `/tmp/claude/cvi/${PROJECT_HASH}.lock`
   - プロジェクトルートのMD5ハッシュ（16文字）でロックファイルを分離
   - `flock -w 30`で最大30秒待機（デッドロック防止）
 - **Sentinel Value**: "INITIALIZING"でrace conditionを軽減
@@ -375,7 +375,7 @@ afplay -v 1.0 /System/Library/Sounds/Ping.aiff &
 ### ファイル構成
 
 ```
-/tmp/cvi/
+/tmp/claude/cvi/
 ├── ${PROJECT_HASH}.lock         # プロジェクト別ロックファイル
 └── ${PROJECT_HASH}.lock.pid     # sayプロセスのPID記録
 

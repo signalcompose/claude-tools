@@ -10,7 +10,7 @@ debug_log() {
     fi
 }
 
-LOCK_DIR="/tmp/cvi"
+LOCK_DIR="/tmp/claude/cvi"
 ERROR_LOG="$HOME/.cvi/error.log"
 
 # Exit early if lock directory doesn't exist
@@ -33,7 +33,10 @@ debug_log "Starting stale lock cleanup in $LOCK_DIR"
 
 CHECKED=0
 # Use temp file for counting cleaned locks (subshell variable issue)
-CLEANED_COUNT_FILE="/tmp/cvi/cleanup_count.$$"
+CLEANED_COUNT_FILE="/tmp/claude/cvi/cleanup_count.$$"
+# Defensive mkdir: the early-exit guard above checks LOCK_DIR (same parent) but
+# protect against a race between the check and this write.
+mkdir -p "$(dirname "$CLEANED_COUNT_FILE")" 2>/dev/null
 echo "0" > "$CLEANED_COUNT_FILE"
 
 # Ensure temp file cleanup on exit
