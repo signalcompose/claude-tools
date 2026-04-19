@@ -16,10 +16,10 @@
       "Edit(**)"
     ],
     "deny": [
-      "Bash(git push --force *)",
-      "Bash(git push -f *)",
-      "Bash(sudo *)",
-      "Bash(chmod 777 *)",
+      "Bash(git push --force :*)",
+      "Bash(git push -f :*)",
+      "Bash(sudo :*)",
+      "Bash(chmod 777 :*)",
       "Read(./.env)",
       "Read(./.env.*)"
     ]
