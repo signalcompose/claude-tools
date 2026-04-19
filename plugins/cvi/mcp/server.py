@@ -8,8 +8,10 @@ the migration reduces to swapping the server registration.
 
 This server runs as a subprocess of Claude Code via .mcp.json registration
 and communicates over stdio JSON-RPC. Because MCP servers execute outside
-the Bash sandbox, `say` / `afplay` / `osascript` work without needing
-`dangerouslyDisableSandbox: true`.
+the Bash sandbox, `say` works natively without needing
+`dangerouslyDisableSandbox: true`. (The notification / Glass-sound pieces
+that use `afplay` / `osascript` remain in the bash fallback — this server
+focuses on the speak tool only.)
 
 Fallback: if this server fails to start, the bundled bash post-speak.sh
 remains the speak path — see plugins/cvi/commands/speak.md.
@@ -17,9 +19,9 @@ remains the speak path — see plugins/cvi/commands/speak.md.
 
 from __future__ import annotations
 
-import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
@@ -47,9 +49,20 @@ _CONFIG_DEFAULTS: dict[str, str] = {
 
 
 def _load_config() -> dict[str, str]:
-    """Read ~/.cvi/config shell-style KEY=VALUE lines. Missing file → defaults."""
+    """Read ~/.cvi/config shell-style KEY=VALUE lines. Missing file → defaults.
+
+    A missing config is a first-run / fresh-machine condition, not a hard
+    failure — CVI has no critical setting that requires an explicit value
+    to be safe. We warn once to stderr so new users see the path that was
+    checked and can run ``/cvi:setup`` if they expected a config file.
+    """
     cfg = dict(_CONFIG_DEFAULTS)
     if not CVI_CONFIG_PATH.is_file():
+        print(
+            f"[cvi-voice] config not found at {CVI_CONFIG_PATH}; "
+            "using defaults (CVI_ENABLED=on). Run /cvi:setup to generate one.",
+            file=sys.stderr,
+        )
         return cfg
     for raw in CVI_CONFIG_PATH.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
@@ -115,7 +128,10 @@ def speak(text: str, voice: str | None = None, rate: int | None = None) -> str:
     effective_rate = str(rate) if rate is not None else cfg.get("SPEECH_RATE", "185")
     effective_voice = _resolve_voice(cfg, voice, detected_lang)
 
-    cmd: list[str] = ["say", "-r", effective_rate]
+    # Use the cached absolute path so the `_SAY_PATH is None` guard above
+    # fully describes resolvability — avoids a second PATH lookup during
+    # subprocess.run that could re-resolve under a changed environment.
+    cmd: list[str] = [_SAY_PATH, "-r", effective_rate]
     if effective_voice:
         cmd.extend(["-v", effective_voice])
     cmd.append(text)

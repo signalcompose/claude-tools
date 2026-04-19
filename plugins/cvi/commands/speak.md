@@ -32,8 +32,12 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-speak.sh "$ARGUMENTS"
 
 ## 結果表示
 
-いずれの経路でも、ツールの返り値（`Speaking: <text>`）を以下の形式でユーザーに表示してください（絵文字不可）:
+以下の形式でユーザーに表示してください（絵文字不可）:
 
 ```
 Voice: "読み上げたテキスト"
 ```
+
+- **MCP 経路**: ツールの返り値は `Speaking: <text>` 形式。`<text>` 部分を上の `"読み上げたテキスト"` に入れて表示する
+- **Bash fallback 経路**: `post-speak.sh` の stdout にも `Speaking: <text>` が出力される（script 末尾で echo）ので、MCP 経路と同じ扱い
+- **CVI 無効（`CVI_ENABLED=off`）のとき**: MCP 経路は `CVI is disabled. Enable with: /cvi:state on` を文字列として返す。この場合は `Voice: "..."` ではなく、その案内文字列をそのまま表示する
