@@ -75,7 +75,9 @@ if [ ${#STATE_FILES[@]} -eq 0 ]; then
         # the skill listing injected into the session's system-reminder (available
         # skills), producing false positives in sessions that never invoked the
         # skill. See Issue #230.
-        if grep -qE 'Launching skill: code:pr-review-team' "$TRANSCRIPT_PATH" 2>/dev/null; then
+        # Word boundary on the right prevents matching a future sibling skill
+        # such as `code:pr-review-team-advanced`.
+        if grep -qE 'Launching skill: code:pr-review-team($|[^a-zA-Z0-9_-])' "$TRANSCRIPT_PATH" 2>/dev/null; then
             printf 'pr-review-team ran without pr-review-state.sh init. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh init <PR>` at the start of the skill — iteration convergence cannot be verified without state.' \
               | jq -Rs '{"decision":"block","reason":.}'
             exit 0

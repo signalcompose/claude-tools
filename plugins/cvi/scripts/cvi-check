@@ -37,24 +37,29 @@ echo -n "Siri音声: "
 if command -v say >/dev/null 2>&1; then
     # Use /tmp/claude (sandbox-writable prefix) so diagnostics run inside the
     # Claude Code sandbox without needing bypass. See Issue #231.
-    mkdir -p /tmp/claude
-    TEST_AUDIO="/tmp/claude/cvi_voice_test_$$.aiff"
-    say -o "$TEST_AUDIO" "test" 2>/dev/null
+    if ! mkdir -p /tmp/claude; then
+        # Surface the real cause instead of misattributing it to Siri below.
+        echo "❌ 作業ディレクトリを作成できませんでした: /tmp/claude"
+        SIRI_OK=false
+    else
+        TEST_AUDIO="/tmp/claude/cvi_voice_test_$$.aiff"
+        say -o "$TEST_AUDIO" "test" 2>/dev/null
 
-    if [ -f "$TEST_AUDIO" ]; then
-        FILE_SIZE=$(stat -f%z "$TEST_AUDIO" 2>/dev/null || echo "0")
-        rm -f "$TEST_AUDIO"
+        if [ -f "$TEST_AUDIO" ]; then
+            FILE_SIZE=$(stat -f%z "$TEST_AUDIO" 2>/dev/null || echo "0")
+            rm -f "$TEST_AUDIO"
 
-        if [ "$FILE_SIZE" -gt 10000 ]; then
-            echo "✅ 設定済み（推定）"
-            SIRI_OK=true
+            if [ "$FILE_SIZE" -gt 10000 ]; then
+                echo "✅ 設定済み（推定）"
+                SIRI_OK=true
+            else
+                echo "⚠️  未設定の可能性があります"
+                SIRI_OK=false
+            fi
         else
-            echo "⚠️  未設定の可能性があります"
+            echo "❌ 音声生成に失敗"
             SIRI_OK=false
         fi
-    else
-        echo "❌ 音声生成に失敗"
-        SIRI_OK=false
     fi
 else
     echo "❌ sayコマンドが見つかりません"

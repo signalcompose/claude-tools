@@ -34,10 +34,16 @@ debug_log "Starting stale lock cleanup in $LOCK_DIR"
 CHECKED=0
 # Use temp file for counting cleaned locks (subshell variable issue)
 CLEANED_COUNT_FILE="/tmp/claude/cvi/cleanup_count.$$"
-# Defensive mkdir: the early-exit guard above checks LOCK_DIR (same parent) but
-# protect against a race between the check and this write.
-mkdir -p "$(dirname "$CLEANED_COUNT_FILE")" 2>/dev/null
-echo "0" > "$CLEANED_COUNT_FILE"
+# Surface mkdir / write failures instead of silently continuing with a broken
+# counter (which would mask cleanup outcomes entirely).
+if ! mkdir -p "$(dirname "$CLEANED_COUNT_FILE")"; then
+    log_error "Failed to create parent directory for $CLEANED_COUNT_FILE"
+    exit 1
+fi
+if ! echo "0" > "$CLEANED_COUNT_FILE"; then
+    log_error "Failed to initialize $CLEANED_COUNT_FILE"
+    exit 1
+fi
 
 # Ensure temp file cleanup on exit
 trap 'rm -f "$CLEANED_COUNT_FILE"' EXIT

@@ -33,6 +33,15 @@ debug_log "Project hash: $PROJECT_HASH"
 LOCK_DIR="/tmp/claude/cvi/${PROJECT_HASH}.lock"
 PID_FILE="${LOCK_DIR}/pid"
 
+# Migration compat: a session started before #231 fix may still hold a lock
+# at the old /tmp/cvi/ path. Fall back to the legacy location so kill-voice
+# can terminate in-flight audio rather than leaving it orphaned.
+LEGACY_LOCK_DIR="/tmp/cvi/${PROJECT_HASH}.lock"
+if [ ! -d "$LOCK_DIR" ] && [ -d "$LEGACY_LOCK_DIR" ]; then
+    LOCK_DIR="$LEGACY_LOCK_DIR"
+    PID_FILE="${LOCK_DIR}/pid"
+fi
+
 # If lock directory exists, read PID and kill the specific process
 if [ -d "$LOCK_DIR" ]; then
     if [ -f "$PID_FILE" ]; then

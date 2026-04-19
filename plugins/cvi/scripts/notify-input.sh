@@ -19,9 +19,12 @@ PROJECT_HASH=$(echo "$PROJECT_ROOT" | md5 | cut -c1-16)
 
 # Project-specific lock directory
 LOCK_DIR="/tmp/claude/cvi/${PROJECT_HASH}.lock"
+# Migration compat: also check the legacy /tmp/cvi/ path (pre-#231 sessions)
+# so we don't start a duplicate notification while old audio is still playing.
+LEGACY_LOCK_DIR="/tmp/cvi/${PROJECT_HASH}.lock"
 
-# If lock directory exists, voice is playing, skip this notification
-if [ -d "$LOCK_DIR" ]; then
+# If a lock directory exists (new or legacy), voice is playing, skip this notification
+if [ -d "$LOCK_DIR" ] || [ -d "$LEGACY_LOCK_DIR" ]; then
     exit 0
 fi
 
