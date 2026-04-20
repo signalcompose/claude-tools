@@ -81,5 +81,6 @@ else
     debug_log "No lock directory found, nothing to kill"
 fi
 
-# Note: Glass sound (afplay) is short and doesn't need to be killed
-# Note: Temporary audio files are cleaned up by speak-sync.sh
+# Note: Glass sound (afplay) is short and doesn't need to be killed.
+# No temp audio files to clean — the MCP server streams `say` directly
+# to the audio device without intermediate files.

@@ -264,23 +264,23 @@ afplay -v 1.0 /System/Library/Sounds/Ping.aiff &
 
 ### アーキテクチャ
 
-#### 実行経路: MCP と Bash fallback
+#### 実行経路: MCP 一本化
 
-`/cvi:speak` は 2 つの経路を持つ。`speak.md` が **MCP を優先**して呼び出し、
-利用不可の場合に Bash fallback を試す構成:
+`/cvi:speak` は MCP server 経由のみ。Bash fallback は #242 で撤廃（MCP を
+作った意図を明確化、parrotvox 移行 Phase 5 に向けた単純化）。
 
 | 経路 | 実装 | Sandbox | bypass 要件 |
 |------|------|---------|-----|
-| **MCP (優先)** | `mcp/server.py` (Python FastMCP, `uv run --script`) | 外（subprocess） | 不要（sandbox 制約外で動作） |
-| **Bash (fallback)** | `scripts/post-speak.sh` → `speak-sync.sh` | 内 | `dangerouslyDisableSandbox: true` |
+| **MCP** | `mcp/server.py` (Python FastMCP, `uv run --script`) | 外（subprocess） | 不要（sandbox 制約外で動作） |
 
 MCP 経路は Claude Code sandbox の外で動作するため、macOS audio API（`say` /
 `afplay` / `osascript`）が `dangerouslyDisableSandbox: true` bypass なしで
-到達できる。bash fallback は defense in depth として温存。
+到達できる。MCP 起動失敗時は Stop hook が `/cvi:speak` 未呼び出しを検出して
+ブロックし、`/cvi:check` で診断する設計。
 
 #### Phase 1: 同期音声再生（MVP, 2026-02）
 
-- **Bash**: `/cvi:speak` → `post-speak.sh` → `speak-sync.sh`（フォアグラウンド `say`）
+- **経路**: `/cvi:speak` → MCP server → `say`（フォアグラウンド）
 - **設定読み込み**: `~/.cvi/config` から voice / rate / language を読む
 - **タイミング保証**: 音声完了後に `Speaking: ...` を stdout 出力（hook 契約）
 

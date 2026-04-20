@@ -89,22 +89,14 @@ if [ ! -f "$TRANSCRIPT_PATH" ]; then
     exit 0
 fi
 
-# Check if /cvi:speak was called in this session
-# Look for Skill tool usage with "cvi:speak" in the transcript
-# Pattern looks for tool_use with skill parameter to avoid matching user messages or code blocks
+# Accept either the Skill-tool wrapper or a direct MCP tool invocation.
+# The MCP tool name has two forms: bare `mcp__cvi-voice__speak` (direct
+# .mcp.json) and plugin-namespaced `mcp__plugin_cvi_cvi-voice__speak`
+# (via the plugin registry). The tool_use guard prevents false matches
+# from user-pasted JSON literals.
 if grep -q '"type":"tool_use"' "$TRANSCRIPT_PATH" 2>/dev/null && \
-   grep -q '"name":"Skill"' "$TRANSCRIPT_PATH" 2>/dev/null && \
-   grep -q '"skill":"cvi:speak"' "$TRANSCRIPT_PATH" 2>/dev/null; then
-    # /cvi:speak was called via Skill tool, allow stop
-    exit 0
-fi
-
-# Alternative check: Look for speak-sync.sh execution in Bash tool_use
-# This catches direct script execution
-if grep -q '"type":"tool_use"' "$TRANSCRIPT_PATH" 2>/dev/null && \
-   grep -q '"name":"Bash"' "$TRANSCRIPT_PATH" 2>/dev/null && \
-   grep -qE 'scripts/(speak-sync|post-speak)\.sh' "$TRANSCRIPT_PATH" 2>/dev/null; then
-    # speak-sync.sh was executed via Bash tool, allow stop
+   grep -qE '"skill":"cvi:speak"|"name":"mcp__(plugin_cvi_)?cvi-voice__speak"' \
+        "$TRANSCRIPT_PATH" 2>/dev/null; then
     exit 0
 fi
 
