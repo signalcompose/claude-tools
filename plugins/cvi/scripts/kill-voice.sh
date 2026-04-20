@@ -82,4 +82,4 @@ else
 fi
 
 # Note: Glass sound (afplay) is short and doesn't need to be killed
-# Note: Temporary audio files are cleaned up by speak-sync.sh
+# Note: Temporary audio files are cleaned up by the MCP server (mcp/server.py)

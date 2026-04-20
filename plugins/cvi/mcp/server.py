@@ -20,12 +20,12 @@ deprecated and users migrate to parrotvox directly.
 This server runs as a subprocess of Claude Code via .mcp.json registration
 and communicates over stdio JSON-RPC. Because MCP servers execute outside
 the Bash sandbox, `say` works natively without needing
-`dangerouslyDisableSandbox: true`. (The notification / Glass-sound pieces
-that use `afplay` / `osascript` remain in the bash fallback — this server
+`dangerouslyDisableSandbox: true`. (Notification / Glass-sound pieces that
+use `afplay` / `osascript` remain in their own hook scripts — this server
 focuses on the speak tool only.)
 
-Fallback: if this server fails to start, the bundled bash post-speak.sh
-remains the speak path — see plugins/cvi/commands/speak.md.
+This is the sole speak path. Bash fallback was removed (#242); if the server
+fails to start, run `/cvi:check` to diagnose.
 """
 
 from __future__ import annotations
@@ -89,9 +89,8 @@ def _load_config() -> dict[str, str]:
 def _detect_language(text: str) -> str:
     """Return 'ja' if the text contains any Japanese Unicode range, else 'en'.
 
-    Ranges mirror ``speak-sync.sh`` (regex ``[ぁ-んァ-ヶー一-龠]``). Keep the two
-    implementations synchronized — divergence would silently pick different
-    voices for the same text across the MCP vs bash fallback paths.
+    Ranges cover Hiragana / Katakana / CJK Unified Ideographs (equivalent to
+    the regex ``[ぁ-んァ-ヶー一-龠]``).
     """
     for ch in text:
         o = ord(ch)
@@ -153,7 +152,7 @@ def speak(text: str, voice: str | None = None, rate: int | None = None) -> str:
     cmd.append(text)
 
     # Fire and wait synchronously — callers expect voice to complete before
-    # the hook chain continues (matches bash post-speak.sh semantics).
+    # the hook chain continues.
     try:
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as exc:
