@@ -51,7 +51,8 @@ setup() {
 
 teardown() {
     # Remove test-created state files before restoring backups.
-    rm -f /tmp/claude/pr-review-9999.state /tmp/claude/pr-review-9999.done
+    rm -f /tmp/claude/pr-review-9999.state /tmp/claude/pr-review-9999.done \
+          /tmp/claude/pr-review-8888.state /tmp/claude/pr-review-8888.done
 
     # Restore any pre-existing state files that setup moved aside.
     if [ -d "$TEST_STATE_BACKUP" ]; then
@@ -222,6 +223,60 @@ run_verify() {
     run run_verify "$t"
     [ "$status" -eq 0 ]
     [[ "$output" == *"Bot feedback"*"was not read"* ]]
+}
+
+@test "verify-workflow selects current-project state when mixed with other-project state" {
+    # Regression: earlier implementation used STATE_FILES[0] (glob order),
+    # so a state file sorting before the current-project one would cause
+    # the verifier to early-exit on a project mismatch, silently skipping
+    # the active current-project review. The fix iterates all files.
+    mkdir -p /tmp/claude
+    # 8888 glob-sorts before 9999; simulate an unrelated other-project state
+    # in the "first slot" to prove the scan picks 9999 for the current cwd.
+    jq -n --arg pp "/some/other/project" \
+        '{pr:"8888", session_id:"", project_path:$pp, phase:"started",
+          reviewers_done:false, security_done:false, fixer_done:false,
+          rereview_done:false, bot_feedback_read:false,
+          iterations:0, final_critical:-1, final_important:-1}' \
+        > /tmp/claude/pr-review-8888.state
+
+    cd "$TEST_DIR"
+    jq -n --arg pp "$TEST_DIR" \
+        '{pr:"9999", session_id:"", project_path:$pp, phase:"started",
+          reviewers_done:false, security_done:false, fixer_done:false,
+          rereview_done:false, bot_feedback_read:false,
+          iterations:0, final_critical:-1, final_important:-1}' \
+        > /tmp/claude/pr-review-9999.state
+
+    run run_verify ""
+    [ "$status" -eq 0 ]
+    # Current-project state must be picked up and produce a block payload
+    # (security not done + no transcript evidence). If the scan had skipped
+    # 9999 because 8888 came first, no block would fire.
+    [[ "$output" == *"decision"*"block"* ]]
+}
+
+@test "verify-workflow handles project_path containing spaces" {
+    # Regression: with default IFS, `read -r` splits @tsv output on spaces
+    # too, so a project_path like "/Users/John Doe/..." was shifting the
+    # remaining fields. IFS=$'\t' fix keeps all fields intact.
+    local space_dir="${TEST_DIR}/with space"
+    mkdir -p "$space_dir"
+    space_dir=$(cd "$space_dir" && pwd -P)
+
+    mkdir -p /tmp/claude
+    jq -n --arg pp "$space_dir" \
+        '{pr:"9999", session_id:"", project_path:$pp, phase:"started",
+          reviewers_done:false, security_done:false, fixer_done:false,
+          rereview_done:false, bot_feedback_read:false,
+          iterations:0, final_critical:-1, final_important:-1}' \
+        > /tmp/claude/pr-review-9999.state
+
+    cd "$space_dir"
+    run run_verify ""
+    [ "$status" -eq 0 ]
+    # Matching-project state must engage the workflow checks and emit block.
+    [[ "$output" == *"decision"*"block"* ]]
 }
 
 @test "verify-workflow accepts bot feedback evidence from transcript" {

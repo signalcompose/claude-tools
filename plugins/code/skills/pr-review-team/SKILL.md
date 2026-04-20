@@ -182,8 +182,13 @@ FOR iteration = 1 TO MAX_ITERATIONS:
 
      Bot findings (if any) are merged into the next iteration's fixer message.
 
-  6. Update state:
+  6. Update state. `rereview_done` MUST be set at the end of the iteration
+     — i.e. after the fresh reviewer agent in step 3 of THIS iteration has
+     returned. Setting it before re-running the reviewer is a violation
+     (see the VIOLATION block below — the Stop hook will detect it via
+     transcript launch count).
      bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> fixer_done true
+     bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> rereview_done true
      bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> iterations <N>
      bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> final_critical <count>
      bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> final_important <count>

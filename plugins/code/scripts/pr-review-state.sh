@@ -43,9 +43,10 @@ case "$ACTION" in
     SESSION_ID="${CLAUDE_SESSION_ID:-}"
     if ! command -v jq >/dev/null 2>&1; then
       # jq unavailable: fall back to printf. Escape backslash and double-quote
-      # to keep the emitted JSON valid even for unusual filesystem paths. We
-      # do not attempt full JSON escape (control chars, unicode) since POSIX
-      # filesystem conventions disallow those in directory names.
+      # so the emitted JSON stays valid for typical filesystem paths and
+      # session IDs. This fallback does not implement full JSON string
+      # escaping (control chars, embedded newlines, etc.); if those appear
+      # in a path the caller should install jq.
       PROJECT_PATH_ESC="${PROJECT_PATH//\\/\\\\}"
       PROJECT_PATH_ESC="${PROJECT_PATH_ESC//\"/\\\"}"
       SESSION_ID_ESC="${SESSION_ID//\\/\\\\}"

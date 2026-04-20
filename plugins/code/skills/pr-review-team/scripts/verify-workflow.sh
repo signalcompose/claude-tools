@@ -86,53 +86,64 @@ if [ ${#STATE_FILES[@]} -eq 0 ]; then
     exit 0
 fi
 
-# TTL check: stale state files (>1 hour) are from dead sessions — clean up and allow stop
-STATE_FILE="${STATE_FILES[0]}"
 STATE_MAX_AGE=3600
-STATE_MTIME=$(stat -f %m "$STATE_FILE" 2>/dev/null || stat -c %Y "$STATE_FILE" 2>/dev/null || echo 0)
-if [ $((NOW - STATE_MTIME)) -gt $STATE_MAX_AGE ]; then
-    rm -f "$STATE_FILE"
-    exit 0
-fi
+CURRENT_PROJECT="$(pwd -P 2>/dev/null || pwd)"
 
-# Read progress from state file
-STATE=$(cat "$STATE_FILE" 2>/dev/null || echo "{}")
+# Select the state file belonging to the current project. The previous
+# single-slot approach (STATE_FILES[0]) was unsafe: if a stale state from
+# project A sorted before project B's active state, we would early-exit on
+# the A mismatch and silently skip B's workflow checks — inverting the
+# Issue #236 bug into a "current project's review ignored" bug.
+#
+# Policy per state file encountered:
+#   * expired  (mtime > TTL)           → delete (GC) and continue scan
+#   * parse error / non-JSON           → skip (TTL will eventually collect)
+#   * legacy (no project_path)         → skip for Stop purposes (Issue #236
+#                                        safe-default; blocking would cause
+#                                        the same cross-session regression)
+#   * project_path matches current     → select it, stop scanning
+#   * project_path different           → skip (owning session cleans up; we
+#                                        are not authoritative over theirs)
+#
+# If no file matches the current project, Stop proceeds — there is no
+# in-flight review owned by this session to verify.
+STATE_FILE=""
+STATE=""
+for candidate in "${STATE_FILES[@]}"; do
+    mtime=$(stat -f %m "$candidate" 2>/dev/null || stat -c %Y "$candidate" 2>/dev/null || echo 0)
+    if [ $((NOW - mtime)) -gt $STATE_MAX_AGE ]; then
+        rm -f "$candidate"
+        continue
+    fi
+    candidate_state=$(cat "$candidate" 2>/dev/null || echo "")
+    if [ -z "$candidate_state" ] || ! echo "$candidate_state" | jq -e . >/dev/null 2>&1; then
+        continue
+    fi
+    candidate_project=$(echo "$candidate_state" | jq -r '.project_path // ""' 2>/dev/null || echo "")
+    if [ -z "$candidate_project" ]; then
+        # Legacy pre-#236 state: skip to avoid cross-session false-block.
+        continue
+    fi
+    if [ "$candidate_project" = "$CURRENT_PROJECT" ]; then
+        STATE_FILE="$candidate"
+        STATE="$candidate_state"
+        break
+    fi
+done
 
-# Validate STATE is parseable JSON before field extraction. A corrupt / empty
-# / truncated state file would otherwise produce an empty STATE_PROJECT via
-# the `//` fallback, which the legacy-state branch below would silently
-# interpret as "no binding" and skip — masking a genuine in-progress review.
-# On indeterminate data we skip (TTL-based GC removes the file eventually)
-# rather than block, because raising a hard error on a race-induced truncated
-# state would create a different false-block pattern.
-if ! echo "$STATE" | jq -e . >/dev/null 2>&1; then
+if [ -z "$STATE_FILE" ]; then
     exit 0
 fi
 
 # Extract all state fields in a single jq call — includes project_path for
-# the Issue #236 cross-project binding check alongside the workflow fields.
-read -r STATE_PROJECT SECURITY_DONE FIXER_DONE REREVIEW_DONE BOT_FEEDBACK_READ FINAL_CRITICAL FINAL_IMPORTANT < <(echo "$STATE" | jq -r '[(.project_path // ""), (.security_done // false | tostring), (.fixer_done // false | tostring), (.rereview_done // false | tostring), (.bot_feedback_read // false | tostring), (.final_critical // -1 | tostring), (.final_important // -1 | tostring)] | @tsv')
-
-# Project binding check (Issue #236): skip state files that belong to a
-# different project. Without this, a stale state from session A (working on
-# project /foo) would block Stop in session B (working on project /bar). We
-# do NOT delete mismatched states here — the owning session may still be
-# active and will clean up on its own; TTL-based GC above handles truly
-# abandoned ones. `pwd -P` resolves symlinks so a checkout accessed via a
-# symlinked path still matches the canonical path recorded at init time.
-CURRENT_PROJECT="$(pwd -P 2>/dev/null || pwd)"
-if [ -n "$STATE_PROJECT" ] && [ "$STATE_PROJECT" != "$CURRENT_PROJECT" ]; then
-    # State belongs to another project — not our concern, let Stop proceed.
+# parity with the scan step. IFS=$'\t' ensures we split only on the @tsv
+# separator; default IFS would also split on spaces, corrupting paths like
+# "/Users/John Doe/...". On jq failure we skip rather than continue with
+# indeterminate fields (matches the "skip on parse trouble" policy above).
+if ! STATE_FIELDS=$(echo "$STATE" | jq -r '[(.project_path // ""), (.security_done // false | tostring), (.fixer_done // false | tostring), (.rereview_done // false | tostring), (.bot_feedback_read // false | tostring), (.final_critical // -1 | tostring), (.final_important // -1 | tostring)] | @tsv' 2>/dev/null); then
     exit 0
 fi
-# Legacy state files (pre-#236) genuinely lack a project_path field. Since we
-# validated JSON above, an empty STATE_PROJECT at this point reflects the
-# real schema rather than a parse failure. Treat legacy state as safe to
-# ignore for Stop purposes — blocking on it causes the exact Issue #236
-# regression. The TTL cleanup above removes legacy files eventually.
-if [ -z "$STATE_PROJECT" ]; then
-    exit 0
-fi
+IFS=$'\t' read -r STATE_PROJECT SECURITY_DONE FIXER_DONE REREVIEW_DONE BOT_FEEDBACK_READ FINAL_CRITICAL FINAL_IMPORTANT <<< "$STATE_FIELDS"
 
 # Load transcript once for all checks (avoid repeated file reads)
 TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || echo "")
