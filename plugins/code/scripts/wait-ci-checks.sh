@@ -12,8 +12,8 @@ for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
     echo "=== CI Check Attempt $attempt/$MAX_ATTEMPTS ==="
 
     CHECKS=$(gh pr checks "$PR_NUMBER" 2>/dev/null) || {
-        echo "STATUS: ERROR (gh command failed — possible TLS/sandbox issue)"
-        echo "ACTION: Use dangerouslyDisableSandbox: true and retry"
+        echo "STATUS: ERROR (gh command failed)"
+        echo "ACTION: Check network, gh auth status, and PR number — sandbox bypass is not the fix"
         exit 0
     }
 

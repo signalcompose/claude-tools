@@ -43,7 +43,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh init <PR番号>
 - Test command: detect from `package.json`, `Makefile`, `pytest.ini`, etc.
 - Project rules: read project's CLAUDE.md if present
 
-**Note**: `gh` commands may require `dangerouslyDisableSandbox: true` for TLS issues.
+**Note**: `gh` commands rely on `sandbox.network.allowedDomains` (github.com, api.github.com) in `~/.claude/settings.json` to run inside the sandbox without prompts. Do NOT pass `dangerouslyDisableSandbox: true` defensively — see `code:autopilot` SKILL §Sandbox bypass policy for why the flag breaks auto mode.
 
 ## Step 2: Parallel Review (Subagents)
 
@@ -79,7 +79,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> phase revie
 
 ## Step 3: CI Check
 
-Run the CI wait script (requires `dangerouslyDisableSandbox: true`):
+Run the CI wait script:
 
 ```bash
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/wait-ci-checks.sh <PR番号>
@@ -89,7 +89,7 @@ Parse the STATUS line from output:
 - **PASS**: All checks passed
 - **FAIL**: Get failure details with `gh run view <run-id> --log-failed`
 - **TIMEOUT**: Continue review, note "CI: PENDING (timed out)" in report
-- **ERROR**: Retry with `dangerouslyDisableSandbox: true`
+- **ERROR**: Report the failure and stop — network / auth / PR-number issues won't be solved by sandbox bypass. See `code:autopilot` SKILL §Sandbox bypass policy.
 
 Also collect review comments:
 ```bash
