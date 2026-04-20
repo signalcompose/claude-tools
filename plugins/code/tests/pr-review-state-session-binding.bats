@@ -141,7 +141,8 @@ run_verify() {
     jq -n --arg pp "$TEST_DIR" \
         '{pr:"9999", session_id:"", project_path:$pp, phase:"started",
           reviewers_done:false, security_done:false, fixer_done:false,
-          rereview_done:false, iterations:0, final_critical:-1, final_important:-1}' \
+          rereview_done:false, bot_feedback_read:false,
+          iterations:0, final_critical:-1, final_important:-1}' \
         > /tmp/claude/pr-review-9999.state
 
     # Without security_done=true and no transcript evidence, the hook should
@@ -152,4 +153,92 @@ run_verify() {
     # For a matching-project state in "started" phase, the hook should
     # evaluate the workflow checks and produce a block payload.
     [[ "$output" == *"decision"*"block"* ]]
+}
+
+@test "init includes bot_feedback_read field (default false)" {
+    cd "$TEST_DIR"
+    run "$INIT_SCRIPT" init 9999
+    [ "$status" -eq 0 ]
+    flag=$(jq -r '.bot_feedback_read' /tmp/claude/pr-review-9999.state)
+    [ "$flag" = "false" ]
+}
+
+@test "verify-workflow blocks when rereview_done=true but transcript shows only 1 reviewer launch" {
+    cd "$TEST_DIR"
+    mkdir -p /tmp/claude
+    jq -n --arg pp "$TEST_DIR" \
+        '{pr:"9999", session_id:"", project_path:$pp, phase:"started",
+          reviewers_done:true, security_done:true, fixer_done:true,
+          rereview_done:true, bot_feedback_read:true,
+          iterations:1, final_critical:0, final_important:0}' \
+        > /tmp/claude/pr-review-9999.state
+
+    # Transcript mentions pr-review-toolkit:code-reviewer only once.
+    local t="${TEST_DIR}/transcript1.txt"
+    printf 'some content\n"subagent_type": "pr-review-toolkit:code-reviewer"\nmore content\n' > "$t"
+
+    run run_verify "$t"
+    [ "$status" -eq 0 ]
+    # Should block because only 1 launch (needs ≥2 for re-review).
+    [[ "$output" == *"decision"*"block"* ]]
+    [[ "$output" == *"rereview_done=true but transcript shows only"* ]]
+}
+
+@test "verify-workflow accepts rereview when transcript shows 2+ reviewer launches" {
+    cd "$TEST_DIR"
+    mkdir -p /tmp/claude
+    jq -n --arg pp "$TEST_DIR" \
+        '{pr:"9999", session_id:"", project_path:$pp, phase:"started",
+          reviewers_done:true, security_done:true, fixer_done:true,
+          rereview_done:true, bot_feedback_read:true,
+          iterations:2, final_critical:0, final_important:0}' \
+        > /tmp/claude/pr-review-9999.state
+
+    local t="${TEST_DIR}/transcript2.txt"
+    printf '%s\n%s\n' \
+        '"subagent_type": "pr-review-toolkit:code-reviewer"' \
+        '"subagent_type": "pr-review-toolkit:code-reviewer"' \
+        > "$t"
+
+    run run_verify "$t"
+    [ "$status" -eq 0 ]
+    # With both launches + all state complete, should NOT block on Check 3b.
+    [[ "$output" != *"rereview_done=true but transcript shows only"* ]]
+}
+
+@test "verify-workflow blocks when bot_feedback_read=false and no transcript evidence" {
+    cd "$TEST_DIR"
+    mkdir -p /tmp/claude
+    jq -n --arg pp "$TEST_DIR" \
+        '{pr:"9999", session_id:"", project_path:$pp, phase:"started",
+          reviewers_done:true, security_done:true, fixer_done:true,
+          rereview_done:false, bot_feedback_read:false,
+          iterations:1, final_critical:-1, final_important:-1}' \
+        > /tmp/claude/pr-review-9999.state
+
+    local t="${TEST_DIR}/transcript-no-bot.txt"
+    echo "random content without bot checks" > "$t"
+
+    run run_verify "$t"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Bot feedback"*"was not read"* ]]
+}
+
+@test "verify-workflow accepts bot feedback evidence from transcript" {
+    cd "$TEST_DIR"
+    mkdir -p /tmp/claude
+    jq -n --arg pp "$TEST_DIR" \
+        '{pr:"9999", session_id:"", project_path:$pp, phase:"started",
+          reviewers_done:true, security_done:true, fixer_done:true,
+          rereview_done:false, bot_feedback_read:false,
+          iterations:1, final_critical:-1, final_important:-1}' \
+        > /tmp/claude/pr-review-9999.state
+
+    local t="${TEST_DIR}/transcript-with-bot.txt"
+    echo "gh pr view 9999 --json reviews,comments" > "$t"
+
+    run run_verify "$t"
+    [ "$status" -eq 0 ]
+    # Bot feedback check should NOT contribute to block (transcript has evidence).
+    [[ "$output" != *"Bot feedback"* ]]
 }

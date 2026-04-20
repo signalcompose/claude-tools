@@ -169,17 +169,42 @@ FOR iteration = 1 TO MAX_ITERATIONS:
 
   4. Collect fresh counts: fresh_critical, fresh_important, fresh_security
 
-  5. Update state:
+  5. Read GitHub bot feedback (claude-review Check Run + PR review comments)
+     before declaring convergence. The Stop hook enforces this via transcript
+     inspection — the leader MUST invoke at least one of:
+
+       gh pr view <PR> --json reviews,comments
+       gh api repos/OWNER/REPO/pulls/<PR>/comments
+       gh api repos/OWNER/REPO/check-runs/<id>/annotations
+
+     Then record:
+       bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR> bot_feedback_read true
+
+     Bot findings (if any) are merged into the next iteration's fixer message.
+
+  6. Update state:
      bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> fixer_done true
      bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> iterations <N>
      bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> final_critical <count>
      bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> final_important <count>
 
-  6. IF fresh_critical = 0 AND fresh_important = 0 AND fresh_security = "all_pass" → BREAK
+  7. IF fresh_critical = 0 AND fresh_important = 0 AND fresh_security = "all_pass" → BREAK
 END FOR
 ```
 
 If iteration limit reached with remaining issues: report to user, do NOT merge.
+
+🔴 VIOLATION — Self-declaring Convergence Without Evidence
+The Stop hook enforces (Issue #236 follow-up):
+- `rereview_done=true` requires the transcript to show ≥2
+  `pr-review-toolkit:code-reviewer` agent launches (initial + post-fix
+  re-review). Manually setting `rereview_done=true` without spawning a fresh
+  reviewer agent is a workflow violation — the leader would otherwise judge
+  their own fix without independent verification.
+- `bot_feedback_read=true` requires either the state flag to be set after
+  actually consulting GitHub bot output, or the transcript to contain a
+  matching `gh pr view --json reviews/comments`, `gh api .../pulls/N/comments`,
+  or `gh api .../check-runs/.../annotations` call.
 
 ## Step 6: Report & Cleanup
 

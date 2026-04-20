@@ -111,7 +111,7 @@ fi
 
 # Extract all state fields in a single jq call — includes project_path for
 # the Issue #236 cross-project binding check alongside the workflow fields.
-read -r STATE_PROJECT SECURITY_DONE FIXER_DONE REREVIEW_DONE FINAL_CRITICAL FINAL_IMPORTANT < <(echo "$STATE" | jq -r '[(.project_path // ""), (.security_done // false | tostring), (.fixer_done // false | tostring), (.rereview_done // false | tostring), (.final_critical // -1 | tostring), (.final_important // -1 | tostring)] | @tsv')
+read -r STATE_PROJECT SECURITY_DONE FIXER_DONE REREVIEW_DONE BOT_FEEDBACK_READ FINAL_CRITICAL FINAL_IMPORTANT < <(echo "$STATE" | jq -r '[(.project_path // ""), (.security_done // false | tostring), (.fixer_done // false | tostring), (.rereview_done // false | tostring), (.bot_feedback_read // false | tostring), (.final_critical // -1 | tostring), (.final_important // -1 | tostring)] | @tsv')
 
 # Project binding check (Issue #236): skip state files that belong to a
 # different project. Without this, a stale state from session A (working on
@@ -168,6 +168,32 @@ fi
 # Skipping re-review means the fix is unverified.
 if [ "$FIXER_DONE" = "true" ] && [ "$REREVIEW_DONE" != "true" ]; then
     MISSING="${MISSING}\n- After fixer_done=true, re-review (iteration N+1) was not recorded. Re-run reviewers and call 'pr-review-state.sh set <PR> rereview_done true'."
+fi
+
+# Check 3b: rereview_done=true must be backed by transcript evidence of at
+# least 2 reviewer agent launches (initial + post-fix). This prevents the
+# leader from self-declaring convergence by flipping the flag without
+# actually re-running the reviewers — which is effectively "judging your own
+# fix without independent verification" and defeats the purpose of Step 5.
+if [ "$FIXER_DONE" = "true" ] && [ "$REREVIEW_DONE" = "true" ] && [ -n "$TRANSCRIPT" ]; then
+    REVIEWER_LAUNCHES=$(echo "$TRANSCRIPT" | grep -cE '"subagent_type":[[:space:]]*"pr-review-toolkit:code-reviewer"' 2>/dev/null || echo 0)
+    if [ "$REVIEWER_LAUNCHES" -lt 2 ]; then
+        MISSING="${MISSING}\n- rereview_done=true but transcript shows only ${REVIEWER_LAUNCHES} code-reviewer agent launch(es). Re-review requires a fresh reviewer invocation after the fix, not state manipulation."
+    fi
+fi
+
+# Check 3c: Before declaring convergence the leader must have consulted
+# GitHub bot feedback (claude-review check-run annotations, PR review
+# comments). Accept either an explicit state flag or transcript evidence
+# of a matching gh command — otherwise block so the leader runs the check.
+if [ "$FIXER_DONE" = "true" ] && [ "$BOT_FEEDBACK_READ" != "true" ]; then
+    if [ -n "$TRANSCRIPT" ]; then
+        if ! echo "$TRANSCRIPT" | grep -qE 'gh pr view [^|]*--json[^|]*(reviews|comments)|gh api [^|]*pulls/[0-9]+/(comments|reviews)|gh api [^|]*check-runs/[0-9]+/annotations' 2>/dev/null; then
+            MISSING="${MISSING}\n- Bot feedback (claude-review check / PR review comments) was not read. Run 'gh pr view <PR> --json reviews,comments' or equivalent, then 'pr-review-state.sh set <PR> bot_feedback_read true'."
+        fi
+    else
+        MISSING="${MISSING}\n- bot_feedback_read=false and transcript unavailable — cannot verify bot feedback was consulted."
+    fi
 fi
 
 # Check 4: Convergence — final_critical and final_important must both be 0.
