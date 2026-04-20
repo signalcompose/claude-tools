@@ -4,9 +4,24 @@
 # not block Stop hook in a different session.
 
 setup() {
+    # Create a scratch directory. Fail loudly if mktemp is denied (e.g. by a
+    # sandbox policy) — otherwise `$(cd "" && pwd -P)` silently evaluates to
+    # the current working directory, which for this repo would make the
+    # teardown `rm -rf "$TEST_DIR"` obliterate the checkout. See Issue #239.
+    local _tmp
+    _tmp=$(mktemp -d 2>/dev/null) || { skip "mktemp -d failed (sandbox or quota?)"; }
+    [ -n "$_tmp" ] && [ -d "$_tmp" ] || { skip "mktemp -d produced invalid path: [$_tmp]"; }
     # Canonicalize so tests match `pwd -P` output used in production scripts
     # (macOS resolves /var/folders → /private/var/folders on mktemp dirs).
-    export TEST_DIR=$(cd "$(mktemp -d)" && pwd -P)
+    export TEST_DIR
+    TEST_DIR=$(cd "$_tmp" && pwd -P)
+    # Defensive: refuse to proceed unless TEST_DIR points at a known-safe
+    # temp prefix. This is a belt-and-braces guard against any future
+    # regression that might yield a non-temp path.
+    case "$TEST_DIR" in
+        /private/var/folders/*|/var/folders/*|/tmp/*|/private/tmp/*) ;;
+        *) skip "TEST_DIR not under an expected temp prefix: $TEST_DIR" ;;
+    esac
     export STATE_DIR="${TEST_DIR}/claude"
     mkdir -p "$STATE_DIR"
 
@@ -47,7 +62,17 @@ teardown() {
             mv "${restored[@]}" /tmp/claude/ 2>/dev/null || true
         fi
     fi
-    rm -rf "$TEST_DIR"
+    # Belt-and-braces: only rm -rf when TEST_DIR is populated AND under a
+    # recognised temp prefix. Prevents a regression in setup() from turning
+    # teardown into a repo-nuke (Issue #239).
+    if [ -n "${TEST_DIR:-}" ] && [ -d "$TEST_DIR" ]; then
+        case "$TEST_DIR" in
+            /private/var/folders/*|/var/folders/*|/tmp/*|/private/tmp/*)
+                rm -rf "$TEST_DIR" ;;
+            *)
+                echo "teardown: refusing to rm -rf unsafe TEST_DIR: $TEST_DIR" >&2 ;;
+        esac
+    fi
 }
 
 # Helper: invoke verify-workflow.sh with a minimal hook input JSON.
