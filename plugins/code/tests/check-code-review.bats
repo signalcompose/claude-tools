@@ -2,8 +2,16 @@
 # Tests for check-pr-review-gate.sh (flag-based PR creation gate)
 
 setup() {
-    # Create temporary test directory
-    TEST_DIR=$(mktemp -d)
+    # Create temporary test directory. Fail loudly if mktemp is denied
+    # (e.g. by a sandbox policy) — otherwise `cd ""` silently stays in the
+    # caller's cwd and subsequent `git init`/`git add`/`git commit` would
+    # operate on the real checkout. See Issue #239.
+    TEST_DIR=$(mktemp -d 2>/dev/null) || { skip "mktemp -d failed (sandbox or quota?)"; }
+    [ -n "$TEST_DIR" ] && [ -d "$TEST_DIR" ] || { skip "mktemp -d produced invalid path: [$TEST_DIR]"; }
+    case "$TEST_DIR" in
+        /private/var/folders/*|/var/folders/*|/tmp/*|/private/tmp/*) ;;
+        *) skip "TEST_DIR not under an expected temp prefix: $TEST_DIR" ;;
+    esac
     cd "$TEST_DIR"
 
     # Initialize git repo
@@ -33,10 +41,17 @@ teardown() {
         rm -f "$REVIEW_FLAG"
     fi
 
-    # Clean up test directory
+    # Clean up test directory. Only rm -rf when TEST_DIR is under a
+    # recognised temp prefix — prevents a regression from turning teardown
+    # into a repo-nuke (Issue #239).
     if [[ -n "$TEST_DIR" && -d "$TEST_DIR" ]]; then
         cd /
-        rm -rf "$TEST_DIR"
+        case "$TEST_DIR" in
+            /private/var/folders/*|/var/folders/*|/tmp/*|/private/tmp/*)
+                rm -rf "$TEST_DIR" ;;
+            *)
+                echo "teardown: refusing to rm -rf unsafe TEST_DIR: $TEST_DIR" >&2 ;;
+        esac
     fi
 }
 
@@ -137,13 +152,29 @@ teardown() {
 # ============================================================================
 
 @test "approval flag is per-repository" {
-    # Create two repos
-    REPO1=$(mktemp -d)
-    REPO2=$(mktemp -d)
+    # Create two repos. Fail the test loudly if mktemp is denied — `cd ""`
+    # would otherwise leave us in the real checkout for the subsequent
+    # git init / commit, and cleanup `rm -rf ""` would error rather than
+    # remove the real repo, but the intermediate `git init` pollution would
+    # still be real. See Issue #239.
+    REPO1=$(mktemp -d 2>/dev/null) || { skip "mktemp -d failed (sandbox?)"; }
+    REPO2=$(mktemp -d 2>/dev/null) || { skip "mktemp -d failed (sandbox?)"; }
+    for _r in "$REPO1" "$REPO2"; do
+        [ -n "$_r" ] && [ -d "$_r" ] || { skip "mktemp produced invalid path: [$_r]"; }
+        case "$_r" in
+            /private/var/folders/*|/var/folders/*|/tmp/*|/private/tmp/*) ;;
+            *) skip "mktemp path outside expected temp prefix: $_r" ;;
+        esac
+    done
 
     cleanup_repos() {
         cd /
-        rm -rf "$REPO1" "$REPO2" 2>/dev/null || true
+        for _r in "$REPO1" "$REPO2"; do
+            case "$_r" in
+                /private/var/folders/*|/var/folders/*|/tmp/*|/private/tmp/*)
+                    rm -rf "$_r" 2>/dev/null || true ;;
+            esac
+        done
         rm -f /tmp/claude/review-approved-* 2>/dev/null || true
     }
     trap cleanup_repos EXIT

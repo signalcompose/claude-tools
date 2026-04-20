@@ -86,20 +86,64 @@ if [ ${#STATE_FILES[@]} -eq 0 ]; then
     exit 0
 fi
 
-# TTL check: stale state files (>1 hour) are from dead sessions — clean up and allow stop
-STATE_FILE="${STATE_FILES[0]}"
 STATE_MAX_AGE=3600
-STATE_MTIME=$(stat -f %m "$STATE_FILE" 2>/dev/null || stat -c %Y "$STATE_FILE" 2>/dev/null || echo 0)
-if [ $((NOW - STATE_MTIME)) -gt $STATE_MAX_AGE ]; then
-    rm -f "$STATE_FILE"
+CURRENT_PROJECT="$(pwd -P 2>/dev/null || pwd)"
+
+# Select the state file belonging to the current project. The previous
+# single-slot approach (STATE_FILES[0]) was unsafe: if a stale state from
+# project A sorted before project B's active state, we would early-exit on
+# the A mismatch and silently skip B's workflow checks — inverting the
+# Issue #236 bug into a "current project's review ignored" bug.
+#
+# Policy per state file encountered:
+#   * expired  (mtime > TTL)           → delete (GC) and continue scan
+#   * parse error / non-JSON           → skip (TTL will eventually collect)
+#   * legacy (no project_path)         → skip for Stop purposes (Issue #236
+#                                        safe-default; blocking would cause
+#                                        the same cross-session regression)
+#   * project_path matches current     → select it, stop scanning
+#   * project_path different           → skip (owning session cleans up; we
+#                                        are not authoritative over theirs)
+#
+# If no file matches the current project, Stop proceeds — there is no
+# in-flight review owned by this session to verify.
+STATE_FILE=""
+STATE=""
+for candidate in "${STATE_FILES[@]}"; do
+    mtime=$(stat -f %m "$candidate" 2>/dev/null || stat -c %Y "$candidate" 2>/dev/null || echo 0)
+    if [ $((NOW - mtime)) -gt $STATE_MAX_AGE ]; then
+        rm -f "$candidate"
+        continue
+    fi
+    candidate_state=$(cat "$candidate" 2>/dev/null || echo "")
+    if [ -z "$candidate_state" ] || ! echo "$candidate_state" | jq -e . >/dev/null 2>&1; then
+        continue
+    fi
+    candidate_project=$(echo "$candidate_state" | jq -r '.project_path // ""' 2>/dev/null || echo "")
+    if [ -z "$candidate_project" ]; then
+        # Legacy pre-#236 state: skip to avoid cross-session false-block.
+        continue
+    fi
+    if [ "$candidate_project" = "$CURRENT_PROJECT" ]; then
+        STATE_FILE="$candidate"
+        STATE="$candidate_state"
+        break
+    fi
+done
+
+if [ -z "$STATE_FILE" ]; then
     exit 0
 fi
 
-# Read progress from state file
-STATE=$(cat "$STATE_FILE" 2>/dev/null || echo "{}")
-
-# Extract state fields in a single jq call
-read -r SECURITY_DONE FIXER_DONE REREVIEW_DONE FINAL_CRITICAL FINAL_IMPORTANT < <(echo "$STATE" | jq -r '[(.security_done // false | tostring), (.fixer_done // false | tostring), (.rereview_done // false | tostring), (.final_critical // -1 | tostring), (.final_important // -1 | tostring)] | @tsv' 2>/dev/null || echo "false false false -1 -1")
+# Extract all state fields in a single jq call — includes project_path for
+# parity with the scan step. IFS=$'\t' ensures we split only on the @tsv
+# separator; default IFS would also split on spaces, corrupting paths like
+# "/Users/John Doe/...". On jq failure we skip rather than continue with
+# indeterminate fields (matches the "skip on parse trouble" policy above).
+if ! STATE_FIELDS=$(echo "$STATE" | jq -r '[(.project_path // ""), (.security_done // false | tostring), (.fixer_done // false | tostring), (.rereview_done // false | tostring), (.bot_feedback_read // false | tostring), (.final_critical // -1 | tostring), (.final_important // -1 | tostring)] | @tsv' 2>/dev/null); then
+    exit 0
+fi
+IFS=$'\t' read -r STATE_PROJECT SECURITY_DONE FIXER_DONE REREVIEW_DONE BOT_FEEDBACK_READ FINAL_CRITICAL FINAL_IMPORTANT <<< "$STATE_FIELDS"
 
 # Load transcript once for all checks (avoid repeated file reads)
 TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || echo "")
@@ -135,6 +179,32 @@ fi
 # Skipping re-review means the fix is unverified.
 if [ "$FIXER_DONE" = "true" ] && [ "$REREVIEW_DONE" != "true" ]; then
     MISSING="${MISSING}\n- After fixer_done=true, re-review (iteration N+1) was not recorded. Re-run reviewers and call 'pr-review-state.sh set <PR> rereview_done true'."
+fi
+
+# Check 3b: rereview_done=true must be backed by transcript evidence of at
+# least 2 reviewer agent launches (initial + post-fix). This prevents the
+# leader from self-declaring convergence by flipping the flag without
+# actually re-running the reviewers — which is effectively "judging your own
+# fix without independent verification" and defeats the purpose of Step 5.
+if [ "$FIXER_DONE" = "true" ] && [ "$REREVIEW_DONE" = "true" ] && [ -n "$TRANSCRIPT" ]; then
+    REVIEWER_LAUNCHES=$(echo "$TRANSCRIPT" | grep -cE '"subagent_type":[[:space:]]*"pr-review-toolkit:code-reviewer"' 2>/dev/null || echo 0)
+    if [ "$REVIEWER_LAUNCHES" -lt 2 ]; then
+        MISSING="${MISSING}\n- rereview_done=true but transcript shows only ${REVIEWER_LAUNCHES} code-reviewer agent launch(es). Re-review requires a fresh reviewer invocation after the fix, not state manipulation."
+    fi
+fi
+
+# Check 3c: Before declaring convergence the leader must have consulted
+# GitHub bot feedback (claude-review check-run annotations, PR review
+# comments). Accept either an explicit state flag or transcript evidence
+# of a matching gh command — otherwise block so the leader runs the check.
+if [ "$FIXER_DONE" = "true" ] && [ "$BOT_FEEDBACK_READ" != "true" ]; then
+    if [ -n "$TRANSCRIPT" ]; then
+        if ! echo "$TRANSCRIPT" | grep -qE 'gh pr view [^|]*--json[^|]*(reviews|comments)|gh api [^|]*pulls/[0-9]+/(comments|reviews)|gh api [^|]*check-runs/[0-9]+/annotations' 2>/dev/null; then
+            MISSING="${MISSING}\n- Bot feedback (claude-review check / PR review comments) was not read. Run 'gh pr view <PR> --json reviews,comments' or equivalent, then 'pr-review-state.sh set <PR> bot_feedback_read true'."
+        fi
+    else
+        MISSING="${MISSING}\n- bot_feedback_read=false and transcript unavailable — cannot verify bot feedback was consulted."
+    fi
 fi
 
 # Check 4: Convergence — final_critical and final_important must both be 0.

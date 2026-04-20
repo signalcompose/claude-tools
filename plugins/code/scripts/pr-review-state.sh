@@ -33,7 +33,37 @@ state_mktemp() {
 case "$ACTION" in
   init)
     mkdir -p "$STATE_DIR"
-    printf '{"pr":"%s","phase":"started","reviewers_done":false,"security_done":false,"fixer_done":false,"rereview_done":false,"iterations":0,"final_critical":-1,"final_important":-1}' "$PR_NUMBER" > "$STATE_FILE"
+    # Record project_path so verify-workflow.sh can skip state files left by
+    # unrelated projects (Issue #236). `pwd -P` resolves symlinks for stable
+    # comparison; trailing slashes are stripped by pwd by default.
+    # session_id is recorded as supplementary telemetry — verify-workflow.sh
+    # currently keys off project_path only, but storing session_id now keeps
+    # future debug / cross-session correlation cheap.
+    PROJECT_PATH="$(pwd -P 2>/dev/null || pwd)"
+    SESSION_ID="${CLAUDE_SESSION_ID:-}"
+    if ! command -v jq >/dev/null 2>&1; then
+      # jq unavailable: fall back to printf. Escape backslash and double-quote
+      # so the emitted JSON stays valid for typical filesystem paths and
+      # session IDs. This fallback does not implement full JSON string
+      # escaping (control chars, embedded newlines, etc.); if those appear
+      # in a path the caller should install jq.
+      PROJECT_PATH_ESC="${PROJECT_PATH//\\/\\\\}"
+      PROJECT_PATH_ESC="${PROJECT_PATH_ESC//\"/\\\"}"
+      SESSION_ID_ESC="${SESSION_ID//\\/\\\\}"
+      SESSION_ID_ESC="${SESSION_ID_ESC//\"/\\\"}"
+      printf '{"pr":"%s","session_id":"%s","project_path":"%s","phase":"started","reviewers_done":false,"security_done":false,"fixer_done":false,"rereview_done":false,"bot_feedback_read":false,"iterations":0,"final_critical":-1,"final_important":-1}' \
+        "$PR_NUMBER" "$SESSION_ID_ESC" "$PROJECT_PATH_ESC" > "$STATE_FILE"
+    else
+      jq -n \
+        --arg pr "$PR_NUMBER" \
+        --arg session "$SESSION_ID" \
+        --arg project "$PROJECT_PATH" \
+        '{pr:$pr, session_id:$session, project_path:$project, phase:"started",
+          reviewers_done:false, security_done:false, fixer_done:false,
+          rereview_done:false, bot_feedback_read:false,
+          iterations:0, final_critical:-1, final_important:-1}' \
+        > "$STATE_FILE"
+    fi
     echo "State initialized for PR #$PR_NUMBER"
     ;;
   set)
