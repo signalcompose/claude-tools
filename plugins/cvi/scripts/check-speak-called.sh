@@ -92,9 +92,10 @@ fi
 # Accept either the Skill-tool wrapper or a direct MCP tool invocation.
 # The MCP tool name has two forms: bare `mcp__cvi-voice__speak` (direct
 # .mcp.json) and plugin-namespaced `mcp__plugin_cvi_cvi-voice__speak`
-# (via the plugin registry). Both are matched. Single grep-E scan keeps
-# the Stop hook cheap even on large transcripts.
-if grep -qE '"skill":"cvi:speak"|"name":"mcp__(plugin_cvi_)?cvi-voice__speak"' \
+# (via the plugin registry). The tool_use guard prevents false matches
+# from user-pasted JSON literals.
+if grep -q '"type":"tool_use"' "$TRANSCRIPT_PATH" 2>/dev/null && \
+   grep -qE '"skill":"cvi:speak"|"name":"mcp__(plugin_cvi_)?cvi-voice__speak"' \
         "$TRANSCRIPT_PATH" 2>/dev/null; then
     exit 0
 fi
