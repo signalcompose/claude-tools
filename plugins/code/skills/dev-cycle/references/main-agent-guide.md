@@ -15,6 +15,7 @@
 1. Spawn agents in parallel via Agent tool (NOT Task tool):
    `Agent(subagent_type: "general-purpose", mode: "acceptEdits", model: "<choose per task>", prompt: "...")`
    **MANDATORY**: Always specify an explicit `model` parameter (`haiku` for lightweight, `sonnet` for standard, `opus` for complex reasoning). Never omit `model` (default `inherit` may fail in parallel spawning).
+   **MANDATORY** (Issue #245): Include in every agent prompt the sandbox tooling note defined in `${CLAUDE_PLUGIN_ROOT}/skills/pr-review-team/SKILL.md` Step 2 (the `Tooling note: Do NOT set dangerouslyDisableSandbox: true ...` block). Agent-spawned subagents do not see the orchestrator's SKILL body; omitting the note causes defensive sandbox-bypass approval prompts to the user.
 2. Wait for all agents to report completion (each Agent call blocks until the subagent returns)
 3. No shutdown procedure needed — subagents complete automatically
 4. **Commit per-agent individually** (lead performs commits, not agents)

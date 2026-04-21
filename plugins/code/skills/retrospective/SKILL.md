@@ -38,6 +38,8 @@ Spawn 2 agents using the Task tool (`subagent_type: "general-purpose"`, `model: 
 
 **MANDATORY**: Always specify an explicit `model` parameter. Choose the appropriate model based on task complexity (`haiku` for lightweight, `sonnet` for standard, `opus` for complex reasoning). Never omit `model` (default `inherit` may fail in parallel spawning).
 
+**MANDATORY** (Issue #245): Auditor and Researcher both invoke `git log` / `gh pr view` during analysis. Include in each agent prompt the sandbox tooling note defined in `${CLAUDE_PLUGIN_ROOT}/skills/pr-review-team/SKILL.md` Step 2 (the `Tooling note: Do NOT set dangerouslyDisableSandbox: true ...` block). Agent-spawned subagents do not see the orchestrator's SKILL body; omitting the note causes defensive sandbox-bypass approval prompts to the user.
+
 Auditor and Researcher are independent — no inter-agent communication needed.
 
 #### Agent 1: Auditor
