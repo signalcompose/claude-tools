@@ -64,10 +64,10 @@ breaks the review flow.
 
 Launch in parallel (one message, 4 Agent tool calls):
 
-1. `Agent(subagent_type: "pr-review-toolkit:code-reviewer", model: "sonnet", prompt: "<criteria path> + <tooling note above> + <task>")`
-2. `Agent(subagent_type: "pr-review-toolkit:silent-failure-hunter", model: "sonnet", prompt: "<criteria path> + <tooling note above> + <task>")`
-3. `Agent(subagent_type: "pr-review-toolkit:pr-test-analyzer", model: "sonnet", prompt: "<criteria path> + <tooling note above> + <task>")`
-4. `Agent(subagent_type: "pr-review-toolkit:comment-analyzer", model: "haiku", prompt: "<criteria path> + <tooling note above> + <task>")`
+1. `Agent(subagent_type: "pr-review-toolkit:code-reviewer", model: "sonnet", prompt: "<criteria path> + <copy the Tooling note block above verbatim> + <task>")`
+2. `Agent(subagent_type: "pr-review-toolkit:silent-failure-hunter", model: "sonnet", prompt: "<criteria path> + <copy the Tooling note block above verbatim> + <task>")`
+3. `Agent(subagent_type: "pr-review-toolkit:pr-test-analyzer", model: "sonnet", prompt: "<criteria path> + <copy the Tooling note block above verbatim> + <task>")`
+4. `Agent(subagent_type: "pr-review-toolkit:comment-analyzer", model: "haiku", prompt: "<criteria path> + <copy the Tooling note block above verbatim> + <task>")`
 
 Results return automatically. No shutdown procedure needed.
 
