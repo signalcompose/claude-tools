@@ -40,6 +40,41 @@ Exit code semantics:
     4. auto mode 不要な場合は /code:dev-cycle を使用
   ```
 
+## Step 0.5: Read project-local violations memory (Issue #248)
+
+Before Step 1, read this project's autopilot violations log as a commitment device:
+
+```bash
+# Locate project memory dir. Claude Code replaces both `/` and `_` with `-`
+# in the current working directory path and keeps the leading `-`.
+PROJECT_SLUG=$(pwd | sed 's|[/_]|-|g')
+VIOLATIONS_FILE="$HOME/.claude/projects/${PROJECT_SLUG}/memory/feedback_autopilot_violations.md"
+```
+
+- If the file exists: **Read it with the Read tool**. The Known violations section lists past spec bypasses in this project. Do not repeat them.
+- If it does not exist (first autopilot run in this project): bootstrap by copying
+  `${CLAUDE_PLUGIN_ROOT}/skills/autopilot/references/violations-skill-template.md`
+  to that path, then read it.
+
+The retrospective phase appends new violation entries here when it detects silent skips. Treating this as required reading makes each entry a concrete commitment carried into the next run.
+
+## Stop vs Skip — what counts as a violation
+
+Three behaviors to distinguish at every phase:
+
+| Action | Status | Recording |
+|--------|--------|-----------|
+| **Stop** when blocked (missing dependency, test failure, external API down, etc.) | ✅ Allowed | `autopilot-state.sh set last_failure '"<reason>"'` — then stop. User resumes after fixing. |
+| **Skip** a phase because the project state makes it a legitimate no-op (e.g., no code changes for `simplify` to review) | ⚠️ Allowed **with declaration** | `autopilot-state.sh skip-declare <phase> "<reason>"` — then `advance`. Retrospective reviews the declaration. |
+| **Silent skip** — proceed past a phase without its skill invocation and without a declaration | ❌ Spec violation | Retrospective detects via transcript grep and appends an entry to the violations memory file. |
+
+### Rationalization patterns to reject (documented in Issue #247)
+
+- "This PR is docs-only, so `simplify` adds no value." → Invoke `simplify` anyway (cheap, maintains discipline); or `skip-declare` with a concrete reason if truly no-op.
+- "One `pr-review-toolkit:code-reviewer` agent is enough; four is overkill." → No. `code:pr-review-team` specifies four parallel reviewers for a reason.
+- "The user said 『走り切って』, so I can merge autonomously." → No. Merge is always gated on an explicit "マージして" / "merge" instruction from the user.
+- "I can run several `advance` calls in a row to catch up." → No. Each phase needs its own skill invocation between advances.
+
 ## Step 1: Resolve input
 
 `$ARGUMENTS` is interpreted as natural language. No flags.
