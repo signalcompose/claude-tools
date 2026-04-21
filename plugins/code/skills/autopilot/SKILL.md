@@ -68,7 +68,7 @@ Three behaviors to distinguish at every phase:
 | **Skip** a phase because the project state makes it a legitimate no-op (e.g., no code changes for `simplify` to review) | ⚠️ Allowed **with declaration** | `autopilot-state.sh skip-declare <phase> "<reason>"` — then `advance`. Retrospective reviews the declaration. |
 | **Silent skip** — proceed past a phase without its skill invocation and without a declaration | ❌ Spec violation | Retrospective detects via transcript grep and appends an entry to the violations memory file. |
 
-### Rationalization patterns to reject (Issue #247 — three prior recurrences)
+### Rationalization patterns to reject (documented in Issue #247)
 
 - "This PR is docs-only, so `simplify` adds no value." → Invoke `simplify` anyway (cheap, maintains discipline); or `skip-declare` with a concrete reason if truly no-op.
 - "One `pr-review-toolkit:code-reviewer` agent is enough; four is overkill." → No. `code:pr-review-team` specifies four parallel reviewers for a reason.

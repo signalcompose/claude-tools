@@ -63,12 +63,24 @@ Goal: detect silent phase skips by comparing the session transcript against expe
 ```bash
 STATE=.claude/autopilot.state.json
 [ -f "$STATE" ] || skip_step
-# Claude Code project slug: replace `/` and `_` with `-`, keep leading `-`.
+# Claude Code project slug: replace `/` and `_` with `-`. The leading `-`
+# appears naturally because pwd starts with `/`.
 PROJECT_SLUG=$(pwd | sed 's|[/_]|-|g')
 TRANSCRIPT=$(ls -t "$HOME/.claude/projects/${PROJECT_SLUG}"/*.jsonl 2>/dev/null | head -1)
 VIOLATIONS="$HOME/.claude/projects/${PROJECT_SLUG}/memory/feedback_autopilot_violations.md"
-# Fail-open guard: if no transcript exists (first run / sandbox), skip reconciliation.
-[ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ] || skip_step
+# Fail-open guard: if no transcript exists (first run / sandbox / slug drift),
+# log to stderr for visibility then skip reconciliation. Do NOT block retrospective.
+if [ -z "$TRANSCRIPT" ] || [ ! -f "$TRANSCRIPT" ]; then
+  echo "[retrospective] autopilot reconciliation skipped: no transcript at $HOME/.claude/projects/${PROJECT_SLUG}/" >&2
+  skip_step
+fi
+```
+
+When calling `acm_record_signal`, log whether ACM is available so silent failures in analytics are visible:
+
+```text
+If the `mcp__plugin_acm_acm__acm_record_signal` tool is registered, call it with the violation details.
+Otherwise, emit `[retrospective] acm_record_signal unavailable — violation recorded to file only` to stderr and continue.
 ```
 
 For each phase in the pipeline (`sprint | audit | simplify | ship | post-pr-review | retrospective`):

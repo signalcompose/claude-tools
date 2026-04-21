@@ -206,12 +206,20 @@ cmd_skip_declare() {
   local phase="$1" reason="${2:-}"
   [ -n "$phase" ] && [ -n "$reason" ] || die "usage: skip-declare <phase> <reason>"
   [[ "$phase" =~ ^[a-z][a-z0-9-]*$ ]] || die "invalid phase: $phase"
+  # Reject whitespace-only or too-short reasons: zero-effort declarations like
+  # "n/a" or " " defeat the commitment device purpose.
+  local trimmed="${reason#"${reason%%[![:space:]]*}"}"
+  trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+  (( ${#trimmed} >= 10 )) || die "reason must be at least 10 non-whitespace chars (got: '$reason')"
   [ -f "$STATE_FILE" ] || die "no state file; run init first"
   local now; now=$(iso_now)
   local tmp; tmp=$(state_mktemp) || die "state_mktemp failed"
   trap 'rm -f "$tmp"' RETURN
+  # Cap skip_log at 500 most-recent entries to prevent unbounded growth across
+  # many autopilot runs. Retrospective still sees the latest run's entries.
   jq --arg phase "$phase" --arg reason "$reason" --arg now "$now" \
      '.skip_log = ((.skip_log // []) + [{phase: $phase, reason: $reason, declared_at: $now}])
+      | .skip_log = (if (.skip_log | length) > 500 then .skip_log[-500:] else .skip_log end)
       | .updated_at = $now' \
      "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
   echo "skip-declared: $phase"
