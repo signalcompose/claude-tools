@@ -50,12 +50,24 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh init <PR番号>
 **MANDATORY**: Launch ALL 4 reviewers in a SINGLE message using parallel Agent tool calls.
 Do NOT use TeamCreate or Task tool. Use the Agent tool directly.
 
+🔴 **Subagent prompt requirement (Issue #245)** — Agent tool で spawn される subagent は orchestrator の SKILL 本文を見ない。以下のガード文をすべての subagent prompt に **必ず含める**（reviewers, fixer, re-reviewers 共通）:
+
+```
+Tooling note: Do NOT set dangerouslyDisableSandbox: true on any bash call.
+gh / git commands work inside the default sandbox (see ~/.claude/settings.json
+sandbox.network.allowedDomains). Setting the bypass flag forces a user
+approval prompt that auto mode intentionally refuses to auto-approve, which
+breaks the review flow.
+```
+
+省略すると subagent が `gh pr diff` 等で defensive に bypass を要求し、ユーザーに承認プロンプトが連発する。
+
 Launch in parallel (one message, 4 Agent tool calls):
 
-1. `Agent(subagent_type: "pr-review-toolkit:code-reviewer", model: "sonnet", prompt: "...")`
-2. `Agent(subagent_type: "pr-review-toolkit:silent-failure-hunter", model: "sonnet", prompt: "...")`
-3. `Agent(subagent_type: "pr-review-toolkit:pr-test-analyzer", model: "sonnet", prompt: "...")`
-4. `Agent(subagent_type: "pr-review-toolkit:comment-analyzer", model: "haiku", prompt: "...")`
+1. `Agent(subagent_type: "pr-review-toolkit:code-reviewer", model: "sonnet", prompt: "<criteria path> + <tooling note above> + <task>")`
+2. `Agent(subagent_type: "pr-review-toolkit:silent-failure-hunter", model: "sonnet", prompt: "<criteria path> + <tooling note above> + <task>")`
+3. `Agent(subagent_type: "pr-review-toolkit:pr-test-analyzer", model: "sonnet", prompt: "<criteria path> + <tooling note above> + <task>")`
+4. `Agent(subagent_type: "pr-review-toolkit:comment-analyzer", model: "haiku", prompt: "<criteria path> + <tooling note above> + <task>")`
 
 Results return automatically. No shutdown procedure needed.
 
@@ -159,13 +171,16 @@ MAX_ITERATIONS=3
 
 FOR iteration = 1 TO MAX_ITERATIONS:
   1. Spawn fixer subagent:
-     Agent(subagent_type: "general-purpose", model: "sonnet", prompt: "<all findings>")
-     Send ALL findings in a single prompt (Critical + Important + Security failures)
+     Agent(subagent_type: "general-purpose", model: "sonnet",
+           prompt: "<all findings> + <Step 2 tooling note on dangerouslyDisableSandbox>")
+     Send ALL findings in a single prompt (Critical + Important + Security failures).
+     The fixer also runs gh/git — propagate the same sandbox guard (Issue #245).
 
   2. Fixer applies fixes and runs tests
      IF tests fail after 2 retries → report to user, do NOT merge, BREAK
 
-  3. Re-review: Launch ALL 4 reviewers again (parallel Agent tool calls, same as Step 2)
+  3. Re-review: Launch ALL 4 reviewers again (parallel Agent tool calls, same as Step 2,
+     including the tooling note in each subagent prompt)
 
   4. Collect fresh counts: fresh_critical, fresh_important, fresh_security
 
