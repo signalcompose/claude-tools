@@ -203,6 +203,11 @@ cmd_advance() {
   local cur; cur=$(jq -r '.phase' "$STATE_FILE")
   local nxt; nxt=$(next_phase "$cur")
 
+  # Refuse no-op advance once the pipeline is complete: a second `advance`
+  # on `complete` would otherwise silently rewrite updated_at and obscure
+  # whether a genuine transition had happened.
+  [ "$cur" = "complete" ] && die "pipeline already complete — use cleanup to reset"
+
   # Skip verification when a recovery override is set. This is the same
   # escape hatch style used by AUTOPILOT_STATE_ALLOW_SET_PHASE.
   if [ -z "${AUTOPILOT_STATE_ALLOW_UNVERIFIED:-}" ]; then
@@ -233,14 +238,10 @@ cmd_advance() {
 verify_advance_preconditions() {
   local cur="$1" nxt="$2"
 
-  # sprint is the entry phase — nothing produced evidence yet.
-  # complete has no transition to guard.
-  if [ "$cur" = "sprint" ] && [ "$nxt" = "audit" ]; then
-    verify_phase_evidence "sprint"
-    return
-  fi
-  [ "$cur" = "complete" ] && return
-
+  # Every real phase we leave must produce evidence — sprint included,
+  # since the sprint work itself is carried out by code:sprint-impl whose
+  # invocation is the evidence. The caller (cmd_advance) already refuses
+  # to run when cur == complete, so we do not need to re-handle that here.
   verify_phase_evidence "$cur"
 
   if [ "$cur" = "post-pr-review" ] && [ "$nxt" = "retrospective" ]; then
