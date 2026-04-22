@@ -6,12 +6,15 @@
 #   autopilot-state.sh read
 #   autopilot-state.sh get <json-path>             # e.g. get .phase
 #   autopilot-state.sh set <key> <value>           # e.g. set phase audit
-#   autopilot-state.sh advance                     # move to next phase
+#   autopilot-state.sh advance                     # move to next phase (with verification)
 #   autopilot-state.sh metric <name> <value>       # update metrics.{name}
 #   autopilot-state.sh skip-declare <phase> <reason>  # append skip_log entry
+#   autopilot-state.sh record-invocation <phase> <skill> [tool-use-id]
+#                                                  # append Skill-tool invocation evidence
+#   autopilot-state.sh record-review-iteration    # increment review_iterations (pr-review-team)
 #   autopilot-state.sh cleanup
 #
-# Schema (v1):
+# Schema (v2 — additive to v1, backward compatible via `// [] / // 0` reads):
 #   {
 #     "version": 1,
 #     "phase": "sprint|audit|simplify|ship|post-pr-review|retrospective|complete",
@@ -26,8 +29,23 @@
 #       "critical": 0,
 #       "important": 0,
 #       "ci_status": "unknown|pending|success|failure"
-#     }
+#     },
+#     "invocations": [
+#       { "phase": "sprint", "skill": "code:sprint-impl", "invoked_at": "<ISO>", "tool_use_id": "..." }
+#     ],
+#     "review_iterations": 0,
+#     "skip_log": [
+#       { "phase": "simplify", "reason": "...", "declared_at": "<ISO>" }
+#     ]
 #   }
+#
+# Phase → expected Skill mapping (used by `advance` verification):
+#   sprint         → code:sprint-impl
+#   audit          → code:audit-compliance
+#   simplify       → simplify
+#   ship           → code:shipping-pr
+#   post-pr-review → code:pr-review-team
+#   retrospective  → code:retrospective
 #
 # Phase order for `advance`:
 #   sprint → audit → simplify → ship → post-pr-review → retrospective → complete
@@ -73,6 +91,21 @@ next_phase() {
   esac
 }
 
+# Map a phase name to the Skill tool that is expected to carry out that phase.
+# Used by both record-invocation (to bucket invocations by phase) and advance
+# (to verify the previous phase produced a matching invocations[] entry).
+expected_skill_for_phase() {
+  case "$1" in
+    sprint)          echo "code:sprint-impl" ;;
+    audit)           echo "code:audit-compliance" ;;
+    simplify)        echo "simplify" ;;
+    ship)            echo "code:shipping-pr" ;;
+    post-pr-review)  echo "code:pr-review-team" ;;
+    retrospective)   echo "code:retrospective" ;;
+    *) echo "" ;;
+  esac
+}
+
 cmd_init() {
   local plan="$1" issue="${2:-null}"
   [ -n "$plan" ] || die "plan file required"
@@ -103,7 +136,10 @@ cmd_init() {
         critical: 0,
         important: 0,
         ci_status: "unknown"
-      }
+      },
+      invocations: [],
+      review_iterations: 0,
+      skip_log: []
     }' > "$STATE_FILE"
   echo "initialized: $STATE_FILE"
 }
@@ -157,6 +193,13 @@ cmd_advance() {
   [ -f "$STATE_FILE" ] || die "no state file"
   local cur; cur=$(jq -r '.phase' "$STATE_FILE")
   local nxt; nxt=$(next_phase "$cur")
+
+  # Skip verification when a recovery override is set. This is the same
+  # escape hatch style used by AUTOPILOT_STATE_ALLOW_SET_PHASE.
+  if [ -z "${AUTOPILOT_STATE_ALLOW_UNVERIFIED:-}" ]; then
+    verify_advance_preconditions "$cur" "$nxt"
+  fi
+
   local now; now=$(iso_now)
   local tmp; tmp=$(state_mktemp) || die "state_mktemp failed"
   trap 'rm -f "$tmp"' RETURN
@@ -170,6 +213,85 @@ cmd_advance() {
      | .updated_at = $now' \
     "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
   echo "advanced: $cur -> $nxt"
+}
+
+# Refuse `advance` unless the phase we are leaving left a Skill-tool invocation
+# record, an explicit skip-declare, OR the leader is transitioning from the
+# pre-pipeline sprint (no predecessor). Additionally gate the special
+# post-pr-review → retrospective transition on convergence metrics: the
+# pr-review-team contract requires metrics.{critical,important} == 0 and
+# at least 2 review_iterations. This is the mechanical side of #253 / #254.
+verify_advance_preconditions() {
+  local cur="$1" nxt="$2"
+
+  # sprint is the entry phase — nothing produced evidence yet.
+  # complete has no transition to guard.
+  if [ "$cur" = "sprint" ] && [ "$nxt" = "audit" ]; then
+    verify_phase_evidence "sprint"
+    return
+  fi
+  [ "$cur" = "complete" ] && return
+
+  verify_phase_evidence "$cur"
+
+  if [ "$cur" = "post-pr-review" ] && [ "$nxt" = "retrospective" ]; then
+    verify_review_convergence
+  fi
+}
+
+# A phase has evidence iff invocations[] contains an entry for it OR skip_log
+# has a declaration for it. Leaders that "silently" advance with neither are
+# the #253 failure mode.
+verify_phase_evidence() {
+  local phase="$1"
+  local expected; expected=$(expected_skill_for_phase "$phase")
+  local inv_count
+  inv_count=$(jq --arg p "$phase" '[(.invocations // [])[] | select(.phase == $p)] | length' "$STATE_FILE")
+  local skip_count
+  skip_count=$(jq --arg p "$phase" '[(.skip_log // [])[] | select(.phase == $p)] | length' "$STATE_FILE")
+  if [ "$inv_count" = "0" ] && [ "$skip_count" = "0" ]; then
+    cat >&2 <<EOF
+autopilot-state: advance refused — no evidence for phase '$phase'.
+
+Expected one of:
+  (A) Invoke the phase's Skill tool (${expected:-<none>}) — PostToolUse hook
+      will append to invocations[].
+  (B) Declare a deliberate skip:
+        autopilot-state.sh skip-declare $phase "<reason ≥10 chars>"
+
+Recovery override (use sparingly):
+  AUTOPILOT_STATE_ALLOW_UNVERIFIED=1 autopilot-state.sh advance
+EOF
+    exit 1
+  fi
+}
+
+# pr-review-team contract: at least 2 review iterations, both critical and
+# important counts settled to zero. Based on #254.
+verify_review_convergence() {
+  local iters crit imp
+  iters=$(jq -r '.review_iterations // 0' "$STATE_FILE")
+  crit=$(jq -r '.metrics.critical // 0' "$STATE_FILE")
+  imp=$(jq -r '.metrics.important // 0' "$STATE_FILE")
+  if [ "$iters" -lt 2 ] || [ "$crit" != "0" ] || [ "$imp" != "0" ]; then
+    cat >&2 <<EOF
+autopilot-state: advance refused — pr-review-team contract unmet.
+
+  review_iterations = $iters  (required: ≥ 2)
+  metrics.critical  = $crit  (required: 0)
+  metrics.important = $imp  (required: 0)
+
+Re-invoke code:pr-review-team via the Skill tool and let it iterate until
+both metrics reach 0. Each iteration must call:
+  autopilot-state.sh record-review-iteration
+  autopilot-state.sh metric critical <n>
+  autopilot-state.sh metric important <n>
+
+Recovery override (use sparingly):
+  AUTOPILOT_STATE_ALLOW_UNVERIFIED=1 autopilot-state.sh advance
+EOF
+    exit 1
+  fi
 }
 
 cmd_metric() {
@@ -196,6 +318,46 @@ cmd_metric() {
 cmd_cleanup() {
   rm -f "$STATE_FILE"
   echo "cleaned up: $STATE_FILE"
+}
+
+# Append a Skill-tool invocation record. Phase is derived from the current
+# .phase so the PostToolUse hook only needs to supply skill + optional tool-
+# use id. Phase may also be passed explicitly for backfill / replay scenarios.
+cmd_record_invocation() {
+  local phase="$1" skill="${2:-}" tool_id="${3:-}"
+  [ -n "$phase" ] && [ -n "$skill" ] || die "usage: record-invocation <phase> <skill> [tool-use-id]"
+  [[ "$phase" =~ ^[a-z][a-z0-9-]*$ ]] || die "invalid phase: $phase"
+  # Skills are namespaced like "code:sprint-impl" or plain like "simplify".
+  [[ "$skill" =~ ^[a-zA-Z][a-zA-Z0-9:_-]*$ ]] || die "invalid skill: $skill"
+  [ -f "$STATE_FILE" ] || die "no state file; run init first"
+  local now; now=$(iso_now)
+  local tmp; tmp=$(state_mktemp) || die "state_mktemp failed"
+  trap 'rm -f "$tmp"' RETURN
+  # Cap invocations[] at 500 entries — same convention as skip_log.
+  jq --arg phase "$phase" --arg skill "$skill" --arg tool_id "$tool_id" --arg now "$now" \
+     '.invocations = ((.invocations // []) + [
+        ({phase: $phase, skill: $skill, invoked_at: $now}
+         + (if $tool_id == "" then {} else {tool_use_id: $tool_id} end))
+      ])
+      | .invocations = (if (.invocations | length) > 500 then .invocations[-500:] else .invocations end)
+      | .updated_at = $now' \
+     "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
+  echo "recorded: $phase / $skill"
+}
+
+# Increment review_iterations. Called by code:pr-review-team at the start of
+# each iteration. Kept as a dedicated subcommand (rather than `set`) so the
+# phase-write guard stays narrow.
+cmd_record_review_iteration() {
+  [ -f "$STATE_FILE" ] || die "no state file; run init first"
+  local now; now=$(iso_now)
+  local tmp; tmp=$(state_mktemp) || die "state_mktemp failed"
+  trap 'rm -f "$tmp"' RETURN
+  jq --arg now "$now" \
+     '.review_iterations = ((.review_iterations // 0) + 1)
+      | .updated_at = $now' \
+     "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
+  echo "review_iterations=$(jq -r '.review_iterations' "$STATE_FILE")"
 }
 
 # Append a skip declaration to .skip_log[]. Purely additive; does NOT advance
@@ -228,14 +390,16 @@ cmd_skip_declare() {
 sub="${1:-}"
 shift || true
 case "$sub" in
-  init)         cmd_init "$@" ;;
-  read)         cmd_read ;;
-  get)          cmd_get "$@" ;;
-  set)          cmd_set "$@" ;;
-  advance)      cmd_advance ;;
-  metric)       cmd_metric "$@" ;;
-  cleanup)      cmd_cleanup ;;
-  skip-declare) cmd_skip_declare "$@" ;;
-  "" )          die "subcommand required: init|read|get|set|advance|metric|cleanup|skip-declare" ;;
-  *)            die "unknown subcommand: $sub" ;;
+  init)                      cmd_init "$@" ;;
+  read)                      cmd_read ;;
+  get)                       cmd_get "$@" ;;
+  set)                       cmd_set "$@" ;;
+  advance)                   cmd_advance ;;
+  metric)                    cmd_metric "$@" ;;
+  cleanup)                   cmd_cleanup ;;
+  skip-declare)              cmd_skip_declare "$@" ;;
+  record-invocation)         cmd_record_invocation "$@" ;;
+  record-review-iteration)   cmd_record_review_iteration ;;
+  "" )                       die "subcommand required: init|read|get|set|advance|metric|cleanup|skip-declare|record-invocation|record-review-iteration" ;;
+  *)                         die "unknown subcommand: $sub" ;;
 esac

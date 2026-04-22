@@ -76,6 +76,16 @@
             "timeout": 3000
           }
         ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-record-invocation.sh",
+            "timeout": 3000
+          }
+        ]
       }
     ],
     "PreToolUse": [
