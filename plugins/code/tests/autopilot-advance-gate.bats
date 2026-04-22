@@ -42,13 +42,33 @@ teardown() {
     [ "$status" -eq 0 ]
 }
 
+# Canonical skill name for each phase — kept in sync with
+# expected_skill_for_phase() in autopilot-state.sh.
+phase_skill() {
+    case "$1" in
+        sprint)          echo "code:sprint-impl" ;;
+        audit)           echo "code:audit-compliance" ;;
+        simplify)        echo "simplify" ;;
+        ship)            echo "code:shipping-pr" ;;
+        post-pr-review)  echo "code:pr-review-team" ;;
+        retrospective)   echo "code:retrospective" ;;
+    esac
+}
+
+@test "advance refuses when recorded skill does not match expected" {
+    bash "$STATE_SH" record-invocation sprint wrong-skill-name >/dev/null
+    run bash "$STATE_SH" advance
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"no evidence for phase 'sprint'"* ]]
+}
+
 @test "advance refuses post-pr-review->retrospective without convergence" {
-    # Walk to post-pr-review using record-invocation at each phase.
+    # Walk to post-pr-review using canonical skill names at each phase.
     for p in sprint audit simplify ship post-pr-review; do
-        bash "$STATE_SH" record-invocation "$p" "skill-$p" >/dev/null
+        bash "$STATE_SH" record-invocation "$p" "$(phase_skill "$p")" >/dev/null
         bash "$STATE_SH" advance >/dev/null || true
     done
-    # Phase should now be retrospective candidate; `advance` at post-pr-review.
+    # Phase should now be post-pr-review, about to advance to retrospective.
     bash "$STATE_SH" get .phase | grep -q "post-pr-review"
 
     run bash "$STATE_SH" advance
@@ -59,7 +79,7 @@ teardown() {
 
 @test "advance succeeds to retrospective once contract met" {
     for p in sprint audit simplify ship post-pr-review; do
-        bash "$STATE_SH" record-invocation "$p" "skill-$p" >/dev/null
+        bash "$STATE_SH" record-invocation "$p" "$(phase_skill "$p")" >/dev/null
         bash "$STATE_SH" advance >/dev/null || true
     done
     bash "$STATE_SH" record-review-iteration >/dev/null

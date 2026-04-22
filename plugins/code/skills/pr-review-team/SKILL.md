@@ -21,6 +21,36 @@ The leader MUST:
 
 🔴 Stop hooks verify workflow completion. Skipping steps will block the stop request.
 
+## MANDATORY autopilot integration contract (#254)
+
+When this skill runs as the `post-pr-review` phase of `/code:autopilot`, the leader MUST honour the following machine-verified contract. `autopilot-state.sh advance` refuses to cross into `retrospective` until all three hold:
+
+- `review_iterations >= 2` — **one iteration is never enough**, even if CI is green
+- `metrics.critical == 0`
+- `metrics.important == 0`
+
+On **every iteration** (including iteration 1), run:
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-state.sh record-review-iteration
+```
+
+At the end of each iteration, after Step 4 integration, reflect residual findings into state:
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-state.sh metric critical  <remaining critical count>
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-state.sh metric important <remaining important count>
+```
+
+Fixes MUST flow through a dedicated fixer subagent (e.g. `pr-review-toolkit:code-fixer`). The leader MUST NOT apply findings via its own `Edit` / `Write` — that pattern is exactly the #254 failure mode.
+
+**Rationalization patterns to reject explicitly**:
+
+- "CI green なので 1 iteration で十分" — violation of the ≥ 2 rule
+- "findings は自分で読んで scope out 可能" — violation of the fixer-agent rule
+- "simplify で既に review 済みだから post-pr-review は形式的" — different contract (#251)
+- "token 節約のため 4 agents parallel を 1 体に縮約" — direct violation (#254)
+
 ## Step 1: Initialize & Identify Target PR
 
 ### Initialize State

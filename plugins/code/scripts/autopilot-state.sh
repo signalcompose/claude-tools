@@ -47,6 +47,15 @@
 #   post-pr-review → code:pr-review-team
 #   retrospective  → code:retrospective
 #
+# Concurrency note: read-modify-write on $STATE_FILE is not locked. The
+# PostToolUse hook (autopilot-record-invocation.sh) and main-thread callers
+# (advance/metric/skip-declare) can race on the final `mv "$tmp"`, in which
+# case the later writer silently wins. The window is microseconds in
+# practice and the failure mode is observable (advance then refuses with a
+# "no evidence" message, which the caller can resolve by re-invoking the
+# skill or retrying). Locking is deferred to the next PDCA iteration if the
+# race is observed in real usage. See #255/#257 discussion.
+#
 # Phase order for `advance`:
 #   sprint → audit → simplify → ship → post-pr-review → retrospective → complete
 
@@ -239,14 +248,25 @@ verify_advance_preconditions() {
   fi
 }
 
-# A phase has evidence iff invocations[] contains an entry for it OR skip_log
-# has a declaration for it. Leaders that "silently" advance with neither are
-# the #253 failure mode.
+# A phase has evidence iff invocations[] contains an entry matching BOTH
+# phase AND expected skill, OR skip_log has a declaration for the phase.
+# Matching skill name (not just phase) closes the CLI-side bypass where
+# `record-invocation sprint wrong-skill` would otherwise satisfy the gate.
+# The PostToolUse hook already performs this filter; enforcing it at the
+# gate too makes direct-CLI and hook paths agree on what counts as evidence.
 verify_phase_evidence() {
   local phase="$1"
   local expected; expected=$(expected_skill_for_phase "$phase")
   local inv_count
-  inv_count=$(jq --arg p "$phase" '[(.invocations // [])[] | select(.phase == $p)] | length' "$STATE_FILE")
+  if [ -n "$expected" ]; then
+    inv_count=$(jq --arg p "$phase" --arg s "$expected" \
+      '[(.invocations // [])[] | select(.phase == $p and .skill == $s)] | length' \
+      "$STATE_FILE")
+  else
+    inv_count=$(jq --arg p "$phase" \
+      '[(.invocations // [])[] | select(.phase == $p)] | length' \
+      "$STATE_FILE")
+  fi
   local skip_count
   skip_count=$(jq --arg p "$phase" '[(.skip_log // [])[] | select(.phase == $p)] | length' "$STATE_FILE")
   if [ "$inv_count" = "0" ] && [ "$skip_count" = "0" ]; then
@@ -255,7 +275,7 @@ autopilot-state: advance refused — no evidence for phase '$phase'.
 
 Expected one of:
   (A) Invoke the phase's Skill tool (${expected:-<none>}) — PostToolUse hook
-      will append to invocations[].
+      will append an invocations[] entry whose .skill matches.
   (B) Declare a deliberate skip:
         autopilot-state.sh skip-declare $phase "<reason ≥10 chars>"
 
