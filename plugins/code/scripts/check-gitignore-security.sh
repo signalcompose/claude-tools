@@ -10,12 +10,20 @@ CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || true)
 
 # Resolve repository root
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
-[[ -z "$REPO_ROOT" ]] && exit 0
+if [[ -z "$REPO_ROOT" ]]; then
+    echo "check-gitignore-security: not in a git repo, security check skipped" >&2
+    exit 0
+fi
 
 GITIGNORE="${REPO_ROOT}/.gitignore"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REF_FILE="${SCRIPT_DIR}/../references/gitignore-security-patterns.md"
+
+if [[ ! -f "$REF_FILE" ]]; then
+    echo "check-gitignore-security: reference file missing: $REF_FILE (hash check skipped)" >&2
+    exit 0
+fi
 
 # Check for security patterns marker in .gitignore
 if ! grep -q "code:security-patterns" "$GITIGNORE" 2>/dev/null; then
