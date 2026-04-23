@@ -1,6 +1,6 @@
 # Code Review Criteria
 
-These criteria are applied by the `pr-review-toolkit:code-reviewer` agent during the `/code:review-commit` workflow.
+These criteria are applied by the `pr-review-toolkit:code-reviewer` agent when invoked via the `code:pr-review-team` skill (and other review flows that include this criteria path in their agent prompts).
 
 ## Code Quality
 - Readability and maintainability
