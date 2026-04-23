@@ -21,6 +21,33 @@ The leader MUST:
 
 🔴 Stop hook (`autopilot-stop.sh`) enforces phase chaining. Do not bypass.
 
+## MANDATORY phase contracts (#253 / #254)
+
+Each pipeline phase MUST be dispatched through the Skill tool with the exact skill name below. Inline substitution (Edit/Write/Bash/Agent 直接 spawn) is **contract violation** and will be refused by `autopilot-state.sh advance`.
+
+| Phase | Required Skill | Minimum contract |
+|---|---|---|
+| sprint | `code:sprint-impl` | 実装は skill 経由 |
+| audit | `code:audit-compliance` | audit skill 経由 |
+| simplify | `simplify` | 3-agent 並列、1 agent 縮約は不可 |
+| ship | `code:shipping-pr` | commit/push/PR を skill 経由、手動 `gh pr create` は不可 |
+| post-pr-review | `code:pr-review-team` | **最低 2 iteration**、`metrics.{critical,important} == 0` まで、fixer agent 使用（#254） |
+| retrospective | `code:retrospective` | Auditor + Researcher 並列 |
+
+Each phase either produces an `invocations[]` entry (the Skill PostToolUse hook records it automatically when the matching skill is invoked during that phase) or MUST declare a skip first:
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-state.sh skip-declare <phase> "<≥10 文字の理由>"
+```
+
+**Rationalization patterns to reject** (directly observed in #247–#254):
+
+- 「docs-only なので simplify 不要」 → skip-declare 必須、黙って飛ばさない
+- 「CI green なので post-pr-review 1 iteration で十分」 → 契約違反、最低 2
+- 「Agent tool で 4 体 spawn すれば Skill tool 相当」 → 不可、Skill tool 必須
+- 「対象コードをよく知っているから review 短縮可」 → expert overconfidence、同じ契約
+- 「token 節約のため inline 代替」 → token 経済バイアス、明示的 reject
+
 ## Step 0: Auto mode verification
 
 Run:

@@ -6,6 +6,28 @@ description: Run team-based PR review with parallel specialized agents and itera
 
 チーム編成による PR レビュー。4つの専門エージェントを並行起動し、CI 結果と統合して反復的に修正。
 
+## MANDATORY contract（autopilot 連携時）
+
+このスキルが autopilot pipeline の `post-pr-review` phase として起動された場合、以下を **必ず守ること**。違反は `/code:autopilot` の `advance` で refuse される（#254）。
+
+- 最低 **2 iteration** 実施（1 回の review で収束宣言しない）
+- 完了条件は **`metrics.critical == 0 AND metrics.important == 0`** まで回す
+- 修正は **fixer agent 経由**（`pr-review-toolkit:code-fixer` 等）。リーダーの直接 `Edit` で findings を処理しない
+- 各 iteration 開始時に:
+  ```bash
+  bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-state.sh record-review-iteration
+  ```
+- iteration 収束時に metrics を反映:
+  ```bash
+  bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-state.sh metric critical <残 critical 件数>
+  bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-state.sh metric important <残 important 件数>
+  ```
+
+**Rationalization patterns to reject**:
+- 「CI green なので 1 iteration で十分」 — 不可。review_iterations ≥ 2 が契約
+- 「findings は自分で読んで scope out 可能」 — 不可。fixer agent が拾う
+- 「simplify で既に review 済み」 — 不可。simplify と post-pr-review は別契約（#251）
+
 ## 使い方
 
 ```
