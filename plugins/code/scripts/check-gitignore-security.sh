@@ -21,8 +21,24 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REF_FILE="${SCRIPT_DIR}/../references/gitignore-security-patterns.md"
 
 if [[ ! -f "$REF_FILE" ]]; then
-    echo "check-gitignore-security: reference file missing: $REF_FILE (hash check skipped)" >&2
-    exit 0
+    cat >&2 <<EOF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BLOCKED: code plugin reference file missing
+
+Expected: ${REF_FILE}
+
+The security-patterns reference that this hook validates against
+is missing. This usually indicates a broken plugin install.
+
+Recovery:
+  /plugin update
+  /utils:clear-plugin-cache code
+  Restart Claude Code
+
+Then re-run the commit.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EOF
+    exit 2
 fi
 
 # Check for security patterns marker in .gitignore
