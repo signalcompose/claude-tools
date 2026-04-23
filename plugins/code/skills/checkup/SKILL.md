@@ -76,6 +76,14 @@ from the output.
 End with a brief neutral note, e.g.:
 `Review each item and decide; this list does not declare readiness.`
 
+Then add a one-line invitation so the user knows they can delegate the
+per-item inspection manually if they want it:
+
+`If you'd like me to actually inspect each item and report status, say "check".`
+
+The skill itself still does not verify. Inspection only happens on the user's
+explicit follow-up ("check"), keeping this skill as a reminder.
+
 ## Rationalization patterns to reject
 
 - "Looks clean to me, all done." — not this skill's call to make

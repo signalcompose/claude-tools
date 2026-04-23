@@ -9,6 +9,21 @@ user-invocable: false
 
 # PR Review Team
 
+**MANDATORY first step — BEFORE any Agent / Read / bash work:**
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh init <PR番号>
+```
+
+`verify-workflow.sh` (Stop hook) refuses to release control if state
+initialisation did not happen before the review loop ran. Retroactively
+creating the state file after agents have already spawned only satisfies the
+hook's format check; it does NOT reconstruct the iteration evidence the hook
+is meant to guarantee. If you skipped init, you have to restart the loop,
+not paper over it. Run init now.
+
+---
+
 **MANDATORY**: This skill runs a complete review-fix-re-review loop using Subagents (NOT Agent Teams).
 
 The leader MUST:
