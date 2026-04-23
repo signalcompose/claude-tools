@@ -2,6 +2,21 @@
 # PreToolUse hook: Block git commit if .gitignore lacks security patterns
 # Exit 0: Allow, Exit 2: Block
 
+if ! command -v jq >/dev/null 2>&1; then
+    cat >&2 <<EOF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BLOCKED: jq not found (required for security hook)
+
+Install jq and re-run:
+  macOS:   brew install jq
+  Linux:   apt-get install jq   # or your package manager
+
+The .gitignore security-patterns check cannot run safely without jq.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EOF
+    exit 2
+fi
+
 INPUT=$(cat)
 CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || true)
 

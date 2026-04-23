@@ -78,10 +78,21 @@ _make_git_repo() {
 @test "valid marker in .gitignore passes (exit 0)" {
     local repo="${TEST_DIR}/repo"
     _make_git_repo "$repo" "# code:security-patterns:abc123"
-    local exit_code
-    cd "$repo" && printf '{"tool_input":{"command":"git commit -m foo"}}' | bash "$SCRIPT" 2>/dev/null
-    exit_code=$?
-    [ "$exit_code" -eq 0 ]
+    run bash -c "cd '$repo' && printf '{\"tool_input\":{\"command\":\"git commit -m foo\"}}' | bash '$SCRIPT'"
+    [ "$status" -eq 0 ]
+    # Confirm we went through the pass branch, not an advisory path
+    [[ "$output" != *"BLOCKED"* ]]
+    [[ "$output" != *"not in a git repo"* ]]
+    [[ "$output" != *"reference file missing"* ]]
+}
+
+@test "hash-mismatch in .gitignore warns and exits 0 (outdated patterns)" {
+    local repo="${TEST_DIR}/repo"
+    _make_git_repo "$repo" "# code:security-patterns:deadbeef"
+    run bash -c "cd '$repo' && printf '{\"tool_input\":{\"command\":\"git commit -m foo\"}}' | bash '$SCRIPT'"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"outdated"* ]]
+    [[ "$output" != *"BLOCKED"* ]]
 }
 
 @test "not in git repo warns and exits 0" {
