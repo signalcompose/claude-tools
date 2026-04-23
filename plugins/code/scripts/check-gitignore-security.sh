@@ -14,25 +14,30 @@ REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
 
 GITIGNORE="${REPO_ROOT}/.gitignore"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REF_FILE="${SCRIPT_DIR}/../references/gitignore-security-patterns.md"
+
 # Check for security patterns marker in .gitignore
 if ! grep -q "code:security-patterns" "$GITIGNORE" 2>/dev/null; then
-    cat >&2 <<'EOF'
+    cat >&2 <<EOF
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 BLOCKED: .gitignore missing security patterns
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Run: /code:setup-dev-env --fix
+Append the patterns from this reference to .gitignore:
 
-This adds .env, *.key, *.pem, credentials* patterns
-to .gitignore to prevent accidental secret exposure.
+  ${REF_FILE}
+
+Quick install (run at repo root):
+
+  cat "${REF_FILE}" >> .gitignore && git add .gitignore
+
+These patterns (.env, *.key, *.pem, credentials*, etc.)
+prevent accidental secret exposure.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 EOF
     exit 2
 fi
-
-# Check hash version (warn only, do not block)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REF_FILE="${SCRIPT_DIR}/../skills/setup-dev-env/references/gitignore-security-patterns.md"
 
 CURRENT_HASH=$(grep -o 'code:security-patterns:[a-f0-9]*' "$GITIGNORE" 2>/dev/null | head -1 | cut -d: -f3)
 EXPECTED_HASH=$(grep -o 'code:security-patterns:[a-f0-9]*' "$REF_FILE" 2>/dev/null | head -1 | cut -d: -f3)
@@ -45,9 +50,11 @@ WARNING: .gitignore security patterns outdated
 
 Current: ${CURRENT_HASH}  Expected: ${EXPECTED_HASH}
 
-Run: /code:setup-dev-env --fix
+Replace the patterns block in .gitignore with the reference:
 
-to update .gitignore with the latest security patterns.
+  ${REF_FILE}
+
+(Warn only — commit is not blocked.)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 EOF
 fi

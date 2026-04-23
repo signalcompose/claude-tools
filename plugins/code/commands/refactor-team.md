@@ -32,4 +32,4 @@ description: Run team-based code refactoring with analysis and user-approved cha
 ## 関連
 
 - **PRレビュー**: `/code:pr-review-team`（PR作成後のチームレビュー）
-- **pre-commit レビュー**: `/code:review-commit`（コミット前の品質ゲート）
+- **merge 前チェックリスト**: `/code:checkup`（merge 前に確認したい項目を surface）

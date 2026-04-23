@@ -1,28 +1,6 @@
 {
   "hooks": {
-    "PermissionRequest": [
-      {
-        "matcher": "EnterPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-permission-on-enter.sh",
-            "timeout": 2000
-          }
-        ]
-      }
-    ],
     "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/dev-cycle-stop.sh",
-            "timeout": 10000
-          }
-        ]
-      },
       {
         "matcher": "",
         "hooks": [
@@ -30,50 +8,6 @@
             "type": "command",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/skills/pr-review-team/scripts/verify-workflow.sh",
             "timeout": 10000
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/autopilot-stop.sh",
-            "timeout": 10000
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/enforce-code-review-rules.sh",
-            "timeout": 5000
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/dev-cycle-guard.sh",
-            "timeout": 5000
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash|Edit|Write|Read|Grep|Glob|NotebookEdit|WebFetch|WebSearch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/dev-cycle-context-monitor.sh",
-            "timeout": 3000
           }
         ]
       }
@@ -84,31 +18,9 @@
         "hooks": [
           {
             "type": "command",
-            "if": "Bash(gh pr create*)",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-pr-review-gate.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
             "if": "Bash(git commit*)",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-gitignore-security.sh",
             "timeout": 3000
-          }
-        ]
-      }
-    ],
-    "PostCompact": [
-      {
-        "matcher": "auto",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/reinject-review-context.sh",
-            "timeout": 5000
           }
         ]
       }

@@ -43,7 +43,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh init <PR番号>
 - Test command: detect from `package.json`, `Makefile`, `pytest.ini`, etc.
 - Project rules: read project's CLAUDE.md if present
 
-**Note**: `gh` commands rely on `sandbox.network.allowedDomains` (github.com, api.github.com) in `~/.claude/settings.json` to run inside the sandbox without prompts. Do NOT pass `dangerouslyDisableSandbox: true` defensively — see `code:autopilot` SKILL §Sandbox bypass policy for why the flag breaks auto mode.
+**Note**: `gh` commands rely on `sandbox.network.allowedDomains` (github.com, api.github.com) in `~/.claude/settings.json` to run inside the sandbox without prompts. Do NOT pass `dangerouslyDisableSandbox: true` defensively — the flag forces an auto-mode-refused approval prompt that breaks the review flow (see Issue #245).
 
 ## Step 2: Parallel Review (Subagents)
 
@@ -71,7 +71,7 @@ Launch in parallel (one message, 4 Agent tool calls):
 
 Results return automatically. No shutdown procedure needed.
 
-Review criteria: include `${CLAUDE_PLUGIN_ROOT}/skills/review-commit/references/review-criteria.md` path in each agent prompt — agents read criteria, leader handles integration.
+Review criteria: include `${CLAUDE_PLUGIN_ROOT}/references/review-criteria.md` path in each agent prompt — agents read criteria, leader handles integration.
 
 ### Agent Launch Failure Handling
 
@@ -101,7 +101,7 @@ Parse the STATUS line from output:
 - **PASS**: All checks passed
 - **FAIL**: Get failure details with `gh run view <run-id> --log-failed`
 - **TIMEOUT**: Continue review, note "CI: PENDING (timed out)" in report
-- **ERROR**: Report the failure and stop — network / auth / PR-number issues won't be solved by sandbox bypass. See `code:autopilot` SKILL §Sandbox bypass policy.
+- **ERROR**: Report the failure and stop — network / auth / PR-number issues won't be solved by sandbox bypass. Investigate the underlying cause (e.g. `gh auth status`, check PR number) rather than toggling `dangerouslyDisableSandbox`.
 
 Also collect review comments:
 ```bash
