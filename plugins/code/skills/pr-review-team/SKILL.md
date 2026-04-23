@@ -15,12 +15,10 @@ user-invocable: false
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh init <PR番号>
 ```
 
-`verify-workflow.sh` (Stop hook) refuses to release control if state
-initialisation did not happen before the review loop ran. Retroactively
-creating the state file after agents have already spawned only satisfies the
-hook's format check; it does NOT reconstruct the iteration evidence the hook
-is meant to guarantee. If you skipped init, you have to restart the loop,
-not paper over it. Run init now.
+State init gives the leader (and the user reading the transcript) a visible
+audit trail of the review loop. Retroactively creating the state file after
+agents have already spawned defeats that purpose — if you skipped init,
+restart the loop rather than paper over it. Run init now.
 
 ---
 
@@ -34,13 +32,13 @@ The leader MUST:
 5. If critical > 0 OR important > 0 OR security != "all_pass": enter fix loop (Step 5)
 6. Report results and cleanup (Step 6)
 
-🔴 Stop hooks verify workflow completion. Skipping steps will block the stop request.
+🔴 These steps are mandatory. The leader is accountable for completing every step — skipping is a workflow violation.
 
 ## Step 1: Initialize & Identify Target PR
 
 ### Initialize State
 
-Run immediately (creates the active-review flag file for Stop hook detection):
+Run immediately (creates the active-review state file for audit visibility):
 
 ```bash
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh init <PR番号>
@@ -134,10 +132,10 @@ Avoid sending already-fixed issues to the fixer:
 🔴 VIOLATION — Direct Editing Prohibited
 ALL fixes MUST be delegated to the fixer subagent in Step 5.
 Using Edit/Write tools directly to apply fixes is a workflow violation.
-The Stop hook will block completion if the fixer agent was not used.
+Applying fixes without the fixer agent is a workflow violation.
 
 🔴 MANDATORY — Security Checklist
-Read NOW (Stop hook verifies this was read):
+Read NOW (mandatory — record after reading):
 `${CLAUDE_PLUGIN_ROOT}/skills/pr-review-team/references/security-checklist.md`
 
 ```bash
@@ -200,8 +198,7 @@ FOR iteration = 1 TO MAX_ITERATIONS:
   4. Collect fresh counts: fresh_critical, fresh_important, fresh_security
 
   5. Read GitHub bot feedback (claude-review Check Run + PR review comments)
-     before declaring convergence. The Stop hook enforces this via transcript
-     inspection — the leader MUST invoke at least one of:
+     before declaring convergence. The leader MUST invoke at least one of:
 
        gh pr view <PR> --json reviews,comments
        gh api repos/OWNER/REPO/pulls/<PR>/comments
@@ -215,8 +212,7 @@ FOR iteration = 1 TO MAX_ITERATIONS:
   6. Update state. `rereview_done` MUST be set at the end of the iteration
      — i.e. after the fresh reviewer agent in step 3 of THIS iteration has
      returned. Setting it before re-running the reviewer is a violation
-     (see the VIOLATION block below — the Stop hook will detect it via
-     transcript launch count).
+     (see the VIOLATION block below).
      bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> fixer_done true
      bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> rereview_done true
      bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> iterations <N>
@@ -230,16 +226,13 @@ END FOR
 If iteration limit reached with remaining issues: report to user, do NOT merge.
 
 🔴 VIOLATION — Self-declaring Convergence Without Evidence
-The Stop hook enforces (Issue #236 follow-up):
-- `rereview_done=true` requires the transcript to show ≥2
-  `pr-review-toolkit:code-reviewer` agent launches (initial + post-fix
-  re-review). Manually setting `rereview_done=true` without spawning a fresh
-  reviewer agent is a workflow violation — the leader would otherwise judge
-  their own fix without independent verification.
-- `bot_feedback_read=true` requires either the state flag to be set after
-  actually consulting GitHub bot output, or the transcript to contain a
-  matching `gh pr view --json reviews/comments`, `gh api .../pulls/N/comments`,
-  or `gh api .../check-runs/.../annotations` call.
+- `rereview_done=true` requires ≥2 `pr-review-toolkit:code-reviewer` agent
+  launches (initial + post-fix re-review). Setting the flag without spawning
+  a fresh reviewer is a workflow violation — the leader would otherwise
+  judge their own fix without independent verification.
+- `bot_feedback_read=true` requires actually consulting GitHub bot output via
+  `gh pr view --json reviews/comments`, `gh api .../pulls/N/comments`, or
+  `gh api .../check-runs/.../annotations`.
 
 ## Step 6: Report & Cleanup
 
@@ -260,7 +253,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh cleanup <PR番号>
 
 `cleanup` の挙動は state の状態によって分岐:
 
-- **converged** (`final_critical=0` AND `final_important=0` AND `rereview_done=true`): `.state` → `.done` にリネーム。`verify-workflow.sh` (Stop hook) は `.done` を「完了済みレビュー」として認識し、後続 session で transcript に pr-review-team 起動痕跡があっても誤 block しない。`.done` は 24 時間後に TTL で自動削除
-- **未 converged**: `.state` を `rm -f` (従来通り)。完了していない review の痕跡を残さない
+- **converged** (`final_critical=0` AND `final_important=0` AND `rereview_done=true`): `.state` → `.done` にリネーム（監査用、24 時間 TTL で自動削除）
+- **未 converged**: `.state` を `rm -f`。完了していない review の痕跡を残さない
 
 No shutdown procedure needed — subagents complete automatically.
