@@ -77,13 +77,18 @@ _make_git_repo() {
 
 @test "valid marker in .gitignore passes (exit 0)" {
     local repo="${TEST_DIR}/repo"
-    _make_git_repo "$repo" "# code:security-patterns:abc123"
+    local ref_file="${PLUGIN_ROOT}/references/gitignore-security-patterns.md"
+    local real_hash
+    real_hash=$(grep -o 'code:security-patterns:[a-f0-9]*' "$ref_file" | head -1 | cut -d: -f3)
+    [ -n "$real_hash" ] || { echo "ref file hash not found" >&2; return 1; }
+    _make_git_repo "$repo" "# code:security-patterns:${real_hash}"
     run bash -c "cd '$repo' && printf '{\"tool_input\":{\"command\":\"git commit -m foo\"}}' | bash '$SCRIPT'"
     [ "$status" -eq 0 ]
-    # Confirm we went through the pass branch, not an advisory path
+    # Confirm we went through the clean-pass branch, not an advisory path
     [[ "$output" != *"BLOCKED"* ]]
     [[ "$output" != *"not in a git repo"* ]]
     [[ "$output" != *"reference file missing"* ]]
+    [[ "$output" != *"outdated"* ]]   # clean-pass, not the warn-only path
 }
 
 @test "hash-mismatch in .gitignore warns and exits 0 (outdated patterns)" {
