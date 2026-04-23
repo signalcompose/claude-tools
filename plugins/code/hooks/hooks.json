@@ -1,17 +1,5 @@
 {
   "hooks": {
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/skills/pr-review-team/scripts/verify-workflow.sh",
-            "timeout": 10000
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
