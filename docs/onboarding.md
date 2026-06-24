@@ -25,7 +25,7 @@ claude-tools/
 │   ├── code/            # コードレビュー
 │   ├── utils/           # ユーティリティ
 │   ├── ask-codex/       # Codex統合
-│   ├── ask-gemini/      # Gemini統合
+│   ├── ask-gemini/      # Antigravity CLI (agy) 統合
 │   └── ask-kiro/        # Kiro統合
 ├── docs/                # ドキュメント
 │   ├── INDEX.md

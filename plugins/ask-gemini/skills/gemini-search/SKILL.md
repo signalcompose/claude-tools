@@ -1,7 +1,7 @@
 ---
 name: gemini-search
 description: |
-  Web search using Google Gemini CLI.
+  Web search using Google Antigravity CLI (agy, formerly Gemini CLI).
   Use for: latest information, documentation lookup, current events,
   or when up-to-date web data is needed.
 context: fork
@@ -9,23 +9,35 @@ agent: Explore
 allowed-tools: Bash
 ---
 
-# Gemini Web Search Skill
+# Web Search Skill (Antigravity CLI)
 
 ## Overview
 
-This skill enables web search using Google Gemini CLI. Use it when you need:
+This skill enables web search using Google Antigravity CLI (`agy`), the
+successor to the Gemini CLI. Use it when you need:
 
 - Latest information not in training data
 - Current documentation or API references
 - Recent news or events
 - Up-to-date web data
 
+> Note: Google transitioned Gemini CLI to Antigravity CLI. Gemini CLI stopped
+> serving requests on 2026-06-18 for AI Pro/Ultra and free-tier users, so this
+> skill now drives the `agy` binary.
+
 ## Prerequisites
 
-Gemini CLI must be installed and authenticated. Run the check script first:
+Antigravity CLI (`agy`) must be installed and signed in. Run the check script first:
 
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/scripts/check-gemini.sh
+```
+
+If `agy` is missing, install it and sign in:
+
+```bash
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+agy   # one-time browser sign-in
 ```
 
 ## Usage
@@ -35,6 +47,12 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/check-gemini.sh
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/scripts/gemini-search.sh "<search query>"
 ```
+
+**IMPORTANT**: `agy` needs write access to its config/cache under
+`~/.gemini/antigravity-cli/`, which Claude Code's sandbox blocks. When running
+the script via the Bash tool, set `dangerouslyDisableSandbox: true`; otherwise
+`agy` exits non-zero with shell command errors even though it is installed and
+signed in.
 
 ### Examples
 
@@ -52,12 +70,12 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/gemini-search.sh "AI regulation updates January 20
 ## Workflow
 
 1. **Check Prerequisites**
-   - Verify Gemini CLI installation
-   - Ensure authentication is complete
+   - Verify Antigravity CLI (`agy`) installation
+   - Ensure sign-in is complete
 
 2. **Execute Search**
    - Run gemini-search.sh with query
-   - Wait for results (60s timeout)
+   - Wait for results (120s timeout)
 
 3. **Process Results**
    - Summarize key findings
@@ -68,13 +86,17 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/gemini-search.sh "AI regulation updates January 20
 
 | Error | Solution |
 |-------|----------|
-| Gemini CLI not found | Install via `npm install -g @google/gemini-cli` |
-| Authentication failed | Run `gemini` to complete OAuth |
-| Timeout | Retry with more specific query |
+| `agy` not found | Install: `curl -fsSL https://antigravity.google/cli/install.sh \| bash` |
+| Not signed in | Run `agy` once to complete browser sign-in |
+| Legacy Gemini CLI only | Migrate to `agy` (see install above); optionally `agy plugin import gemini` |
+| Timeout | Retry with a more specific query |
 
 ## Notes
 
-- Uses `gemini-2.5-flash-lite` model by default (stable, good rate limits)
-- Override with `GEMINI_MODEL` environment variable
-- 60-second timeout to prevent hanging
+- Uses the Antigravity CLI default model (web grounding works well with it)
+- Override with the `AGY_MODEL` environment variable (run `agy models` for names)
+- 120-second timeout to prevent hanging
+- The script runs `agy --print "<query>" </dev/null`; the stdin redirect is
+  required so `agy` does not block on a missing terminal in non-TTY contexts
+  (such as Claude Code's Bash tool)
 - Results are returned to the forked context to avoid main context pollution

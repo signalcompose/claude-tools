@@ -39,7 +39,7 @@ claude-tools/
 | code | Direct | plugins/code | コードレビュー |
 | utils | Direct | plugins/utils | ユーティリティ |
 | ask-codex | Direct | plugins/ask-codex | Codex統合 |
-| ask-gemini | Direct | plugins/ask-gemini | Gemini統合 |
+| ask-gemini | Direct | plugins/ask-gemini | Antigravity CLI (agy) 統合 |
 | ask-kiro | Direct | plugins/ask-kiro | Kiro統合 |
 | x-article | Direct | plugins/x-article | X Articles投稿自動化 |
 
