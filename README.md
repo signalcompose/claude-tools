@@ -61,7 +61,7 @@ One command. Four stages run autonomously.
 | Plugin | Commands | Description |
 |--------|----------|-------------|
 | [ypm](./plugins/ypm) | `/ypm:new`, `/ypm:update`, `/ypm:next` | Project management - setup wizard, status tracking, task prioritization |
-| [code](./plugins/code) | `/code:dev-cycle`, `/code:shipping-pr`, `/code:review-commit` | Autonomous dev lifecycle, code review, PR creation gate |
+| [code](./plugins/code) | `/code:pr-review-team`, `/code:refactor-team`, `/code:checkup` | Parallel PR review team, refactoring team, and pre-merge checklist reminder |
 
 ### Supporting Tools
 

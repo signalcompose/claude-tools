@@ -34,7 +34,6 @@ holds the contract, but the explicit prompt reinforces it at the strong layer.
 | Hook | Trigger | Purpose |
 |------|---------|---------|
 | `check-gitignore-security.sh` | PreToolUse on `git commit*` | Blocks commit if `.gitignore` lacks the `code:security-patterns` marker. Suggests a one-line fix. |
-| `pr-review-team/scripts/verify-workflow.sh` | Stop | When a `pr-review-team` run is active, verifies the workflow completed properly (all reviewers ran, security checklist read, etc.) |
 
 No other hooks. No state files. No flag directories. No PostToolUse monitors.
 
