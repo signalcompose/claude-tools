@@ -1,26 +1,43 @@
-# Gemini Search Plugin
+# ask-gemini — Web Search Plugin
 
-Google Gemini CLI integration for web search in Claude Code.
+Google Antigravity CLI (`agy`) integration for web search in Claude Code.
+
+> **Migration note:** Google transitioned the Gemini CLI to the **Antigravity CLI**
+> (binary: `agy`). Gemini CLI stopped serving requests on **2026-06-18** for
+> Google AI Pro/Ultra and free-tier users. This plugin now drives `agy`.
+> The command name `/ask-gemini:search` is unchanged.
 
 ## Features
 
-- Web search using Gemini CLI
+- Web search using Antigravity CLI (`agy`)
 - Forked context to avoid main context pollution
-- 60-second timeout for reliability
+- 120-second timeout for reliability
 
 ## Prerequisites
 
-### Install Gemini CLI
+### Install Antigravity CLI
 
 ```bash
-npm install -g @google/gemini-cli
-# or use npx directly
-npx @google/gemini-cli
+curl -fsSL https://antigravity.google/cli/install.sh | bash
 ```
 
-### Authenticate
+The installer places the `agy` binary in `~/.local/bin` and adds it to your PATH.
 
-Run `gemini` once to complete OAuth authentication with your Google account.
+### Sign in
+
+Run `agy` once to complete browser-based OAuth sign-in with your Google account.
+
+```bash
+agy
+```
+
+### (Optional) Import old Gemini settings
+
+If you used the legacy Gemini CLI, you can import its configuration:
+
+```bash
+agy plugin import gemini
+```
 
 ## Installation
 
@@ -50,47 +67,49 @@ The `gemini-search` skill is automatically available for Claude to use when web 
 
 ## How It Works
 
-1. The plugin checks if Gemini CLI is installed and authenticated
-2. Executes the search query using `gemini-2.5-flash-lite` model (default)
+1. The plugin checks if Antigravity CLI (`agy`) is installed and signed in
+2. Wraps the query in a web-search prompt and runs `agy --print "<prompt>" </dev/null`
 3. Returns comprehensive web search results
 4. Results are processed in a forked context to keep the main conversation clean
+
+> The `</dev/null` redirect is required: the prompt is passed as the `--print`
+> argument, but `agy --print` still reads stdin and would otherwise block forever
+> in a non-TTY context (such as Claude Code's Bash tool) waiting for EOF.
 
 ## Configuration
 
 ### Default Model
 
-The plugin uses `gemini-2.5-flash-lite` by default, which offers:
-- Stable availability and good rate limits
-- Cost-effective pricing
-- Fast response times
+The plugin uses the Antigravity CLI default model, which provides grounded web
+search out of the box. No model flag is passed by default.
 
 ### Custom Model
 
-Override the default model with the `GEMINI_MODEL` environment variable:
+Override the model with the `AGY_MODEL` environment variable:
 
 ```bash
-export GEMINI_MODEL=gemini-2.5-flash
+export AGY_MODEL="Gemini 3.5 Flash (Low)"
 ```
 
-Available models: `gemini-2.5-flash-lite` (default), `gemini-2.5-flash`, `gemini-2.5-pro`
+Run `agy models` to list the available model names for your account.
 
 ## Troubleshooting
 
-### Gemini CLI not found
+### `agy` not found
 
-Install Gemini CLI using npm or brew:
+Install Antigravity CLI:
 
 ```bash
-npm install -g @google/gemini-cli
+curl -fsSL https://antigravity.google/cli/install.sh | bash
 ```
 
-### Authentication failed
+### Not signed in
 
-Run `gemini` in your terminal to complete OAuth authentication.
+Run `agy` in your terminal to complete browser sign-in.
 
 ### Search timeout
 
-The search has a 60-second timeout. Try a more specific query if searches are timing out.
+The search has a 120-second timeout. Try a more specific query if searches are timing out.
 
 ## License
 

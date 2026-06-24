@@ -1,24 +1,30 @@
 ---
-description: "Web search using Gemini CLI"
+description: "Web search using Antigravity CLI (agy)"
 ---
 
-# Web Search via Gemini CLI
+# Web Search via Antigravity CLI (agy)
 
-Execute a web search using Google Gemini CLI.
+Execute a web search using Google Antigravity CLI (`agy`), the successor to the
+Gemini CLI.
 
 ## Step 1: Check Prerequisites
 
-First, verify Gemini CLI is installed and ready:
+First, verify Antigravity CLI (`agy`) is installed and signed in:
 
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/scripts/check-gemini.sh
 ```
 
-If the check fails, guide the user through installation.
+If the check fails, guide the user through installation:
+
+```bash
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+agy   # one-time browser sign-in
+```
 
 ## Step 2: Execute Search
 
-**IMPORTANT**: The Gemini CLI requires write access to configuration and cache directories that are blocked by Claude Code's sandbox. You MUST use `dangerouslyDisableSandbox: true` when executing this script. Without this, the Gemini CLI will fail with shell command errors.
+**IMPORTANT**: Antigravity CLI requires write access to configuration and cache directories (under `~/.gemini/antigravity-cli/`) that are blocked by Claude Code's sandbox. You MUST use `dangerouslyDisableSandbox: true` when executing this script. Without this, `agy` will fail with shell command errors.
 
 Run the search with the provided query:
 
@@ -39,6 +45,7 @@ After receiving search results:
 
 ## Error Handling
 
-- **Gemini not installed**: Provide installation instructions
-- **Authentication error**: Guide user to run `gemini` for OAuth
+- **`agy` not installed**: Provide installation instructions (`curl -fsSL https://antigravity.google/cli/install.sh | bash`)
+- **Not signed in**: Guide user to run `agy` once for browser sign-in
+- **Legacy Gemini CLI only**: Migrate to `agy`; optionally `agy plugin import gemini`
 - **Timeout**: Suggest retrying with a more specific query

@@ -52,7 +52,7 @@ One command. Four stages run autonomously.
 
 2. **Official Plugin System Compliance**: Built on Claude Code's plugin system (skills, commands, hooks, agents). No custom runtime or framework required.
 
-3. **External CLI Bridge**: Integrates external CLI tools (Codex, Gemini, Kiro) as Claude Code plugins, bringing their capabilities into the same workflow.
+3. **External CLI Bridge**: Integrates external CLI tools (Codex, Antigravity, Kiro) as Claude Code plugins, bringing their capabilities into the same workflow.
 
 ## Available Plugins
 
@@ -69,7 +69,7 @@ One command. Four stages run autonomously.
 |--------|----------|-------------|
 | [cvi](./plugins/cvi) | `/cvi:speak`, `/cvi:lang`, `/cvi:check` | Voice notifications for Claude Code on macOS |
 | [ask-codex](./plugins/ask-codex) | `/ask-codex:research`, `/ask-codex:review` | OpenAI Codex CLI integration for research and code review |
-| [ask-gemini](./plugins/ask-gemini) | `/ask-gemini:search` | Google Gemini CLI integration for web search |
+| [ask-gemini](./plugins/ask-gemini) | `/ask-gemini:search` | Google Antigravity CLI (agy) integration for web search (formerly Gemini CLI) |
 | [ask-kiro](./plugins/ask-kiro) | `/ask-kiro:research` | AWS Kiro CLI integration for AWS expert assistance |
 | [chezmoi](./plugins/chezmoi) | `/chezmoi:check`, `/chezmoi:sync` | Dotfiles management integration using chezmoi |
 | [utils](./plugins/utils) | `/utils:clear-plugin-cache` | Utility commands for plugin cache management |

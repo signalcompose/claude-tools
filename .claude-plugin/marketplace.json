@@ -51,7 +51,7 @@
     },
     {
       "name": "ask-gemini",
-      "description": "Google Gemini CLI integration for web search",
+      "description": "Google Antigravity CLI (agy) integration for web search (formerly Gemini CLI)",
       "source": "./plugins/ask-gemini",
       "category": "productivity",
       "homepage": "https://github.com/signalcompose/claude-tools/tree/main/plugins/ask-gemini"

@@ -1,5 +1,15 @@
 #!/bin/bash
-# gemini-search.sh - Execute web search using Gemini CLI
+# gemini-search.sh - Execute web search using Antigravity CLI (agy)
+#
+# Replaces the legacy Gemini CLI (Google transitioned Gemini CLI -> Antigravity CLI).
+#
+# Key detail: the prompt is passed as the `--print` argument (NOT via stdin).
+# But `agy --print` still reads stdin, and in a non-TTY context (such as Claude
+# Code's Bash tool, which runs on a socket) it blocks forever waiting for EOF.
+# We redirect stdin from /dev/null so it gets an immediate EOF and prints the
+# response to stdout. Verified empirically: the prompt arg is honored and web
+# grounding works. A pseudo-TTY wrapper (`script`) is NOT needed and does not
+# work in that socket environment.
 
 set -e
 set -o pipefail
@@ -16,7 +26,14 @@ fi
 # Remove newlines and control characters that could manipulate prompt structure
 QUERY=$(echo "$RAW_QUERY" | tr -d '\n\r' | sed 's/[`$]//g')
 
-# Check Gemini CLI availability
+# Reject a query that sanitizes to empty (e.g. only `$` / backtick characters),
+# which the pre-sanitization -z check above would not catch.
+if [ -z "$QUERY" ]; then
+    echo "ERROR: Query is empty after sanitization (only stripped characters). Provide searchable text." >&2
+    exit 1
+fi
+
+# Check Antigravity CLI availability
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ ! -f "$SCRIPT_DIR/check-gemini.sh" ]; then
     echo "ERROR: check-gemini.sh not found in $SCRIPT_DIR"
@@ -25,10 +42,22 @@ if [ ! -f "$SCRIPT_DIR/check-gemini.sh" ]; then
 fi
 "$SCRIPT_DIR/check-gemini.sh" || exit 1
 
-# Execute gemini with web search prompt
-# Default model: gemini-2.5-flash-lite (stable, good rate limits, cost-effective)
-# Override with GEMINI_MODEL environment variable if needed
-MODEL="${GEMINI_MODEL:-gemini-2.5-flash-lite}"
+# Resolve agy binary (PATH first, then the default install location)
+if command -v agy >/dev/null 2>&1; then
+    AGY_BIN="$(command -v agy)"
+elif [ -x "$HOME/.local/bin/agy" ]; then
+    AGY_BIN="$HOME/.local/bin/agy"
+else
+    echo "ERROR: agy binary not found. Run check-gemini.sh for install instructions."
+    exit 1
+fi
+
+# Optional model override. By default we let agy pick its model (web grounding
+# works well with the default). Set AGY_MODEL to a name from `agy models`.
+MODEL_ARGS=()
+if [ -n "$AGY_MODEL" ]; then
+    MODEL_ARGS=(--model "$AGY_MODEL")
+fi
 
 # Determine timeout command (gtimeout for macOS with coreutils, timeout for Linux)
 if command -v gtimeout &> /dev/null; then
@@ -41,40 +70,36 @@ else
     echo "Command will run without timeout protection. On macOS: brew install coreutils" >&2
 fi
 
-# Execute with timeout (60 seconds) or without if no timeout command available
+PROMPT="WebSearch: $QUERY
+
+Please search the web and provide comprehensive, up-to-date information about the query above. Include:
+- Key findings and facts
+- Relevant sources (URLs when available)
+- Current/latest information
+- Summary of the most important points"
+
+# Execute with timeout (120 seconds) or without if no timeout command available.
+# NOTE: `</dev/null` is required (see header) to avoid a hang in non-TTY contexts.
 set +e  # Temporarily disable exit on error to capture exit code
 if [ -n "$TIMEOUT_CMD" ]; then
-    $TIMEOUT_CMD 60 gemini -m "$MODEL" --prompt "WebSearch: $QUERY
-
-Please search the web and provide comprehensive, up-to-date information about the query above. Include:
-- Key findings and facts
-- Relevant sources (URLs when available)
-- Current/latest information
-- Summary of the most important points"
+    $TIMEOUT_CMD 120 "$AGY_BIN" "${MODEL_ARGS[@]}" --print "$PROMPT" </dev/null
 else
-    # No timeout command available, run without timeout
-    gemini -m "$MODEL" --prompt "WebSearch: $QUERY
-
-Please search the web and provide comprehensive, up-to-date information about the query above. Include:
-- Key findings and facts
-- Relevant sources (URLs when available)
-- Current/latest information
-- Summary of the most important points"
+    "$AGY_BIN" "${MODEL_ARGS[@]}" --print "$PROMPT" </dev/null
 fi
 
 EXIT_CODE=$?
 set -e  # Re-enable exit on error
 
-if [ $EXIT_CODE -eq 124 ]; then
+if [ $EXIT_CODE -eq 124 ] && [ -n "$TIMEOUT_CMD" ]; then
     echo ""
-    echo "ERROR: Search timed out after 60 seconds."
+    echo "ERROR: Search timed out after 120 seconds."
     echo "Try a more specific query or check your network connection."
     exit 124
 elif [ $EXIT_CODE -ne 0 ]; then
     echo ""
-    echo "ERROR: Gemini CLI failed with exit code $EXIT_CODE"
-    echo "Run 'gemini --help' directly for troubleshooting."
-    echo "Common causes: authentication issues, network problems, rate limiting."
+    echo "ERROR: Antigravity CLI (agy) failed with exit code $EXIT_CODE"
+    echo "Run 'agy --help' directly for troubleshooting."
+    echo "Common causes: not signed in (run 'agy'), network problems, rate limiting."
     exit $EXIT_CODE
 fi
 

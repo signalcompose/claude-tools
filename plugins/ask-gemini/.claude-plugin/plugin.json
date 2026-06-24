@@ -1,11 +1,11 @@
 {
   "name": "ask-gemini",
-  "description": "Google Gemini CLI integration for web search",
+  "description": "Google Antigravity CLI (agy) integration for web search (formerly Gemini CLI)",
   "author": {
     "name": "Signal compose",
     "email": "contact@signalcompose.com"
   },
   "repository": "https://github.com/signalcompose/claude-tools",
   "license": "MIT",
-  "keywords": ["gemini", "google", "web-search", "ai"]
+  "keywords": ["antigravity", "agy", "gemini", "google", "web-search", "ai"]
 }
