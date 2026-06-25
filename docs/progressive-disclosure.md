@@ -261,10 +261,10 @@ Cannot reach github.com
 Please check your internet connection and try again.
 ```
 
-### code review-commit (1 reference)
+### code pr-review-team (1 reference)
 
 ```markdown
-For detailed review criteria, read `${CLAUDE_PLUGIN_ROOT}/skills/review-commit/references/review-criteria.md`.
+For the security checklist, read `${CLAUDE_PLUGIN_ROOT}/skills/pr-review-team/references/security-checklist.md`.
 ```
 
 ## Troubleshooting
