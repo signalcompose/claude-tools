@@ -13,12 +13,21 @@
 # Reviewer names map to pr-review-toolkit subagents:
 #   code-reviewer  silent-failure-hunter  pr-test-analyzer  comment-analyzer
 #
-# Design (per measured cost + Fable review):
+# File classes:
+#   code   = source-code file (test-bearing language) OR anything unrecognized (fail-open)
+#   doc    = prose documentation (md, txt, rst, ...)
+#   config = structured/executable config (yaml, yml, toml, json, ini, ...) — CI
+#            workflows live here and CAN swallow failures / carry misleading comments,
+#            so config is NOT treated as inert.
+#   (lock/env/pure-data files carry no review value on their own.)
+#
+# Design (per measured cost + Fable review + PR #274 code review):
 #   - code-reviewer          : ALWAYS (generalist safety net; its failure aborts the review)
-#   - silent-failure-hunter  : run iff ≥1 source-code file changed (error handling is a code property)
-#   - pr-test-analyzer       : run iff ≥1 source-code file changed (its value is test coverage OF code;
-#                              a docs/config-only PR has nothing for it to analyze)
-#   - comment-analyzer       : run iff ≥1 code OR doc file changed (comment/prose accuracy)
+#   - pr-test-analyzer       : run iff ≥1 code file (its value is test coverage OF code;
+#                              docs/config-only PRs have nothing for it to analyze)
+#   - silent-failure-hunter  : run iff ≥1 code OR config file (error-swallowing lives in
+#                              code AND in CI/config yaml — e.g. `|| true`, continue-on-error)
+#   - comment-analyzer       : run iff ≥1 code, doc, OR config file (all carry comments/prose)
 # When file classification is uncertain, the file is treated as code (fail-open:
 # "when in doubt, run the reviewer"). On any error resolving the diff, launch ALL 4.
 
@@ -38,15 +47,15 @@ if [ -z "${PR_NUMBER}" ]; then
   fail_open "no PR number argument"
 fi
 
-# --relative keeps paths repo-relative; --name-only lists just the changed files.
+# --name-only lists just the changed file paths (one per line).
 FILES="$(gh pr diff "${PR_NUMBER}" --name-only 2>/dev/null)"
 if [ $? -ne 0 ] || [ -z "${FILES}" ]; then
   fail_open "gh pr diff returned no files"
 fi
 
-has_code=0   # source-code file (test-bearing language)
-has_doc=0    # documentation / prose
-# Anything that is neither clearly doc nor clearly config is treated as code.
+has_code=0     # source-code file (test-bearing language) or unrecognized (fail-open)
+has_doc=0      # prose documentation
+has_config=0   # structured/executable config (can carry logic or comments)
 while IFS= read -r f; do
   [ -z "$f" ] && continue
   base="$(basename -- "$f")"
@@ -59,36 +68,45 @@ while IFS= read -r f; do
   case "$ext" in
     md|markdown|mdx|txt|rst|adoc|org)
       has_doc=1 ;;
-    json|yaml|yml|toml|ini|cfg|conf|lock|env|properties)
-      : ;;  # config/data: no reviewer needs it on its own
+    json|yaml|yml|toml|ini|cfg|conf|properties)
+      has_config=1 ;;
+    lock|env)
+      : ;;  # pure data / secrets: no reviewer needs it on its own
     *)
       # any other extension: source code
       has_code=1 ;;
   esac
 done <<< "${FILES}"
 
-set=""
-add() { set="${set:+$set }$1"; }
+reviewers=""
+add() { reviewers="${reviewers:+$reviewers }$1"; }
 
 # code-reviewer: always
 add "code-reviewer"
 echo "DECISION: LAUNCH code-reviewer (always — generalist safety net)"
 
+# pr-test-analyzer: only when source code changed
 if [ "${has_code}" -eq 1 ]; then
-  add "silent-failure-hunter"
-  echo "DECISION: LAUNCH silent-failure-hunter (source-code files changed)"
   add "pr-test-analyzer"
   echo "DECISION: LAUNCH pr-test-analyzer (source-code files changed)"
 else
-  echo "DECISION: SKIP silent-failure-hunter (no source-code files — docs/config only)"
   echo "DECISION: SKIP pr-test-analyzer (no source-code files — nothing to analyze for test coverage)"
 fi
 
-if [ "${has_code}" -eq 1 ] || [ "${has_doc}" -eq 1 ]; then
-  add "comment-analyzer"
-  echo "DECISION: LAUNCH comment-analyzer (code or doc files changed)"
+# silent-failure-hunter: code or config (CI/config yaml can swallow failures)
+if [ "${has_code}" -eq 1 ] || [ "${has_config}" -eq 1 ]; then
+  add "silent-failure-hunter"
+  echo "DECISION: LAUNCH silent-failure-hunter (code or config files changed)"
 else
-  echo "DECISION: SKIP comment-analyzer (no code or doc files — config/data only)"
+  echo "DECISION: SKIP silent-failure-hunter (docs/data only — no error-handling surface)"
 fi
 
-echo "REVIEWERS: ${set}"
+# comment-analyzer: code, doc, or config (all carry comments/prose)
+if [ "${has_code}" -eq 1 ] || [ "${has_doc}" -eq 1 ] || [ "${has_config}" -eq 1 ]; then
+  add "comment-analyzer"
+  echo "DECISION: LAUNCH comment-analyzer (code, doc, or config files changed)"
+else
+  echo "DECISION: SKIP comment-analyzer (pure data/secret files only — no comments/prose)"
+fi
+
+echo "REVIEWERS: ${reviewers}"

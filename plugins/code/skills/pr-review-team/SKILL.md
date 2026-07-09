@@ -26,7 +26,7 @@ restart the loop rather than paper over it. Run init now.
 
 The leader MUST:
 1. Initialize state and gather PR context (Step 1)
-2. Launch 4 parallel reviewer subagents (Step 2)
+2. Select and launch the parallel reviewer subagents (Step 2 — the selector decides which of the 4 run)
 3. Run CI checks via script (Step 3)
 4. Integrate results + security checklist (Step 4)
 5. If critical > 0 OR important > 0 OR security != "all_pass": enter fix loop (Step 5)
@@ -127,6 +127,10 @@ Review criteria: include `${CLAUDE_PLUGIN_ROOT}/references/review-criteria.md` p
 | pr-test-analyzer | WARNING | Continue with remaining reviewers. Note in report. |
 | comment-analyzer | WARNING | Continue with remaining reviewers. Note in report. |
 
+This table applies ONLY to reviewers the selector chose to launch. A reviewer the
+selector **skipped** (its `DECISION: SKIP` line) is NOT a launch failure — track it
+separately and report it as "skipped by selector (reason)", never as "failed to launch".
+
 ### Update State
 
 ```bash
@@ -208,9 +212,11 @@ If all pass: "Security Checklist: ALL PASS (N items checked)"
 🔴 MANDATORY: If Step 4 produced ANY critical or important issues, or security failures, this step MUST execute.
 
 🔴 VIOLATION — Re-review Required After Fixes
-After fixer applies fixes, ALL reviewers in Step 2's selected set MUST be re-invoked
-(same parallel pattern as Step 2; `code-reviewer` is always in that set, preserving
-independent verification).
+After fixer applies fixes, RE-RUN `select-reviewers.sh <PR番号>` and re-invoke ALL
+reviewers in the freshly-computed set (same parallel pattern as Step 2). Re-running
+the selector is mandatory because the fixer may have added files of a type the initial
+selection skipped (e.g. a docs-only PR whose fix introduces a code or test file) — the
+set can only grow, never lose `code-reviewer`, so independent verification is preserved.
 Skipping re-review is a workflow violation.
 
 ```
@@ -226,9 +232,10 @@ FOR iteration = 1 TO MAX_ITERATIONS:
   2. Fixer applies fixes and runs tests
      IF tests fail after 2 retries → report to user, do NOT merge, BREAK
 
-  3. Re-review: Launch the SAME selected reviewer set again (parallel Agent tool calls,
-     same as Step 2, including BOTH the Tooling note and the Review scope discipline
-     block in each subagent prompt)
+  3. Re-review: RE-RUN `select-reviewers.sh <PR番号>` and launch its freshly-computed
+     reviewer set (parallel Agent tool calls, same as Step 2, including BOTH the Tooling
+     note and the Review scope discipline block in each subagent prompt). The set can
+     only grow if the fixer added files of a previously-skipped type.
 
   4. Collect fresh counts: fresh_critical, fresh_important, fresh_security
 
@@ -276,7 +283,8 @@ Report summary:
 - Iterations performed
 - Security checklist status
 - CI status (including any PENDING timeouts)
-- Agents that failed to launch (if any)
+- Reviewers skipped by the selector, with reason (NOT failures — e.g. "pr-test-analyzer: skipped, no source-code files")
+- Agents that failed to launch (if any) — distinct from the skipped list above
 
 **Do NOT merge** — wait for user's explicit instruction.
 
