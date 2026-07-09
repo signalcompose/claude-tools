@@ -60,8 +60,22 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh init <PR番号>
 
 ## Step 2: Parallel Review (Subagents)
 
-**MANDATORY**: Launch ALL 4 reviewers in a SINGLE message using parallel Agent tool calls.
-Do NOT use TeamCreate or Task tool. Use the Agent tool directly.
+### Select reviewers (token discipline)
+
+Run the deterministic selector FIRST and launch only the reviewers it returns:
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/select-reviewers.sh <PR番号>
+```
+
+Parse the `REVIEWERS:` line. `code-reviewer` is ALWAYS included. Docs/config-only
+PRs skip reviewers that have nothing to analyze in the changed files (e.g. a
+Markdown-only PR skips `silent-failure-hunter` and `pr-test-analyzer`). The script
+prints a `DECISION:` line per reviewer — do NOT drop any reviewer it did not skip,
+and do NOT add one it skipped. On any failure it fails open (all 4).
+
+**MANDATORY**: Launch ALL selected reviewers in a SINGLE message using parallel
+Agent tool calls. Do NOT use TeamCreate or Task tool. Use the Agent tool directly.
 
 🔴 **Subagent prompt requirement (Issue #245)** — Agent tool で spawn される subagent は orchestrator の SKILL 本文を見ない。以下のガード文をすべての subagent prompt に **必ず含める**（reviewers, fixer, re-reviewers 共通）:
 
@@ -75,12 +89,30 @@ breaks the review flow.
 
 省略すると subagent が `gh pr diff` 等で defensive に bypass を要求し、ユーザーに承認プロンプトが連発する。
 
-Launch in parallel (one message, 4 Agent tool calls):
+🔴 **Review scope discipline (token cost)** — include this block VERBATIM in every
+reviewer / re-reviewer prompt (in addition to the Tooling note above). It curbs the
+largest hidden cost: reviewers freely exploring files outside the diff.
+
+```
+Scope: base your review ONLY on `gh pr diff <PR>` and the changed files it lists.
+Do NOT explore or read files the diff does not touch or directly reference.
+Output: return ONLY findings you hold at >=80% confidence, each as one line
+`severity | file:line | issue`. No prose preamble, no summary, no restating the diff.
+```
+
+Do NOT add this scope block to the fixer prompt — the fixer needs to read
+surrounding code to apply correct fixes.
+
+Launch in parallel (one message, one Agent call per SELECTED reviewer):
 
 1. `Agent(subagent_type: "pr-review-toolkit:code-reviewer", model: "sonnet", prompt: "<criteria path> + <copy the Tooling note block above verbatim> + <task>")`
 2. `Agent(subagent_type: "pr-review-toolkit:silent-failure-hunter", model: "sonnet", prompt: "<criteria path> + <copy the Tooling note block above verbatim> + <task>")`
 3. `Agent(subagent_type: "pr-review-toolkit:pr-test-analyzer", model: "sonnet", prompt: "<criteria path> + <copy the Tooling note block above verbatim> + <task>")`
 4. `Agent(subagent_type: "pr-review-toolkit:comment-analyzer", model: "haiku", prompt: "<criteria path> + <copy the Tooling note block above verbatim> + <task>")`
+
+Launch ONLY the reviewers in the selector's `REVIEWERS:` set — the four above are
+templates, and `code-reviewer` is always present. Include BOTH the Tooling note and
+the Review scope discipline block (verbatim) in every reviewer prompt.
 
 Results return automatically. No shutdown procedure needed.
 
@@ -176,7 +208,9 @@ If all pass: "Security Checklist: ALL PASS (N items checked)"
 🔴 MANDATORY: If Step 4 produced ANY critical or important issues, or security failures, this step MUST execute.
 
 🔴 VIOLATION — Re-review Required After Fixes
-After fixer applies fixes, ALL 4 reviewers MUST be re-invoked (same parallel pattern as Step 2).
+After fixer applies fixes, ALL reviewers in Step 2's selected set MUST be re-invoked
+(same parallel pattern as Step 2; `code-reviewer` is always in that set, preserving
+independent verification).
 Skipping re-review is a workflow violation.
 
 ```
@@ -192,8 +226,9 @@ FOR iteration = 1 TO MAX_ITERATIONS:
   2. Fixer applies fixes and runs tests
      IF tests fail after 2 retries → report to user, do NOT merge, BREAK
 
-  3. Re-review: Launch ALL 4 reviewers again (parallel Agent tool calls, same as Step 2,
-     including the tooling note in each subagent prompt)
+  3. Re-review: Launch the SAME selected reviewer set again (parallel Agent tool calls,
+     same as Step 2, including BOTH the Tooling note and the Review scope discipline
+     block in each subagent prompt)
 
   4. Collect fresh counts: fresh_critical, fresh_important, fresh_security
 
