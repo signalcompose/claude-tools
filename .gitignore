@@ -4,6 +4,7 @@
 # Claude Code
 .claude/review-approved
 .claude/plans/
+**/.claude/plans/
 .claude/.context-budget.json
 .claude/dev-cycle-checkpoint.md
 .claude/dev-cycle.state.json
