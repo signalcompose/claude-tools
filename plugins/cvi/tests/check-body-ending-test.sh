@@ -87,6 +87,15 @@ if ! grep -q "defaulting to 'japanese'" "$STDERR_FILE"; then
     OUTPUT='{"decision":"invalid"}'
 fi
 record 'missing settings defaults to Japanese with warning' block
+printf '{}\n' > "$HOME/.claude/settings.json"
+STDERR_FILE="${TMP_DIR}/missing-language.stderr"
+OUTPUT=$(printf '%s' "$(jq -cn --arg path "$fallback_transcript" '{transcript_path:$path}')" | \
+    bash "$HOOK" 2>"$STDERR_FILE")
+STATUS=$?
+if ! grep -q "could not parse 'language'.*defaulting to 'japanese'" "$STDERR_FILE"; then
+    OUTPUT='{"decision":"invalid"}'
+fi
+record 'settings without language defaults to Japanese with warning' block
 printf '{"language":"japanese"}\n' > "$HOME/.claude/settings.json"
 
 transcript="${TMP_DIR}/transcripts/stop-active.jsonl"

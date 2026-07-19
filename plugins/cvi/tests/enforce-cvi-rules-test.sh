@@ -45,6 +45,28 @@ else
 fi
 record 'English practice runs before CVI disabled early exit' "$STATUS" 'english-practice-only' "$NORMALIZED"
 
+printf 'CVI_ENABLED=on\nVOICE_LANG=ja\nENGLISH_PRACTICE=off\n' > "$HOME/.cvi/config"
+OUTPUT=$(bash "$HOOK" 2>/dev/null)
+STATUS=$?
+if printf '%s' "$OUTPUT" | grep -q 'CVI CRITICAL RULES' && \
+   printf '%s' "$OUTPUT" | grep -q 'ja (Japanese)'; then
+    NORMALIZED='japanese-rules'
+else
+    NORMALIZED="$OUTPUT"
+fi
+record 'CVI enabled emits rules with Japanese voice display' "$STATUS" 'japanese-rules' "$NORMALIZED"
+
+printf 'CVI_ENABLED=on\nVOICE_LANG=en\nENGLISH_PRACTICE=off\n' > "$HOME/.cvi/config"
+OUTPUT=$(bash "$HOOK" 2>/dev/null)
+STATUS=$?
+if printf '%s' "$OUTPUT" | grep -q 'CVI CRITICAL RULES' && \
+   printf '%s' "$OUTPUT" | grep -q 'en (English)'; then
+    NORMALIZED='english-rules'
+else
+    NORMALIZED="$OUTPUT"
+fi
+record 'CVI enabled emits rules with English voice display' "$STATUS" 'english-rules' "$NORMALIZED"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 if [ "$FAIL" -ne 0 ]; then
     exit 1

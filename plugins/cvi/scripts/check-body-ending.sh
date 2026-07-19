@@ -52,7 +52,7 @@ fi
 
 # Select only the last assistant text block after the last real user prompt.
 # Tool-result and metadata user entries do not start a new turn.
-FINAL_TEXT=$(jq -rs '
+JQ_OUTPUT=$(jq -rs '
   def real_user:
     .type == "user"
     and (has("toolUseResult") | not)
@@ -66,10 +66,14 @@ FINAL_TEXT=$(jq -rs '
   | [ .[] | select(.type == "assistant")
       | (.message.content // [])[] | select(.type == "text") | .text ]
   | last // empty
-' "$TRANSCRIPT_PATH" 2>/dev/null) || {
-    echo "[cvi] Failed to parse transcript for body-ending check" >&2
+' "$TRANSCRIPT_PATH" 2>&1)
+JQ_STATUS=$?
+if [ "$JQ_STATUS" -ne 0 ]; then
+    JQ_ERROR=$(printf '%s' "$JQ_OUTPUT" | tr '\n' ' ' | head -c 200)
+    echo "[cvi] Failed to parse transcript for body-ending check (jq exit $JQ_STATUS): $JQ_ERROR" >&2
     exit 0
-}
+fi
+FINAL_TEXT=$JQ_OUTPUT
 
 if [ -z "$FINAL_TEXT" ]; then
     exit 0
@@ -96,7 +100,8 @@ if [ "$RESPONSE_LANG" = "japanese" ] && [ -n "$CLEAN_TEXT" ]; then
         'test("[\\p{Hiragana}\\p{Katakana}\\p{Han}]")' 2>&1)
     JQ_STATUS=$?
     if [ "$JQ_STATUS" -ne 0 ]; then
-        echo "[cvi] Japanese-character regex test failed (jq exit $JQ_STATUS); skipping check" >&2
+        JQ_ERROR=$(printf '%s' "$JQ_OUTPUT" | tr '\n' ' ' | head -c 200)
+        echo "[cvi] Japanese-character regex test failed (jq exit $JQ_STATUS): $JQ_ERROR; skipping check" >&2
     elif [ "$JQ_OUTPUT" = "false" ]; then
         MISSING_JAPANESE=true
     fi

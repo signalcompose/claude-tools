@@ -51,12 +51,14 @@ TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path' 2>/dev/null)
 # Check if transcript path is valid
 if [ -z "$TRANSCRIPT_PATH" ] || [ "$TRANSCRIPT_PATH" = "null" ]; then
     # Could not parse transcript path, allow stop
+    echo "[cvi] transcript_path is missing or invalid; skipping speak check" >&2
     exit 0
 fi
 
 # Check if transcript exists
 if [ ! -f "$TRANSCRIPT_PATH" ]; then
     # No transcript, allow stop (edge case)
+    echo "[cvi] transcript_path is missing or invalid; skipping speak check" >&2
     exit 0
 fi
 
