@@ -131,11 +131,27 @@ This table applies ONLY to reviewers the selector chose to launch. A reviewer th
 selector **skipped** (its `DECISION: SKIP` line) is NOT a launch failure — track it
 separately and report it as "skipped by selector (reason)", never as "failed to launch".
 
+In round 2 and later, a reviewer omitted because it is neither in `reporters` nor
+newly added by the selector is also NOT a launch failure. Report it separately as
+"skipped due to round-2 selective re-review (no prior findings)", not as "skipped by
+selector" or "failed to launch".
+
 ### Update State
 
 ```bash
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> reviewers_done true
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> phase reviewed
+```
+
+### Record Reporters (for round-2 selective re-review)
+
+After aggregating Step 2 results, record which reviewers reported Critical or
+Important findings (space-separated reviewer names, e.g. "code-reviewer
+silent-failure-hunter"). If none reported issues, record the literal string
+"none" (NOT an empty string — `pr-review-state.sh set` rejects empty values).
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> reporters "<reviewer名 space区切り、または none>"
 ```
 
 ## Step 3: CI Check
@@ -212,30 +228,48 @@ If all pass: "Security Checklist: ALL PASS (N items checked)"
 🔴 MANDATORY: If Step 4 produced ANY critical or important issues, or security failures, this step MUST execute.
 
 🔴 VIOLATION — Re-review Required After Fixes
-After fixer applies fixes, RE-RUN `select-reviewers.sh <PR番号>` and re-invoke ALL
-reviewers in the freshly-computed set (same parallel pattern as Step 2). Re-running
-the selector is mandatory because the fixer may have added files of a type the initial
-selection skipped (e.g. a docs-only PR whose fix introduces a code or test file) — the
-set can only grow, never lose `code-reviewer`, so independent verification is preserved.
-Skipping re-review is a workflow violation.
+After fixer applies fixes, RE-RUN `select-reviewers.sh <PR番号>`. Re-invoke ONLY:
+(1) `code-reviewer` (always), (2) reviewers recorded in `reporters` for the
+immediately preceding round, and (3) reviewers newly added by the recomputed selector
+set that were not launched in the immediately preceding round. Re-running the selector
+is mandatory because the fixer may have added files of a previously skipped type.
+Narrowing the set without first recording `reporters` is a workflow violation.
+Excluding `code-reviewer` is a workflow violation. Skipping re-review is a workflow
+violation.
 
 ```
 MAX_ITERATIONS=3
 
 FOR iteration = 1 TO MAX_ITERATIONS:
-  1. Spawn fixer subagent:
-     Agent(subagent_type: "general-purpose", model: "sonnet",
-           prompt: "<all findings> + <Step 2 tooling note on dangerouslyDisableSandbox>")
+  1. Spawn fixer subagent. Prefer Codex when available:
+     - If `codex:codex-rescue` appears among the agent types you have been told
+       are available for this session, use it as the fixer:
+       Agent(subagent_type: "codex:codex-rescue",
+             prompt: "<all findings> + <verification commands> + <Step 2 tooling note on dangerouslyDisableSandbox>")
+     - Otherwise, fall back to the existing path unchanged:
+       Agent(subagent_type: "general-purpose", model: "sonnet",
+             prompt: "<all findings> + <Step 2 tooling note on dangerouslyDisableSandbox>")
      Send ALL findings in a single prompt (Critical + Important + Security failures).
      The fixer also runs gh/git — propagate the same sandbox guard (Issue #245).
+     This is a prompt-level availability check, NOT a shell `command -v codex` check —
+     subagent type availability cannot be reliably probed from bash.
 
   2. Fixer applies fixes and runs tests
      IF tests fail after 2 retries → report to user, do NOT merge, BREAK
 
-  3. Re-review: RE-RUN `select-reviewers.sh <PR番号>` and launch its freshly-computed
-     reviewer set (parallel Agent tool calls, same as Step 2, including BOTH the Tooling
-     note and the Review scope discipline block in each subagent prompt). The set can
-     only grow if the fixer added files of a previously-skipped type.
+  3. Re-review: RE-RUN `select-reviewers.sh <PR番号>` to obtain the recomputed
+     REVIEWERS set. Read the immediately preceding round's `reporters` state and split
+     its space-separated value into a set (`"none"` means the empty set). Launch exactly:
+       {code-reviewer}
+       UNION {reviewers from the immediately preceding round's reporters state}
+       UNION {reviewers in the recomputed REVIEWERS set that were not launched in the
+              immediately preceding round}
+     Use parallel Agent tool calls as in Step 2, including BOTH the Tooling note and
+     the Review scope discipline block in each subagent prompt. After all return,
+     overwrite `reporters` with the space-separated names of reviewers that reported
+     Critical or Important findings in this round; write the literal `"none"` if there
+     were no such findings. This value is the reporters set for the next round.
+     bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> reporters "<reviewer名 space区切り、または none>"
 
   4. Collect fresh counts: fresh_critical, fresh_important, fresh_security
 
@@ -284,7 +318,8 @@ Report summary:
 - Security checklist status
 - CI status (including any PENDING timeouts)
 - Reviewers skipped by the selector, with reason (NOT failures — e.g. "pr-test-analyzer: skipped, no source-code files")
-- Agents that failed to launch (if any) — distinct from the skipped list above
+- Reviewers skipped in round 2+ due to selective re-review (no prior findings) — distinct from selector skips above
+- Agents that failed to launch (if any) — distinct from the skipped lists above
 
 **Do NOT merge** — wait for user's explicit instruction.
 
