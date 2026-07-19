@@ -156,6 +156,9 @@ none did — the format and rationale are defined once, in Step 5.3):
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> reporters "<reviewer名 space区切り、または none>"
 ```
 
+If this write fails, use the same fail-safe as Step 5.3; do NOT treat it as
+`reporters=none`.
+
 ## Step 3: CI Check
 
 Run the CI wait script:
@@ -244,7 +247,10 @@ FOR iteration = 1 TO MAX_ITERATIONS:
      - If `codex:codex-rescue` appears among the agent types you have been told
        are available for this session, use it as the fixer:
        Agent(subagent_type: "codex:codex-rescue", model: "sonnet",
-             prompt: "<all findings> + <verification commands> + <Step 2 tooling note on dangerouslyDisableSandbox>")
+             prompt: "<all findings> + <Step 2 tooling note on dangerouslyDisableSandbox>")
+       If the Codex fixer invocation or execution ends in an error (including a
+       process crash, timeout, or auth error), fall back to the Sonnet path below
+       and resend the same findings.
      - Otherwise, fall back to the existing path unchanged:
        Agent(subagent_type: "general-purpose", model: "sonnet",
              prompt: "<all findings> + <Step 2 tooling note on dangerouslyDisableSandbox>")
