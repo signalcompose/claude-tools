@@ -158,7 +158,11 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> reporters "
 
 If this write fails in round 1, do NOT treat it as `reporters=none`. The Step 5.3
 option to retain the previous round's reporters value is unavailable because no
-previous round exists; re-launch all reviewers chosen by the selector.
+previous round exists; retry writing the actual space-separated set of reviewers
+that reported Critical or Important findings with `pr-review-state.sh set <PR番号>
+reporters "..."`. If that write also fails, re-launch all reviewers chosen by the
+selector and explicitly note in the Step 6 report: "reporters persistence failed,
+so round 2 will re-launch the full REVIEWERS set from the selector as a safe fallback."
 
 ## Step 3: CI Check
 
@@ -264,7 +268,10 @@ FOR iteration = 1 TO MAX_ITERATIONS:
 
   3. Re-review: RE-RUN `select-reviewers.sh <PR番号>` to obtain the recomputed
      REVIEWERS set. Maintain a cumulative launched set for this review, initialized
-     with the round-1 reviewers and updated with every subsequent launch. Read the
+     with the successfully launched round-1 reviewers and updated with every subsequent
+     successful launch. Reviewers whose launch was classified as a launch failure per
+     the Agent Launch Failure Handling table are NOT added to this set, so they remain
+     eligible to be treated as newly added and relaunched in a subsequent round. Read the
      immediately preceding round's `reporters` state and split its space-separated
      value into a set (`"none"` means the empty set — the sentinel exists because
      `pr-review-state.sh set` rejects an empty string value). If `reporters` is missing
@@ -273,6 +280,8 @@ FOR iteration = 1 TO MAX_ITERATIONS:
        UNION {reviewers from the immediately preceding round's reporters state}
        UNION {reviewers in the recomputed REVIEWERS set that are not in the cumulative
               launched set from all prior rounds}
+     If reporters persistence has failed repeatedly, do not narrow the launch set;
+     launch the full REVIEWERS set instead of this selective subset.
      Use parallel Agent tool calls as in Step 2, including BOTH the Tooling note and
      the Review scope discipline block in each subagent prompt. After all return,
      overwrite `reporters` with the space-separated names of reviewers that reported
