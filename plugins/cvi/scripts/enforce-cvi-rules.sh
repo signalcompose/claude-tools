@@ -55,7 +55,7 @@ ABSOLUTELY REQUIRED (NO EXCEPTIONS):
 1. /cvi:speak: MUST call using Skill tool (NOT as text)
 2. Summary language: ${VOICE_LANG} (${VOICE_LANG_DISPLAY})
 3. Response language: MUST use ${RESPONSE_LANG}
-4. ${RESPONSE_LANG} body = MAIN channel (full substance). ${VOICE_LANG_DISPLAY} voice summary = SUB (summary only). NEVER end a response with only the Voice line.
+4. ${RESPONSE_LANG} body = MAIN channel (must carry the full substance). ${VOICE_LANG_DISPLAY} voice summary = SUB (summary only, never a substitute for the body).
 
 🔴 MANDATORY TASK COMPLETION PATTERN:
    [detailed work...]
@@ -96,7 +96,7 @@ BEFORE RESPONDING, VERIFY:
 □ /cvi:speak called via Skill tool (NOT as text)
 □ Summary language = ${VOICE_LANG} (${VOICE_LANG_DISPLAY})
 □ Response language = ${RESPONSE_LANG}
-□ Response ends with ${RESPONSE_LANG} body text (NOT the Voice line)
+□ ${RESPONSE_LANG} body text carries the full substance (Voice line is a summary, not a substitute)
 
 ⚠️ IF YOU FORGET /cvi:speak:
 → Stop hook will BLOCK your stop request
