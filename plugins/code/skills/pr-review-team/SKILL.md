@@ -145,6 +145,9 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> phase revie
 
 ### Record Reporters (for round-2 selective re-review)
 
+🔴 **MANDATORY** — skipping this step makes the restart set wrongly narrow and
+silently degrades re-review coverage by dropping reviewers that reported real issues.
+
 After aggregating Step 2 results, record which reviewers reported Critical or
 Important findings (space-separated names; use the literal string "none" if
 none did — the format and rationale are defined once, in Step 5.3):
@@ -228,9 +231,10 @@ If all pass: "Security Checklist: ALL PASS (N items checked)"
 
 🔴 VIOLATION — Re-review Required After Fixes
 After fixer applies fixes, re-invoke reviewers using the set defined in step 3
-below (code-reviewer + reporters + newly-added). Narrowing the set without first
-recording `reporters` is a workflow violation. Excluding `code-reviewer` is a
-workflow violation. Skipping re-review entirely is a workflow violation.
+below (code-reviewer + reporters + reviewers never previously launched). Narrowing
+the set without first recording `reporters` is a workflow violation. Excluding
+`code-reviewer` is a workflow violation. Skipping re-review entirely is a workflow
+violation.
 
 ```
 MAX_ITERATIONS=3
@@ -239,7 +243,7 @@ FOR iteration = 1 TO MAX_ITERATIONS:
   1. Spawn fixer subagent. Prefer Codex when available:
      - If `codex:codex-rescue` appears among the agent types you have been told
        are available for this session, use it as the fixer:
-       Agent(subagent_type: "codex:codex-rescue",
+       Agent(subagent_type: "codex:codex-rescue", model: "sonnet",
              prompt: "<all findings> + <verification commands> + <Step 2 tooling note on dangerouslyDisableSandbox>")
      - Otherwise, fall back to the existing path unchanged:
        Agent(subagent_type: "general-purpose", model: "sonnet",
@@ -252,19 +256,25 @@ FOR iteration = 1 TO MAX_ITERATIONS:
      IF tests fail after 2 retries → report to user, do NOT merge, BREAK
 
   3. Re-review: RE-RUN `select-reviewers.sh <PR番号>` to obtain the recomputed
-     REVIEWERS set. Read the immediately preceding round's `reporters` state and split
-     its space-separated value into a set (`"none"` means the empty set — the sentinel
-     exists because `pr-review-state.sh set` rejects an empty string value). Launch exactly:
+     REVIEWERS set. Maintain a cumulative launched set for this review, initialized
+     with the round-1 reviewers and updated with every subsequent launch. Read the
+     immediately preceding round's `reporters` state and split its space-separated
+     value into a set (`"none"` means the empty set — the sentinel exists because
+     `pr-review-state.sh set` rejects an empty string value). If `reporters` is missing
+     or null, treat it as the empty set (equivalent to `"none"`). Launch exactly:
        {code-reviewer}
        UNION {reviewers from the immediately preceding round's reporters state}
-       UNION {reviewers in the recomputed REVIEWERS set that were not launched in the
-              immediately preceding round}
+       UNION {reviewers in the recomputed REVIEWERS set that are not in the cumulative
+              launched set from all prior rounds}
      Use parallel Agent tool calls as in Step 2, including BOTH the Tooling note and
      the Review scope discipline block in each subagent prompt. After all return,
      overwrite `reporters` with the space-separated names of reviewers that reported
      Critical or Important findings in this round; write the literal `"none"` if there
      were no such findings. This value is the reporters set for the next round.
      bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> reporters "<reviewer名 space区切り、または none>"
+     If this write fails, fail safe: do NOT treat it as `reporters=none`; retain the
+     previous round's reporters value or re-launch all reviewers, and include the
+     chosen fallback in the Step 6 report to the user.
 
   4. Collect fresh counts: fresh_critical, fresh_important, fresh_security
 
@@ -316,6 +326,8 @@ Report summary:
   - selector skip (e.g. "pr-test-analyzer: no source-code files")
   - round-2+ selective re-review skip (no prior findings)
 - Agents that failed to launch (if any) — distinct from the not-launched list above
+- Any reporters state-write failure and the fail-safe used (retained prior reporters
+  or re-launched all reviewers)
 
 **Do NOT merge** — wait for user's explicit instruction.
 
