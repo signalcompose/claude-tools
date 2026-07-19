@@ -78,27 +78,46 @@ if [ "$TEXT_BLOCKS" = "[]" ]; then
 fi
 
 # Fence-aware scanner shared by stripping and balance detection. Following the
-# CommonMark rule, a fence opened by a run of 3+ backticks is only closed by a
-# run at least as long, so a ```` fence that displays ``` fences keeps the
-# inner markers and their contents as code instead of toggling on every marker.
+# CommonMark rules for backtick fences:
+# - A fence line has at most 3 leading spaces (tabs are not fence indentation)
+#   followed by a run of 3+ backticks; 4+ spaces of indent is not a fence.
+# - An opening fence whose info string contains a backtick is invalid and the
+#   line stays prose.
+# - A fence opened by a run of 3+ backticks is only closed by a run at least
+#   as long followed by nothing but whitespace, so a ```` fence that displays
+#   ``` fences keeps the inner markers and their contents as code, and a line
+#   like ```oops inside a fence is code rather than a closing fence.
 # mode=strip prints prose lines outside fences with inline code removed;
 # mode=balance prints "open" or "balanced" for the final fence state.
 fence_scan() {
     awk -v mode="$1" '
-      function fence_run(line,    rest, n) {
-        rest = line
-        sub(/^[[:space:]]*/, "", rest)
-        n = 0
-        while (substr(rest, n + 1, 1) == "`") n++
-        return n
+      # Sets globals run (backtick-run length) and tail (text after the run).
+      # Returns 1 when the line is a fence candidate, 0 otherwise.
+      function fence_parse(line,    i) {
+        i = 0
+        while (substr(line, i + 1, 1) == " ") i++
+        if (i > 3) return 0
+        run = 0
+        while (substr(line, i + run + 1, 1) == "`") run++
+        if (run < 3) return 0
+        tail = substr(line, i + run + 1)
+        return 1
       }
-      /^[[:space:]]*```/ {
-        run = fence_run($0)
-        if (!infence) { infence = 1; open_run = run }
-        else if (run >= open_run) { infence = 0 }
-        next
+      {
+        if (fence_parse($0)) {
+          if (!infence) {
+            # A backtick in the info string invalidates the opening fence;
+            # the line falls through and stays prose.
+            if (tail !~ /`/) { infence = 1; open_run = run; next }
+          } else {
+            # Close only on a long-enough run with a whitespace-only suffix;
+            # any other candidate line is fence content either way.
+            if (run >= open_run && tail ~ /^[[:space:]]*$/) infence = 0
+            next
+          }
+        }
+        if (mode == "strip" && !infence) { gsub(/`[^`]*`/, ""); print }
       }
-      mode == "strip" && !infence { gsub(/`[^`]*`/, ""); print }
       END { if (mode == "balance") print (infence ? "open" : "balanced") }
     '
 }

@@ -183,6 +183,13 @@ case_text 'Japanese prose around quadruple fence with inner fences allows' japan
 case_text 'Japanese only inside quadruple-fenced inner code does not count as prose' japanese $'Task done.\n````md\n```\n# 日本語コメント\n```\n````' block
 case_text 'unclosed quadruple fence with complete inner pair allows as code-only' japanese $'````md\n```bash\necho hi\n```' allow
 case_text 'fenced code with trailing whitespace-only line allows as code-only' japanese $'```sh\necho done\n```\n  ' allow
+case_text 'junk-suffixed fence line does not close the fence' japanese $'```sh\necho hi\n```oops\nEnglish inside fence\n```\n日本語で締めます。' allow
+case_text 'junk-suffixed fence keeps later English hidden as code' japanese $'日本語の説明です。\n```sh\necho hi\n```oops\nEnglish only after junk.' allow
+case_text 'closing fence with trailing spaces still closes' japanese $'```sh\necho hi\n```  \nFinal English only.' block
+case_text 'backtick in info string is not a fence start' japanese $'```sh`bad\nEnglish prose stays visible.' block
+case_text 'four-space indented backticks are not a fence start' japanese $'    ```\nEnglish prose stays visible.' block
+case_text 'tab-indented backticks are not a fence start' japanese $'\t```\nEnglish prose stays visible.' block
+case_text 'three-space indented fence still opens and closes' japanese $'日本語の本文です。\n   ```sh\necho hi\n   ```' allow
 
 odd_fence_transcript="${TMP_DIR}/transcripts/odd-fence-jq-failures.jsonl"
 write_transcript "$odd_fence_transcript" $'```sh\necho hello'
