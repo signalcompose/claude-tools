@@ -1,12 +1,10 @@
 #!/bin/bash
 
-# Stop hook: require Japanese prose in the final visible text block when the
+# Stop hook: require Japanese prose somewhere in the current turn when the
 # configured response language is Japanese. An intentional code-block-only
 # response is allowed as an exception because it has no prose body to rewrite.
 #
-# Known limitation: if the final text block has not been flushed when Stop fires,
-# the preceding block can be mistaken for the final one and cause a false block.
-# The retry only asks for a corrected ending, and stop_hook_active prevents a loop.
+# The retry only asks for a corrected body, and stop_hook_active prevents a loop.
 # Hook ordering within one matcher is not guaranteed by Claude Code. Placement
 # after check-speak-called.sh in hooks.json expresses intent only; hooks may run
 # in parallel.
@@ -50,7 +48,7 @@ if [ -z "$TRANSCRIPT_PATH" ] || [ ! -f "$TRANSCRIPT_PATH" ] || \
     exit 0
 fi
 
-# Select only the last assistant text block after the last real user prompt.
+# Concatenate all assistant text blocks after the last real user prompt.
 # Tool-result and metadata user entries do not start a new turn.
 JQ_OUTPUT=$(jq -rs '
   def real_user:
@@ -65,7 +63,7 @@ JQ_OUTPUT=$(jq -rs '
   | $all[($u + 1):]
   | [ .[] | select(.type == "assistant")
       | (.message.content // [])[] | select(.type == "text") | .text ]
-  | last // empty
+  | join("\n")
 ' "$TRANSCRIPT_PATH" 2>&1)
 JQ_STATUS=$?
 if [ "$JQ_STATUS" -ne 0 ]; then
@@ -73,9 +71,9 @@ if [ "$JQ_STATUS" -ne 0 ]; then
     echo "[cvi] Failed to parse transcript for body-ending check (jq exit $JQ_STATUS): $JQ_ERROR" >&2
     exit 0
 fi
-FINAL_TEXT=$JQ_OUTPUT
+TURN_TEXT=$JQ_OUTPUT
 
-if [ -z "$FINAL_TEXT" ]; then
+if [ -z "$TURN_TEXT" ]; then
     exit 0
 fi
 
@@ -86,13 +84,7 @@ strip_code() {
     '
 }
 
-CLEAN_TEXT=$(printf '%s\n' "$FINAL_TEXT" | strip_code)
-LAST_NONEMPTY_LINE=$(printf '%s\n' "$CLEAN_TEXT" | awk 'NF { line=$0 } END { print line }')
-
-VOICE_ENDING=false
-if printf '%s\n' "$LAST_NONEMPTY_LINE" | grep -qE '^[[:space:]]*\**[Vv]oice\**[[:space:]]*:'; then
-    VOICE_ENDING=true
-fi
+CLEAN_TEXT=$(printf '%s\n' "$TURN_TEXT" | strip_code)
 
 MISSING_JAPANESE=false
 if [ "$RESPONSE_LANG" = "japanese" ] && [ -n "$CLEAN_TEXT" ]; then
@@ -107,7 +99,7 @@ if [ "$RESPONSE_LANG" = "japanese" ] && [ -n "$CLEAN_TEXT" ]; then
     fi
 fi
 
-if [ "$VOICE_ENDING" = "true" ] || [ "$MISSING_JAPANESE" = "true" ]; then
+if [ "$MISSING_JAPANESE" = "true" ]; then
     # Keep this detection equivalent to check-speak-called.sh. Hook execution
     # order is not guaranteed, so the body correction must not contradict the
     # speak hook when both requirements are violated at the same time.
@@ -117,9 +109,9 @@ if [ "$VOICE_ENDING" = "true" ] || [ "$MISSING_JAPANESE" = "true" ]; then
     fi
 
     if [ "$SPEAK_CALLED" = "true" ]; then
-        REASON="応答には日本語の散文本文が必要です（コードブロックのみで構成される応答は例外です）。Voice 行だけ・英語だけで終えず、日本語の散文本文で締め直してください。/cvi:speak は再度呼ばないでください（音声の二重再生を防ぐため、本文の締め直しのみ行ってください）。"
+        REASON="ターン内のどこにも日本語の散文本文が見つかりません（コードブロックのみで構成される応答は例外です）。日本語の散文本文を追加してください。/cvi:speak は再度呼ばないでください（音声の二重再生を防ぐため、本文の修正のみ行ってください）。"
     else
-        REASON="応答には日本語の散文本文が必要です（コードブロックのみで構成される応答は例外です）。Voice 行だけ・英語だけで終えず、本文を日本語で書き直した上で /cvi:speak も呼んでください。"
+        REASON="ターン内のどこにも日本語の散文本文が見つかりません（コードブロックのみで構成される応答は例外です）。日本語の散文本文を追加した上で /cvi:speak も呼んでください。"
     fi
     jq -n --arg reason "$REASON" '{decision: "block", reason: $reason}'
 fi

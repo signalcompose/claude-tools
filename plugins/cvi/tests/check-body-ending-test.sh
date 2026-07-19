@@ -70,7 +70,7 @@ case_text() {
 }
 
 case_text 'Voice-only ending blocks' japanese 'Voice: "Task completed."' block
-case_text 'Voice-only ending blocks in English mode' english 'Voice: "Task completed."' block
+case_text 'Voice-only ending allows in English mode' english 'Voice: "Task completed."' allow
 case_text 'Japanese multiline body allows' japanese $'作業が完了しました。\n変更内容を確認済みです。' allow
 case_text 'Japanese text after Voice allows' japanese $'Voice: "Task completed."\n作業は完了しました。' allow
 case_text 'English-only ending blocks in Japanese mode' japanese 'Task completed successfully.' block
@@ -145,8 +145,15 @@ case_text 'Japanese body plus fenced code allows' japanese $'作業が完了し�
 case_text 'fenced code only allows' japanese $'```sh\necho done\n```' allow
 case_text 'Voice inside fenced code allows' japanese $'```text\nVoice: "example"\n```' allow
 case_text 'English prose plus fenced code blocks' japanese $'Task completed.\n```sh\necho done\n```' block
-case_text 'unquoted Voice blocks' japanese 'Voice: Task completed.' block
-case_text 'bold Voice blocks' japanese '**Voice:** "Task completed."' block
+case_text 'unquoted Voice without Japanese blocks' japanese 'Voice: Task completed.' block
+case_text 'bold Voice without Japanese blocks' japanese '**Voice:** "Task completed."' block
+
+japanese_then_voice_transcript="${TMP_DIR}/transcripts/japanese-then-voice.jsonl"
+write_transcript "$japanese_then_voice_transcript" '作業が完了しました。'
+jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"mcp__plugin_cvi_cvi-voice__speak",input:{text:"done"}}]}}' >> "$japanese_then_voice_transcript"
+jq -cn '{type:"assistant",message:{content:[{type:"text",text:"Voice: \"Task completed.\""}]}}' >> "$japanese_then_voice_transcript"
+run_hook "$(jq -cn --arg path "$japanese_then_voice_transcript" '{transcript_path:$path}')"
+record 'Japanese body before tool call and Voice-only final block allows' allow
 
 printf '{"language":"japanese"}\n' > "$HOME/.claude/settings.json"
 boundary_transcript="${TMP_DIR}/transcripts/boundaries.jsonl"
@@ -159,7 +166,18 @@ jq -cn '{type:"user",isMeta:true,message:{content:"metadata"}}' >> "$boundary_tr
 jq -cn '{type:"user",toolUseResult:{ok:true},message:{content:"tool result"}}' >> "$boundary_transcript"
 jq -cn '{type:"assistant",message:{content:[{type:"text",text:"Final English only."}]}}' >> "$boundary_transcript"
 run_hook "$(jq -cn --arg path "$boundary_transcript" '{transcript_path:$path}')"
-record 'last block after non-real users controls decision' block
+record 'Japanese earlier in turn survives interleaved non-real users' allow
+
+past_turn_transcript="${TMP_DIR}/transcripts/past-turn-boundary.jsonl"
+jq -cn '{type:"user",message:{content:"old request"}}' > "$past_turn_transcript"
+jq -cn '{type:"assistant",message:{content:[{type:"text",text:"以前の日本語です。"}]}}' >> "$past_turn_transcript"
+jq -cn '{type:"user",message:{content:"current request"}}' >> "$past_turn_transcript"
+jq -cn '{type:"user",message:{content:[{type:"tool_result",content:"ok"}]}}' >> "$past_turn_transcript"
+jq -cn '{type:"user",isMeta:true,message:{content:"metadata"}}' >> "$past_turn_transcript"
+jq -cn '{type:"user",toolUseResult:{ok:true},message:{content:"tool result"}}' >> "$past_turn_transcript"
+jq -cn '{type:"assistant",message:{content:[{type:"text",text:"Final English only."}]}}' >> "$past_turn_transcript"
+run_hook "$(jq -cn --arg path "$past_turn_transcript" '{transcript_path:$path}')"
+record 'Japanese from past turn does not cross real-user boundary' block
 
 printf 'CVI_ENABLED=off\n' > "$HOME/.cvi/config"
 case_text 'CVI disabled allows Voice and English ending' japanese 'Voice: "Task completed."' allow
