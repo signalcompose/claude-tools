@@ -70,6 +70,7 @@ case_text() {
 }
 
 case_text 'Voice-only ending blocks' japanese 'Voice: "Task completed."' block
+case_text 'Voice-only ending blocks in English mode' english 'Voice: "Task completed."' block
 case_text 'Japanese multiline body allows' japanese $'作業が完了しました。\n変更内容を確認済みです。' allow
 case_text 'Japanese text after Voice allows' japanese $'Voice: "Task completed."\n作業は完了しました。' allow
 case_text 'English-only ending blocks in Japanese mode' japanese 'Task completed successfully.' block
@@ -83,13 +84,19 @@ record 'stop_hook_active allows' allow
 run_hook '{}'
 record 'missing transcript allows' allow
 run_hook '{broken json'
-record 'invalid hook input JSON fails open silently' allow true
+record 'invalid hook input JSON warns and fails open' allow true
 run_hook '{"transcript_path":"/does/not/exist"}'
 record 'nonexistent transcript allows' allow
 empty_transcript="${TMP_DIR}/transcripts/empty.jsonl"
 : > "$empty_transcript"
 run_hook "$(jq -cn --arg path "$empty_transcript" '{transcript_path:$path}')"
 record 'empty transcript allows' allow
+unreadable_transcript="${TMP_DIR}/transcripts/unreadable.jsonl"
+write_transcript "$unreadable_transcript" 'Voice: "Task completed."'
+chmod 000 "$unreadable_transcript"
+run_hook "$(jq -cn --arg path "$unreadable_transcript" '{transcript_path:$path}')"
+record 'unreadable transcript allows' allow
+chmod 600 "$unreadable_transcript"
 invalid_transcript="${TMP_DIR}/transcripts/invalid.jsonl"
 printf 'not json\n' > "$invalid_transcript"
 run_hook "$(jq -cn --arg path "$invalid_transcript" '{transcript_path:$path}')"
@@ -102,7 +109,7 @@ for command_path in /bin/cat /bin/dirname; do
 done
 OUTPUT=$(printf '{}' | PATH="$no_jq_bin" /bin/bash "$HOOK" 2>/dev/null)
 STATUS=$?
-record 'missing jq fails open silently' allow true
+record 'missing jq warns and fails open' allow true
 
 broken_plugin="${TMP_DIR}/broken-plugin"
 mkdir -p "$broken_plugin/scripts/lib"
@@ -110,7 +117,7 @@ cp "$HOOK" "$broken_plugin/scripts/check-body-ending.sh"
 printf 'return 1\n' > "$broken_plugin/scripts/lib/config.sh"
 OUTPUT=$(printf '{}' | bash "$broken_plugin/scripts/check-body-ending.sh" 2>/dev/null)
 STATUS=$?
-record 'config source failure fails open silently' allow true
+record 'config source failure warns and fails open' allow true
 
 case_text 'Japanese body plus fenced code allows' japanese $'作業が完了しました。\n```sh\necho done\n```' allow
 case_text 'fenced code only allows' japanese $'```sh\necho done\n```' allow
@@ -162,14 +169,39 @@ record 'corrected retry body hook allows' allow
 run_speak_hook "$input"
 record 'corrected retry speak hook allows' allow
 
+mcp_transcript="${TMP_DIR}/transcripts/mcp-speak.jsonl"
+write_transcript "$mcp_transcript" 'Voice: "Task completed."'
+jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"mcp__plugin_cvi_cvi-voice__speak",input:{text:"done"}}]}}' >> "$mcp_transcript"
+input=$(jq -cn --arg path "$mcp_transcript" '{transcript_path:$path}')
+run_hook "$input"
+if ! printf '%s' "$OUTPUT" | grep -q '再度呼ばない'; then
+    OUTPUT='{"decision":"invalid"}'
+fi
+record 'MCP speak tool is detected by body hook' block
+
 printf '{"language":"japanese","sandbox":{"enabled":true}}\n' > "$HOME/.claude/settings.json"
 sandbox_transcript="${TMP_DIR}/transcripts/sandbox.jsonl"
 write_transcript "$sandbox_transcript" 'Voice: "Task completed."'
 input=$(jq -cn --arg path "$sandbox_transcript" '{transcript_path:$path}')
 run_hook "$input"
-record 'sandbox enabled skips body hook' allow true
+record 'sandbox enabled does not skip body hook' block
 run_speak_hook "$input"
 record 'sandbox enabled skips speak hook' allow true
+
+printf '{"language":"japanese","sandbox":{"enabled":false}}\n' > "$HOME/.claude/settings.json"
+printf '{"sandbox":{"enabled":true}}\n' > "$HOME/.claude/settings.local.json"
+run_speak_hook "$input"
+local_true_skipped=false
+if [ "$STATUS" -eq 0 ] && [ -z "$OUTPUT" ]; then
+    local_true_skipped=true
+fi
+printf '{"sandbox":{"enabled":false}}\n' > "$HOME/.claude/settings.local.json"
+run_speak_hook "$input"
+if [ "$local_true_skipped" != "true" ]; then
+    OUTPUT='{"decision":"invalid"}'
+fi
+record 'local sandbox settings override global and honor explicit false' block
+rm "$HOME/.claude/settings.local.json"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 if [ "$FAIL" -ne 0 ]; then

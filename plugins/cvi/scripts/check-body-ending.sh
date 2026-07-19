@@ -15,9 +15,11 @@ INPUT=$(cat)
 
 # Fail open when jq is unavailable or the hook input cannot be parsed.
 if ! command -v jq >/dev/null 2>&1; then
+    echo "[cvi] jq is unavailable; skipping body-ending check" >&2
     exit 0
 fi
 if ! printf '%s' "$INPUT" | jq empty >/dev/null 2>&1; then
+    echo "[cvi] Invalid Stop hook input; skipping body-ending check" >&2
     exit 0
 fi
 
@@ -28,11 +30,7 @@ if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/lib/config.sh" || { exit 0; }
-
-if is_sandbox_enabled; then
-    exit 0
-fi
+source "${SCRIPT_DIR}/lib/config.sh" || { echo "[cvi] Failed to source lib/config.sh" >&2; exit 0; }
 
 load_cvi_config || exit 0
 
@@ -64,7 +62,10 @@ FINAL_TEXT=$(jq -rs '
   | [ .[] | select(.type == "assistant")
       | (.message.content // [])[] | select(.type == "text") | .text ]
   | last // empty
-' "$TRANSCRIPT_PATH" 2>/dev/null) || exit 0
+' "$TRANSCRIPT_PATH" 2>/dev/null) || {
+    echo "[cvi] Failed to parse transcript for body-ending check" >&2
+    exit 0
+}
 
 if [ -z "$FINAL_TEXT" ]; then
     exit 0
@@ -87,6 +88,7 @@ fi
 
 MISSING_JAPANESE=false
 if [ "$RESPONSE_LANG" = "japanese" ] && [ -n "$CLEAN_TEXT" ]; then
+    # A jq regex failure is currently indistinguishable from finding no Japanese characters.
     if ! printf '%s' "$CLEAN_TEXT" | jq -Rs -e \
         'test("[\\p{Hiragana}\\p{Katakana}\\p{Han}]")' >/dev/null 2>&1; then
         MISSING_JAPANESE=true
