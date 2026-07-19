@@ -176,6 +176,49 @@ jq -cn '{type:"assistant",message:{content:[{type:"text",text:"done\n```\nEnglis
 run_hook "$(jq -cn --arg path "$cross_block_closed_english_transcript" '{transcript_path:$path}')"
 record 'fence opened in one block and closed in another exposes later English prose' block
 
+case_text 'unclosed English code fence only allows' japanese $'```sh\necho hello' allow
+case_text 'unclosed code fence with Japanese comment only allows' japanese $'```sh\necho hello  # 日本語コメントだけ' allow
+
+odd_fence_transcript="${TMP_DIR}/transcripts/odd-fence-jq-failures.jsonl"
+write_transcript "$odd_fence_transcript" $'```sh\necho hello'
+odd_fence_input=$(jq -cn --arg path "$odd_fence_transcript" '{transcript_path:$path}')
+REAL_JQ=$(command -v jq)
+block_jq_bin="${TMP_DIR}/block-jq-bin"
+mkdir -p "$block_jq_bin"
+cat > "$block_jq_bin/jq" <<'EOF'
+#!/bin/bash
+if [ "${FAIL_BLOCK_JQ_STAGE:-}" = "enumerate" ] && [ "${*: -1}" = ".[]" ]; then
+    echo 'simulated block enumeration failure' >&2
+    exit 6
+fi
+if [ "${FAIL_BLOCK_JQ_STAGE:-}" = "decode" ] && [ "${*: -1}" = "." ]; then
+    echo 'simulated block decode failure' >&2
+    exit 7
+fi
+exec "$REAL_JQ" "$@"
+EOF
+chmod +x "$block_jq_bin/jq"
+
+OUTPUT=$(printf '%s' "$odd_fence_input" | PATH="$block_jq_bin:$PATH" \
+    FAIL_BLOCK_JQ_STAGE=enumerate REAL_JQ="$REAL_JQ" bash "$HOOK" \
+    2>"${TMP_DIR}/block-enumeration-failure.stderr")
+STATUS=$?
+if ! grep -q 'Failed to enumerate assistant text blocks (jq exit 6)' \
+    "${TMP_DIR}/block-enumeration-failure.stderr"; then
+    OUTPUT='{"decision":"invalid"}'
+fi
+record 'per-block jq enumeration failure is explicit and fails open' allow true
+
+OUTPUT=$(printf '%s' "$odd_fence_input" | PATH="$block_jq_bin:$PATH" \
+    FAIL_BLOCK_JQ_STAGE=decode REAL_JQ="$REAL_JQ" bash "$HOOK" \
+    2>"${TMP_DIR}/block-decode-failure.stderr")
+STATUS=$?
+if ! grep -q 'Failed to decode assistant text block (jq exit 7)' \
+    "${TMP_DIR}/block-decode-failure.stderr"; then
+    OUTPUT='{"decision":"invalid"}'
+fi
+record 'per-block jq decode failure is explicit and fails open' allow true
+
 japanese_then_voice_transcript="${TMP_DIR}/transcripts/japanese-then-voice.jsonl"
 write_transcript "$japanese_then_voice_transcript" '作業が完了しました。'
 jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"mcp__plugin_cvi_cvi-voice__speak",input:{text:"done"}}]}}' >> "$japanese_then_voice_transcript"

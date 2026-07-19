@@ -64,7 +64,6 @@ JQ_OUTPUT=$(jq -rs '
   | $all[($u + 1):]
   | [ .[] | select(.type == "assistant")
       | (.message.content // [])[] | select(.type == "text") | .text ]
-  | join("\n")
 ' "$TRANSCRIPT_PATH" 2>&1)
 JQ_STATUS=$?
 if [ "$JQ_STATUS" -ne 0 ]; then
@@ -72,9 +71,9 @@ if [ "$JQ_STATUS" -ne 0 ]; then
     echo "[cvi] Failed to parse transcript for body-ending check (jq exit $JQ_STATUS): $JQ_ERROR" >&2
     exit 0
 fi
-JOINED_TEXT=$JQ_OUTPUT
+TEXT_BLOCKS=$JQ_OUTPUT
 
-if [ -z "$JOINED_TEXT" ]; then
+if [ "$TEXT_BLOCKS" = "[]" ]; then
     exit 0
 fi
 
@@ -87,12 +86,45 @@ strip_code() {
 
 # When fences are balanced across blocks, strip code from the complete response
 # so a fence opened in one block can close in another. For malformed responses
-# with an unmatched fence, keep the raw text so later prose is not hidden.
+# with an unmatched fence, strip each block independently so the unmatched fence
+# neither exposes its code as prose nor hides prose in a later block.
+JQ_OUTPUT=$(printf '%s' "$TEXT_BLOCKS" | jq -r 'join("\n")' 2>&1)
+JQ_STATUS=$?
+if [ "$JQ_STATUS" -ne 0 ]; then
+    JQ_ERROR=$(printf '%s' "$JQ_OUTPUT" | tr '\n' ' ' | head -c 200)
+    echo "[cvi] Failed to join assistant text blocks (jq exit $JQ_STATUS): $JQ_ERROR" >&2
+    exit 0
+fi
+JOINED_TEXT=$JQ_OUTPUT
+
 FENCE_COUNT=$(printf '%s\n' "$JOINED_TEXT" | awk '/^[[:space:]]*```/ { count++ } END { print count + 0 }')
 if [ $((FENCE_COUNT % 2)) -eq 0 ]; then
     CLEAN_TEXT=$(printf '%s\n' "$JOINED_TEXT" | strip_code)
 else
-    CLEAN_TEXT=$JOINED_TEXT
+    JQ_OUTPUT=$(printf '%s' "$TEXT_BLOCKS" | jq -c '.[]' 2>&1)
+    JQ_STATUS=$?
+    if [ "$JQ_STATUS" -ne 0 ]; then
+        JQ_ERROR=$(printf '%s' "$JQ_OUTPUT" | tr '\n' ' ' | head -c 200)
+        echo "[cvi] Failed to enumerate assistant text blocks (jq exit $JQ_STATUS): $JQ_ERROR" >&2
+        exit 0
+    fi
+
+    CLEAN_TEXT=$(
+        while IFS= read -r BLOCK_JSON; do
+            BLOCK_OUTPUT=$(printf '%s' "$BLOCK_JSON" | jq -r '.' 2>&1)
+            BLOCK_STATUS=$?
+            if [ "$BLOCK_STATUS" -ne 0 ]; then
+                BLOCK_ERROR=$(printf '%s' "$BLOCK_OUTPUT" | tr '\n' ' ' | head -c 200)
+                echo "[cvi] Failed to decode assistant text block (jq exit $BLOCK_STATUS): $BLOCK_ERROR" >&2
+                exit 1
+            fi
+            printf '%s\n' "$BLOCK_OUTPUT" | strip_code
+        done <<< "$JQ_OUTPUT"
+    )
+    CLEAN_STATUS=$?
+    if [ "$CLEAN_STATUS" -ne 0 ]; then
+        exit 0
+    fi
 fi
 
 MISSING_JAPANESE=false
