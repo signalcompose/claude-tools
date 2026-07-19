@@ -64,6 +64,7 @@ JQ_OUTPUT=$(jq -rs '
   | $all[($u + 1):]
   | [ .[] | select(.type == "assistant")
       | (.message.content // [])[] | select(.type == "text") | .text ]
+  | join("\n")
 ' "$TRANSCRIPT_PATH" 2>&1)
 JQ_STATUS=$?
 if [ "$JQ_STATUS" -ne 0 ]; then
@@ -71,9 +72,9 @@ if [ "$JQ_STATUS" -ne 0 ]; then
     echo "[cvi] Failed to parse transcript for body-ending check (jq exit $JQ_STATUS): $JQ_ERROR" >&2
     exit 0
 fi
-TEXT_BLOCKS=$JQ_OUTPUT
+JOINED_TEXT=$JQ_OUTPUT
 
-if [ "$TEXT_BLOCKS" = "[]" ]; then
+if [ -z "$JOINED_TEXT" ]; then
     exit 0
 fi
 
@@ -84,15 +85,15 @@ strip_code() {
     '
 }
 
-# Strip code from each block independently so an unmatched fence cannot hide
-# prose in a later assistant text block. Compact JSON safely keeps embedded
-# newlines within one loop record.
-CLEAN_TEXT=$(
-    while IFS= read -r BLOCK_JSON; do
-        BLOCK=$(printf '%s' "$BLOCK_JSON" | jq -r '.' 2>/dev/null) || continue
-        printf '%s\n' "$BLOCK" | strip_code
-    done < <(printf '%s' "$TEXT_BLOCKS" | jq -c '.[]' 2>/dev/null)
-)
+# When fences are balanced across blocks, strip code from the complete response
+# so a fence opened in one block can close in another. For malformed responses
+# with an unmatched fence, keep the raw text so later prose is not hidden.
+FENCE_COUNT=$(printf '%s\n' "$JOINED_TEXT" | awk '/^[[:space:]]*```/ { count++ } END { print count + 0 }')
+if [ $((FENCE_COUNT % 2)) -eq 0 ]; then
+    CLEAN_TEXT=$(printf '%s\n' "$JOINED_TEXT" | strip_code)
+else
+    CLEAN_TEXT=$JOINED_TEXT
+fi
 
 MISSING_JAPANESE=false
 INVALID_ENDING=false

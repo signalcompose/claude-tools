@@ -164,6 +164,18 @@ jq -cn '{type:"assistant",message:{content:[{type:"text",text:"後続ブロッ�
 run_hook "$(jq -cn --arg path "$unclosed_fence_japanese_transcript" '{transcript_path:$path}')"
 record 'unclosed fence in one block does not hide later Japanese prose' allow
 
+cross_block_closed_japanese_transcript="${TMP_DIR}/transcripts/cross-block-closed-japanese.jsonl"
+write_transcript "$cross_block_closed_japanese_transcript" $'```sh\necho hello'
+jq -cn '{type:"assistant",message:{content:[{type:"text",text:"done\n```\n日本語の本文です。"}]}}' >> "$cross_block_closed_japanese_transcript"
+run_hook "$(jq -cn --arg path "$cross_block_closed_japanese_transcript" '{transcript_path:$path}')"
+record 'fence opened in one block and closed in another preserves later Japanese prose' allow
+
+cross_block_closed_english_transcript="${TMP_DIR}/transcripts/cross-block-closed-english.jsonl"
+write_transcript "$cross_block_closed_english_transcript" $'```sh\necho hello'
+jq -cn '{type:"assistant",message:{content:[{type:"text",text:"done\n```\nEnglish prose after the closed fence."}]}}' >> "$cross_block_closed_english_transcript"
+run_hook "$(jq -cn --arg path "$cross_block_closed_english_transcript" '{transcript_path:$path}')"
+record 'fence opened in one block and closed in another exposes later English prose' block
+
 japanese_then_voice_transcript="${TMP_DIR}/transcripts/japanese-then-voice.jsonl"
 write_transcript "$japanese_then_voice_transcript" '作業が完了しました。'
 jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"mcp__plugin_cvi_cvi-voice__speak",input:{text:"done"}}]}}' >> "$japanese_then_voice_transcript"
