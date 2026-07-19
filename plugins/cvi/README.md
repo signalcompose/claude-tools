@@ -276,7 +276,9 @@ afplay -v 1.0 /System/Library/Sounds/Ping.aiff &
 MCP 経路は Claude Code sandbox の外で動作するため、macOS audio API（`say` /
 `afplay` / `osascript`）が `dangerouslyDisableSandbox: true` bypass なしで
 到達できる。MCP 起動失敗時は Stop hook が `/cvi:speak` 未呼び出しを検出して
-ブロックし、`/cvi:check` で診断する設計。
+ブロックし、`/cvi:check` で診断する設計。Stop hook はさらに、応答が Voice-only
+または英語のみで終わる場合もブロックし、日本語の散文本文での締め直しを求める。
+ただし、コードブロックのみで構成される応答は意図的な例外として許可する。
 
 #### Phase 1: 同期音声再生（MVP, 2026-02）
 

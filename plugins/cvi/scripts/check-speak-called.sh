@@ -27,35 +27,9 @@ if ! command -v jq &> /dev/null; then
     exit 0
 fi
 
-# Function: Detect if sandbox is enabled
-# Returns: 0 if sandbox enabled, 1 if disabled or unknown
-is_sandbox_enabled() {
-    local SETTINGS_LOCAL="$HOME/.claude/settings.local.json"
-    local SETTINGS_GLOBAL="$HOME/.claude/settings.json"
-
-    # Priority 1: Check settings.local.json
-    if [ -f "$SETTINGS_LOCAL" ]; then
-        local sandbox_enabled=$(jq -r '.sandbox.enabled // "null"' "$SETTINGS_LOCAL" 2>/dev/null || echo "null")
-        if [ "$sandbox_enabled" = "true" ]; then
-            return 0  # Sandbox enabled
-        elif [ "$sandbox_enabled" = "false" ]; then
-            return 1  # Sandbox explicitly disabled
-        fi
-    fi
-
-    # Priority 2: Check settings.json
-    if [ -f "$SETTINGS_GLOBAL" ]; then
-        local sandbox_enabled=$(jq -r '.sandbox.enabled // "null"' "$SETTINGS_GLOBAL" 2>/dev/null || echo "null")
-        if [ "$sandbox_enabled" = "true" ]; then
-            return 0  # Sandbox enabled
-        fi
-    fi
-
-    # Default: Assume disabled if not specified
-    # Rationale: Prioritize CVI notifications over sandbox detection failures
-    # If sandbox state is unknown, allow CVI checks to run to avoid missing notifications
-    return 1
-}
+# Load shared config
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/config.sh" || { echo "[cvi] Failed to source lib/config.sh" >&2; exit 0; }  # Fail open: allow stop if config unavailable
 
 # Skip CVI check if sandbox is enabled
 if is_sandbox_enabled; then
@@ -64,9 +38,6 @@ if is_sandbox_enabled; then
     exit 0
 fi
 
-# Load shared config
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/lib/config.sh" || { exit 0; }  # Fail open: allow stop if config unavailable
 load_cvi_config
 
 # Exit early if disabled - allow stop
@@ -80,12 +51,14 @@ TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path' 2>/dev/null)
 # Check if transcript path is valid
 if [ -z "$TRANSCRIPT_PATH" ] || [ "$TRANSCRIPT_PATH" = "null" ]; then
     # Could not parse transcript path, allow stop
+    echo "[cvi] transcript_path is missing or invalid; skipping speak check" >&2
     exit 0
 fi
 
 # Check if transcript exists
 if [ ! -f "$TRANSCRIPT_PATH" ]; then
     # No transcript, allow stop (edge case)
+    echo "[cvi] transcript_path is missing or invalid; skipping speak check" >&2
     exit 0
 fi
 
@@ -94,9 +67,7 @@ fi
 # .mcp.json) and plugin-namespaced `mcp__plugin_cvi_cvi-voice__speak`
 # (via the plugin registry). The tool_use guard prevents false matches
 # from user-pasted JSON literals.
-if grep -q '"type":"tool_use"' "$TRANSCRIPT_PATH" 2>/dev/null && \
-   grep -qE '"skill":"cvi:speak"|"name":"mcp__(plugin_cvi_)?cvi-voice__speak"' \
-        "$TRANSCRIPT_PATH" 2>/dev/null; then
+if is_speak_called "$TRANSCRIPT_PATH"; then
     exit 0
 fi
 

@@ -8,14 +8,7 @@ source "${SCRIPT_DIR}/lib/config.sh" || { echo "[cvi] Failed to source lib/confi
 load_cvi_config
 
 # Read response language from settings.json (used by ENGLISH_PRACTICE and CVI rules)
-SETTINGS_FILE="$HOME/.claude/settings.json"
-if [ -f "$SETTINGS_FILE" ]; then
-    RESPONSE_LANG=$(grep '"language"' "$SETTINGS_FILE" | sed 's/.*: *"\([^"]*\)".*/\1/')
-    if [ -z "$RESPONSE_LANG" ]; then
-        echo "[cvi] WARNING: could not parse 'language' from $SETTINGS_FILE, defaulting to 'japanese'" >&2
-    fi
-fi
-RESPONSE_LANG=${RESPONSE_LANG:-japanese}
+load_response_lang
 
 # English Practice mode (independent of CVI_ENABLED)
 if [ "$ENGLISH_PRACTICE" = "on" ]; then
