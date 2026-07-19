@@ -149,6 +149,20 @@ case_text 'Voice inside fenced code allows' japanese $'```text\nVoice: "example"
 case_text 'English prose plus fenced code blocks' japanese $'Task completed.\n```sh\necho done\n```' block
 case_text 'unquoted Voice without Japanese blocks' japanese 'Voice: Task completed.' block
 case_text 'bold Voice without Japanese blocks' japanese '**Voice:** "Task completed."' block
+case_text 'Japanese body with unformatted Voice ending blocks via invalid ending' japanese $'日本語の本文です。\nVoice "Task completed."' block
+case_text 'Japanese body with bulleted Voice ending blocks via invalid ending' japanese $'日本語の本文です。\n- Voice: "Task completed."' block
+
+unclosed_fence_transcript="${TMP_DIR}/transcripts/unclosed-fence-block.jsonl"
+write_transcript "$unclosed_fence_transcript" $'```sh\necho hello'
+jq -cn '{type:"assistant",message:{content:[{type:"text",text:"English prose after the broken fence."}]}}' >> "$unclosed_fence_transcript"
+run_hook "$(jq -cn --arg path "$unclosed_fence_transcript" '{transcript_path:$path}')"
+record 'unclosed fence in one block does not hide later English prose' block
+
+unclosed_fence_japanese_transcript="${TMP_DIR}/transcripts/unclosed-fence-japanese-block.jsonl"
+write_transcript "$unclosed_fence_japanese_transcript" $'```sh\necho hello'
+jq -cn '{type:"assistant",message:{content:[{type:"text",text:"後続ブロックの日本語本文です。"}]}}' >> "$unclosed_fence_japanese_transcript"
+run_hook "$(jq -cn --arg path "$unclosed_fence_japanese_transcript" '{transcript_path:$path}')"
+record 'unclosed fence in one block does not hide later Japanese prose' allow
 
 japanese_then_voice_transcript="${TMP_DIR}/transcripts/japanese-then-voice.jsonl"
 write_transcript "$japanese_then_voice_transcript" '作業が完了しました。'
@@ -203,6 +217,51 @@ fi
 record 'simultaneous violation body reason requires speak without contradiction' block
 run_speak_hook "$input"
 record 'simultaneous violation speak hook blocks missing call' block
+
+invalid_ending_transcript="${TMP_DIR}/transcripts/invalid-ending-reasons.jsonl"
+write_transcript "$invalid_ending_transcript" $'日本語の本文です。\nFinal English only.'
+invalid_ending_input=$(jq -cn --arg path "$invalid_ending_transcript" '{transcript_path:$path}')
+run_hook "$invalid_ending_input"
+if ! printf '%s' "$OUTPUT" | grep -q '締めた上で /cvi:speak も呼んでください'; then
+    OUTPUT='{"decision":"invalid"}'
+fi
+record 'invalid ending reason requires speak when not called' block
+jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"mcp__plugin_cvi_cvi-voice__speak",input:{text:"done"}}]}}' >> "$invalid_ending_transcript"
+run_hook "$invalid_ending_input"
+if ! printf '%s' "$OUTPUT" | grep -q '締めてください。/cvi:speak は再度呼ばないでください'; then
+    OUTPUT='{"decision":"invalid"}'
+fi
+record 'invalid ending reason forbids duplicate speak when called' block
+
+REAL_JQ=$(command -v jq)
+second_regex_bin="${TMP_DIR}/second-regex-jq-bin"
+mkdir -p "$second_regex_bin"
+cat > "$second_regex_bin/jq" <<'EOF'
+#!/bin/bash
+if printf '%s\n' "$*" | grep -q 'test('; then
+    count=0
+    [ ! -f "$JQ_REGEX_COUNT_FILE" ] || count=$(cat "$JQ_REGEX_COUNT_FILE")
+    count=$((count + 1))
+    printf '%s\n' "$count" > "$JQ_REGEX_COUNT_FILE"
+    if [ "$count" -eq 2 ]; then
+        echo 'simulated final-line regex failure' >&2
+        exit 5
+    fi
+fi
+exec "$REAL_JQ" "$@"
+EOF
+chmod +x "$second_regex_bin/jq"
+regex_failure_transcript="${TMP_DIR}/transcripts/final-regex-failure.jsonl"
+write_transcript "$regex_failure_transcript" $'日本語の本文です。\nFinal English only.'
+JQ_REGEX_COUNT_FILE="${TMP_DIR}/jq-regex-count" REAL_JQ="$REAL_JQ" \
+    OUTPUT=$(printf '%s' "$(jq -cn --arg path "$regex_failure_transcript" '{transcript_path:$path}')" | \
+        PATH="$second_regex_bin:$PATH" JQ_REGEX_COUNT_FILE="${TMP_DIR}/jq-regex-count" REAL_JQ="$REAL_JQ" \
+        bash "$HOOK" 2>"${TMP_DIR}/final-regex-failure.stderr")
+STATUS=$?
+if ! grep -q 'final-line.*validation failed.*allowing response (fail-open' "${TMP_DIR}/final-regex-failure.stderr"; then
+    OUTPUT='{"decision":"invalid"}'
+fi
+record 'final-line jq regex failure is explicit and fails open' allow true
 
 jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"Skill",input:{skill:"cvi:speak"}}]}}' >> "$simultaneous_transcript"
 jq -cn '{type:"assistant",message:{content:[{type:"text",text:"作業が完了しました。"}]}}' >> "$simultaneous_transcript"

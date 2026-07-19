@@ -49,7 +49,7 @@ if [ -z "$TRANSCRIPT_PATH" ] || [ ! -f "$TRANSCRIPT_PATH" ] || \
     exit 0
 fi
 
-# Concatenate all assistant text blocks after the last real user prompt.
+# Collect all assistant text blocks after the last real user prompt.
 # Tool-result and metadata user entries do not start a new turn.
 JQ_OUTPUT=$(jq -rs '
   def real_user:
@@ -64,7 +64,6 @@ JQ_OUTPUT=$(jq -rs '
   | $all[($u + 1):]
   | [ .[] | select(.type == "assistant")
       | (.message.content // [])[] | select(.type == "text") | .text ]
-  | join("\n")
 ' "$TRANSCRIPT_PATH" 2>&1)
 JQ_STATUS=$?
 if [ "$JQ_STATUS" -ne 0 ]; then
@@ -72,9 +71,9 @@ if [ "$JQ_STATUS" -ne 0 ]; then
     echo "[cvi] Failed to parse transcript for body-ending check (jq exit $JQ_STATUS): $JQ_ERROR" >&2
     exit 0
 fi
-TURN_TEXT=$JQ_OUTPUT
+TEXT_BLOCKS=$JQ_OUTPUT
 
-if [ -z "$TURN_TEXT" ]; then
+if [ "$TEXT_BLOCKS" = "[]" ]; then
     exit 0
 fi
 
@@ -85,7 +84,15 @@ strip_code() {
     '
 }
 
-CLEAN_TEXT=$(printf '%s\n' "$TURN_TEXT" | strip_code)
+# Strip code from each block independently so an unmatched fence cannot hide
+# prose in a later assistant text block. Compact JSON safely keeps embedded
+# newlines within one loop record.
+CLEAN_TEXT=$(
+    while IFS= read -r BLOCK_JSON; do
+        BLOCK=$(printf '%s' "$BLOCK_JSON" | jq -r '.' 2>/dev/null) || continue
+        printf '%s\n' "$BLOCK" | strip_code
+    done < <(printf '%s' "$TEXT_BLOCKS" | jq -c '.[]' 2>/dev/null)
+)
 
 MISSING_JAPANESE=false
 INVALID_ENDING=false
@@ -105,7 +112,7 @@ if [ "$RESPONSE_LANG" = "japanese" ] && [ -n "$CLEAN_TEXT" ]; then
         JQ_STATUS=$?
         if [ "$JQ_STATUS" -ne 0 ]; then
             JQ_ERROR=$(printf '%s' "$JQ_OUTPUT" | tr '\n' ' ' | head -c 200)
-            echo "[cvi] Japanese-character regex test for final line failed (jq exit $JQ_STATUS): $JQ_ERROR; skipping check" >&2
+            echo "[cvi] Japanese prose was detected, but final-line Japanese-character validation failed (jq exit $JQ_STATUS): $JQ_ERROR; allowing response (fail-open to avoid breaking the Stop hook)" >&2
         elif [ "$JQ_OUTPUT" = "false" ] && \
              ! printf '%s\n' "$LAST_NONEMPTY_LINE" | grep -Eq '^[[:space:]]*\**[Vv]oice\**[[:space:]]*:'; then
             INVALID_ENDING=true
