@@ -277,8 +277,9 @@ MCP 経路は Claude Code sandbox の外で動作するため、macOS audio API�
 `afplay` / `osascript`）が `dangerouslyDisableSandbox: true` bypass なしで
 到達できる。MCP 起動失敗時は Stop hook が `/cvi:speak` 未呼び出しを検出して
 ブロックし、`/cvi:check` で診断する設計。Stop hook はさらに、日本語モードでは
-ターン内のどこかに日本語の散文本文が必要であることを検査する（本文と Voice 行の
-表示順は問わない）。コードブロックのみで構成される応答は意図的な例外として許可する。
+ターン内のどこかに日本語の散文本文があり、かつ最後の非空行が日本語または Voice
+行であることを検査する（本文と Voice 行の表示順は問わない）。コードブロックのみ
+で構成される応答は意図的な例外として許可する。
 
 #### Phase 1: 同期音声再生（MVP, 2026-02）
 
