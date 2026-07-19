@@ -51,7 +51,7 @@ case "$ACTION" in
       PROJECT_PATH_ESC="${PROJECT_PATH_ESC//\"/\\\"}"
       SESSION_ID_ESC="${SESSION_ID//\\/\\\\}"
       SESSION_ID_ESC="${SESSION_ID_ESC//\"/\\\"}"
-      printf '{"pr":"%s","session_id":"%s","project_path":"%s","phase":"started","reviewers_done":false,"security_done":false,"fixer_done":false,"rereview_done":false,"bot_feedback_read":false,"iterations":0,"final_critical":-1,"final_important":-1}' \
+      printf '{"pr":"%s","session_id":"%s","project_path":"%s","phase":"started","reviewers_done":false,"reporters":"none","security_done":false,"fixer_done":false,"rereview_done":false,"bot_feedback_read":false,"iterations":0,"final_critical":-1,"final_important":-1}' \
         "$PR_NUMBER" "$SESSION_ID_ESC" "$PROJECT_PATH_ESC" > "$STATE_FILE"
     else
       jq -n \
@@ -59,7 +59,7 @@ case "$ACTION" in
         --arg session "$SESSION_ID" \
         --arg project "$PROJECT_PATH" \
         '{pr:$pr, session_id:$session, project_path:$project, phase:"started",
-          reviewers_done:false, security_done:false, fixer_done:false,
+          reviewers_done:false, reporters:"none", security_done:false, fixer_done:false,
           rereview_done:false, bot_feedback_read:false,
           iterations:0, final_critical:-1, final_important:-1}' \
         > "$STATE_FILE"
