@@ -77,11 +77,34 @@ if [ "$TEXT_BLOCKS" = "[]" ]; then
     exit 0
 fi
 
-strip_code() {
-    awk '
-      /^[[:space:]]*```/ { infence = !infence; next }
-      !infence { gsub(/`[^`]*`/, ""); print }
+# Fence-aware scanner shared by stripping and balance detection. Following the
+# CommonMark rule, a fence opened by a run of 3+ backticks is only closed by a
+# run at least as long, so a ```` fence that displays ``` fences keeps the
+# inner markers and their contents as code instead of toggling on every marker.
+# mode=strip prints prose lines outside fences with inline code removed;
+# mode=balance prints "open" or "balanced" for the final fence state.
+fence_scan() {
+    awk -v mode="$1" '
+      function fence_run(line,    rest, n) {
+        rest = line
+        sub(/^[[:space:]]*/, "", rest)
+        n = 0
+        while (substr(rest, n + 1, 1) == "`") n++
+        return n
+      }
+      /^[[:space:]]*```/ {
+        run = fence_run($0)
+        if (!infence) { infence = 1; open_run = run }
+        else if (run >= open_run) { infence = 0 }
+        next
+      }
+      mode == "strip" && !infence { gsub(/`[^`]*`/, ""); print }
+      END { if (mode == "balance") print (infence ? "open" : "balanced") }
     '
+}
+
+strip_code() {
+    fence_scan strip
 }
 
 # When fences are balanced across blocks, strip code from the complete response
@@ -97,8 +120,8 @@ if [ "$JQ_STATUS" -ne 0 ]; then
 fi
 JOINED_TEXT=$JQ_OUTPUT
 
-FENCE_COUNT=$(printf '%s\n' "$JOINED_TEXT" | awk '/^[[:space:]]*```/ { count++ } END { print count + 0 }')
-if [ $((FENCE_COUNT % 2)) -eq 0 ]; then
+FENCE_STATE=$(printf '%s\n' "$JOINED_TEXT" | fence_scan balance)
+if [ "$FENCE_STATE" = "balanced" ]; then
     CLEAN_TEXT=$(printf '%s\n' "$JOINED_TEXT" | strip_code)
 else
     JQ_OUTPUT=$(printf '%s' "$TEXT_BLOCKS" | jq -c '.[]' 2>&1)
@@ -129,7 +152,10 @@ fi
 
 MISSING_JAPANESE=false
 INVALID_ENDING=false
-if [ "$RESPONSE_LANG" = "japanese" ] && [ -n "$CLEAN_TEXT" ]; then
+# Require a non-whitespace character so whitespace-only residue (for example a
+# trailing space-only line after a code fence) still counts as code-block-only.
+if [ "$RESPONSE_LANG" = "japanese" ] && \
+   printf '%s' "$CLEAN_TEXT" | grep -q '[^[:space:]]'; then
     JQ_OUTPUT=$(printf '%s' "$CLEAN_TEXT" | jq -Rs \
         'test("[\\p{Hiragana}\\p{Katakana}\\p{Han}]")' 2>&1)
     JQ_STATUS=$?

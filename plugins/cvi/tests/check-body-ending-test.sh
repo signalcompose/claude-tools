@@ -178,6 +178,11 @@ record 'fence opened in one block and closed in another exposes later English pr
 
 case_text 'unclosed English code fence only allows' japanese $'```sh\necho hello' allow
 case_text 'unclosed code fence with Japanese comment only allows' japanese $'```sh\necho hello  # 日本語コメントだけ' allow
+case_text 'quadruple fence wrapping inner triple fences allows as code-only' japanese $'````markdown\n# Title\n```bash\necho hi\n```\n````' allow
+case_text 'Japanese prose around quadruple fence with inner fences allows' japanese $'説明します。\n````markdown\n```bash\necho hi\n```\n````\n以上です。' allow
+case_text 'Japanese only inside quadruple-fenced inner code does not count as prose' japanese $'Task done.\n````md\n```\n# 日本語コメント\n```\n````' block
+case_text 'unclosed quadruple fence with complete inner pair allows as code-only' japanese $'````md\n```bash\necho hi\n```' allow
+case_text 'fenced code with trailing whitespace-only line allows as code-only' japanese $'```sh\necho done\n```\n  ' allow
 
 odd_fence_transcript="${TMP_DIR}/transcripts/odd-fence-jq-failures.jsonl"
 write_transcript "$odd_fence_transcript" $'```sh\necho hello'
