@@ -33,6 +33,11 @@
             "type": "command",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-speak-called.sh",
             "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-body-ending.sh",
+            "timeout": 10000
           }
         ]
       }
