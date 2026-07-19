@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Stop hook: require Japanese prose somewhere in the current turn when the
-# configured response language is Japanese. An intentional code-block-only
+# Stop hook: require Japanese prose somewhere in the current turn and require
+# the final non-empty prose line to contain Japanese or be a Voice line when
+# the configured response language is Japanese. An intentional code-block-only
 # response is allowed as an exception because it has no prose body to rewrite.
 #
 # The retry only asks for a corrected body, and stop_hook_active prevents a loop.
@@ -87,6 +88,7 @@ strip_code() {
 CLEAN_TEXT=$(printf '%s\n' "$TURN_TEXT" | strip_code)
 
 MISSING_JAPANESE=false
+INVALID_ENDING=false
 if [ "$RESPONSE_LANG" = "japanese" ] && [ -n "$CLEAN_TEXT" ]; then
     JQ_OUTPUT=$(printf '%s' "$CLEAN_TEXT" | jq -Rs \
         'test("[\\p{Hiragana}\\p{Katakana}\\p{Han}]")' 2>&1)
@@ -96,10 +98,22 @@ if [ "$RESPONSE_LANG" = "japanese" ] && [ -n "$CLEAN_TEXT" ]; then
         echo "[cvi] Japanese-character regex test failed (jq exit $JQ_STATUS): $JQ_ERROR; skipping check" >&2
     elif [ "$JQ_OUTPUT" = "false" ]; then
         MISSING_JAPANESE=true
+    else
+        LAST_NONEMPTY_LINE=$(printf '%s\n' "$CLEAN_TEXT" | awk 'NF{line=$0} END{print line}')
+        JQ_OUTPUT=$(printf '%s' "$LAST_NONEMPTY_LINE" | jq -Rs \
+            'test("[\\p{Hiragana}\\p{Katakana}\\p{Han}]")' 2>&1)
+        JQ_STATUS=$?
+        if [ "$JQ_STATUS" -ne 0 ]; then
+            JQ_ERROR=$(printf '%s' "$JQ_OUTPUT" | tr '\n' ' ' | head -c 200)
+            echo "[cvi] Japanese-character regex test for final line failed (jq exit $JQ_STATUS): $JQ_ERROR; skipping check" >&2
+        elif [ "$JQ_OUTPUT" = "false" ] && \
+             ! printf '%s\n' "$LAST_NONEMPTY_LINE" | grep -Eq '^[[:space:]]*\**[Vv]oice\**[[:space:]]*:'; then
+            INVALID_ENDING=true
+        fi
     fi
 fi
 
-if [ "$MISSING_JAPANESE" = "true" ]; then
+if [ "$MISSING_JAPANESE" = "true" ] || [ "$INVALID_ENDING" = "true" ]; then
     # Keep this detection equivalent to check-speak-called.sh. Hook execution
     # order is not guaranteed, so the body correction must not contradict the
     # speak hook when both requirements are violated at the same time.
@@ -108,10 +122,14 @@ if [ "$MISSING_JAPANESE" = "true" ]; then
         SPEAK_CALLED=true
     fi
 
-    if [ "$SPEAK_CALLED" = "true" ]; then
+    if [ "$MISSING_JAPANESE" = "true" ] && [ "$SPEAK_CALLED" = "true" ]; then
         REASON="ターン内のどこにも日本語の散文本文が見つかりません（コードブロックのみで構成される応答は例外です）。日本語の散文本文を追加してください。/cvi:speak は再度呼ばないでください（音声の二重再生を防ぐため、本文の修正のみ行ってください）。"
-    else
+    elif [ "$MISSING_JAPANESE" = "true" ]; then
         REASON="ターン内のどこにも日本語の散文本文が見つかりません（コードブロックのみで構成される応答は例外です）。日本語の散文本文を追加した上で /cvi:speak も呼んでください。"
+    elif [ "$SPEAK_CALLED" = "true" ]; then
+        REASON="日本語の本文はありますが、応答の締めくくり（最後の行）が日本語でもVoice行でもありません。日本語の散文、または /cvi:speak のVoice行で締めてください。/cvi:speak は再度呼ばないでください（音声の二重再生を防ぐため、本文の修正のみ行ってください）。"
+    else
+        REASON="日本語の本文はありますが、応答の締めくくり（最後の行）が日本語でもVoice行でもありません。日本語の散文、または /cvi:speak のVoice行で締めた上で /cvi:speak も呼んでください。"
     fi
     jq -n --arg reason "$REASON" '{decision: "block", reason: $reason}'
 fi

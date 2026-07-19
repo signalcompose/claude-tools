@@ -73,6 +73,8 @@ case_text 'Voice-only ending blocks' japanese 'Voice: "Task completed."' block
 case_text 'Voice-only ending allows in English mode' english 'Voice: "Task completed."' allow
 case_text 'Japanese multiline body allows' japanese $'作業が完了しました。\n変更内容を確認済みです。' allow
 case_text 'Japanese text after Voice allows' japanese $'Voice: "Task completed."\n作業は完了しました。' allow
+case_text 'Japanese body followed by invalid English prose blocks' japanese $'作業が完了しました。\nFinal English only.' block
+case_text 'Japanese body with Japanese final line allows' japanese $'作業を実施しました。\n確認も完了しました。' allow
 case_text 'English-only ending blocks in Japanese mode' japanese 'Task completed successfully.' block
 case_text 'English-only ending allows in English mode' english 'Task completed successfully.' allow
 
@@ -166,7 +168,7 @@ jq -cn '{type:"user",isMeta:true,message:{content:"metadata"}}' >> "$boundary_tr
 jq -cn '{type:"user",toolUseResult:{ok:true},message:{content:"tool result"}}' >> "$boundary_transcript"
 jq -cn '{type:"assistant",message:{content:[{type:"text",text:"Final English only."}]}}' >> "$boundary_transcript"
 run_hook "$(jq -cn --arg path "$boundary_transcript" '{transcript_path:$path}')"
-record 'Japanese earlier in turn survives interleaved non-real users' allow
+record 'Japanese earlier in turn does not excuse an invalid final line' block
 
 past_turn_transcript="${TMP_DIR}/transcripts/past-turn-boundary.jsonl"
 jq -cn '{type:"user",message:{content:"old request"}}' > "$past_turn_transcript"
