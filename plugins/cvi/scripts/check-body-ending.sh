@@ -32,7 +32,10 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/config.sh" || { echo "[cvi] Failed to source lib/config.sh" >&2; exit 0; }
 
-load_cvi_config || exit 0
+load_cvi_config || {
+    echo "[cvi] Failed to load CVI config; skipping body-ending check" >&2
+    exit 0
+}
 
 if [ "$CVI_ENABLED" = "off" ]; then
     exit 0
@@ -43,6 +46,7 @@ load_response_lang
 TRANSCRIPT_PATH=$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
 if [ -z "$TRANSCRIPT_PATH" ] || [ ! -f "$TRANSCRIPT_PATH" ] || \
    [ ! -r "$TRANSCRIPT_PATH" ] || [ ! -s "$TRANSCRIPT_PATH" ]; then
+    echo "[cvi] transcript_path is missing, unreadable, or empty; skipping body-ending check" >&2
     exit 0
 fi
 
@@ -88,9 +92,12 @@ fi
 
 MISSING_JAPANESE=false
 if [ "$RESPONSE_LANG" = "japanese" ] && [ -n "$CLEAN_TEXT" ]; then
-    # A jq regex failure is currently indistinguishable from finding no Japanese characters.
-    if ! printf '%s' "$CLEAN_TEXT" | jq -Rs -e \
-        'test("[\\p{Hiragana}\\p{Katakana}\\p{Han}]")' >/dev/null 2>&1; then
+    JQ_OUTPUT=$(printf '%s' "$CLEAN_TEXT" | jq -Rs \
+        'test("[\\p{Hiragana}\\p{Katakana}\\p{Han}]")' 2>&1)
+    JQ_STATUS=$?
+    if [ "$JQ_STATUS" -ne 0 ]; then
+        echo "[cvi] Japanese-character regex test failed (jq exit $JQ_STATUS); skipping check" >&2
+    elif [ "$JQ_OUTPUT" = "false" ]; then
         MISSING_JAPANESE=true
     fi
 fi

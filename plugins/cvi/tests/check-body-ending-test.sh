@@ -76,6 +76,19 @@ case_text 'Japanese text after Voice allows' japanese $'Voice: "Task completed."
 case_text 'English-only ending blocks in Japanese mode' japanese 'Task completed successfully.' block
 case_text 'English-only ending allows in English mode' english 'Task completed successfully.' allow
 
+fallback_transcript="${TMP_DIR}/transcripts/default-language.jsonl"
+write_transcript "$fallback_transcript" 'Task completed successfully.'
+rm "$HOME/.claude/settings.json"
+STDERR_FILE="${TMP_DIR}/default-language.stderr"
+OUTPUT=$(printf '%s' "$(jq -cn --arg path "$fallback_transcript" '{transcript_path:$path}')" | \
+    bash "$HOOK" 2>"$STDERR_FILE")
+STATUS=$?
+if ! grep -q "defaulting to 'japanese'" "$STDERR_FILE"; then
+    OUTPUT='{"decision":"invalid"}'
+fi
+record 'missing settings defaults to Japanese with warning' block
+printf '{"language":"japanese"}\n' > "$HOME/.claude/settings.json"
+
 transcript="${TMP_DIR}/transcripts/stop-active.jsonl"
 write_transcript "$transcript" 'Voice: "Task completed."'
 run_hook "$(jq -cn --arg path "$transcript" '{stop_hook_active:true,transcript_path:$path}')"
@@ -178,6 +191,16 @@ if ! printf '%s' "$OUTPUT" | grep -q '再度呼ばない'; then
     OUTPUT='{"decision":"invalid"}'
 fi
 record 'MCP speak tool is detected by body hook' block
+
+bare_mcp_transcript="${TMP_DIR}/transcripts/bare-mcp-speak.jsonl"
+write_transcript "$bare_mcp_transcript" 'Voice: "Task completed."'
+jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"mcp__cvi-voice__speak",input:{text:"done"}}]}}' >> "$bare_mcp_transcript"
+input=$(jq -cn --arg path "$bare_mcp_transcript" '{transcript_path:$path}')
+run_hook "$input"
+if ! printf '%s' "$OUTPUT" | grep -q '再度呼ばない'; then
+    OUTPUT='{"decision":"invalid"}'
+fi
+record 'bare MCP speak tool is detected by body hook' block
 
 printf '{"language":"japanese","sandbox":{"enabled":true}}\n' > "$HOME/.claude/settings.json"
 sandbox_transcript="${TMP_DIR}/transcripts/sandbox.jsonl"

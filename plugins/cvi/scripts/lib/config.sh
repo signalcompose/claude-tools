@@ -53,6 +53,8 @@ load_response_lang() {
         else
             echo "[cvi] WARNING: could not parse 'language' from $settings_file, defaulting to 'japanese'" >&2
         fi
+    else
+        echo "[cvi] WARNING: settings file not found: $settings_file, defaulting to 'japanese'" >&2
     fi
 }
 

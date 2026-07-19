@@ -29,7 +29,7 @@ fi
 
 # Load shared config
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/lib/config.sh" || { exit 0; }  # Fail open: allow stop if config unavailable
+source "${SCRIPT_DIR}/lib/config.sh" || { echo "[cvi] Failed to source lib/config.sh" >&2; exit 0; }  # Fail open: allow stop if config unavailable
 
 # Skip CVI check if sandbox is enabled
 if is_sandbox_enabled; then
