@@ -156,8 +156,9 @@ none did — the format and rationale are defined once, in Step 5.3):
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/pr-review-state.sh set <PR番号> reporters "<reviewer名 space区切り、または none>"
 ```
 
-If this write fails, use the same fail-safe as Step 5.3; do NOT treat it as
-`reporters=none`.
+If this write fails in round 1, do NOT treat it as `reporters=none`. The Step 5.3
+option to retain the previous round's reporters value is unavailable because no
+previous round exists; re-launch all reviewers chosen by the selector.
 
 ## Step 3: CI Check
 
@@ -332,6 +333,8 @@ Report summary:
   - selector skip (e.g. "pr-test-analyzer: no source-code files")
   - round-2+ selective re-review skip (no prior findings)
 - Agents that failed to launch (if any) — distinct from the not-launched list above
+- Whether the fixer fell back from Codex to Sonnet, and the reason (process crash,
+  timeout, or auth error)
 - Any reporters state-write failure and the fail-safe used (retained prior reporters
   or re-launched all reviewers)
 
