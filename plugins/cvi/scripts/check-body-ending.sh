@@ -29,18 +29,18 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/config.sh" || { exit 0; }
+
+if is_sandbox_enabled; then
+    exit 0
+fi
+
 load_cvi_config || exit 0
 
 if [ "$CVI_ENABLED" = "off" ]; then
     exit 0
 fi
 
-# Keep this in sync with enforce-cvi-rules.sh. This may move to config.sh later.
-SETTINGS_FILE="$HOME/.claude/settings.json"
-if [ -f "$SETTINGS_FILE" ]; then
-    RESPONSE_LANG=$(grep '"language"' "$SETTINGS_FILE" | sed 's/.*: *"\([^"]*\)".*/\1/')
-fi
-RESPONSE_LANG=${RESPONSE_LANG:-japanese}
+load_response_lang
 
 TRANSCRIPT_PATH=$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
 if [ -z "$TRANSCRIPT_PATH" ] || [ ! -f "$TRANSCRIPT_PATH" ] || \
@@ -98,9 +98,7 @@ if [ "$VOICE_ENDING" = "true" ] || [ "$MISSING_JAPANESE" = "true" ]; then
     # order is not guaranteed, so the body correction must not contradict the
     # speak hook when both requirements are violated at the same time.
     SPEAK_CALLED=false
-    if grep -q '"type":"tool_use"' "$TRANSCRIPT_PATH" 2>/dev/null && \
-       grep -qE '"skill":"cvi:speak"|"name":"mcp__(plugin_cvi_)?cvi-voice__speak"' \
-            "$TRANSCRIPT_PATH" 2>/dev/null; then
+    if is_speak_called "$TRANSCRIPT_PATH"; then
         SPEAK_CALLED=true
     fi
 

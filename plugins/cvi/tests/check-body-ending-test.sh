@@ -16,6 +16,7 @@ printf '{"language":"japanese"}\n' > "$HOME/.claude/settings.json"
 
 PASS=0
 FAIL=0
+CASE_ID=0
 
 write_transcript() {
     local path=$1
@@ -31,29 +32,26 @@ run_hook() {
     STATUS=$?
 }
 
+run_speak_hook() {
+    local input=$1
+    OUTPUT=$(printf '%s' "$input" | bash "$SPEAK_HOOK" 2>/dev/null)
+    STATUS=$?
+}
+
 record() {
     local name=$1
     local expected=$2
+    local require_empty=${3:-false}
     local decision="allow"
     if [ -n "$OUTPUT" ]; then
         decision=$(printf '%s' "$OUTPUT" | jq -r '.decision // "invalid"' 2>/dev/null || printf 'invalid')
     fi
-    if [ "$STATUS" -eq 0 ] && [ "$decision" = "$expected" ]; then
+    if [ "$STATUS" -eq 0 ] && [ "$decision" = "$expected" ] && \
+       { [ "$require_empty" != "true" ] || [ -z "$OUTPUT" ]; }; then
         printf 'PASS: %s\n' "$name"
         PASS=$((PASS + 1))
     else
         printf 'FAIL: %s (status=%s decision=%s output=%s)\n' "$name" "$STATUS" "$decision" "$OUTPUT"
-        FAIL=$((FAIL + 1))
-    fi
-}
-
-record_fail_open() {
-    local name=$1
-    if [ "$STATUS" -eq 0 ] && [ -z "$OUTPUT" ]; then
-        printf 'PASS: %s\n' "$name"
-        PASS=$((PASS + 1))
-    else
-        printf 'FAIL: %s (status=%s output=%s)\n' "$name" "$STATUS" "$OUTPUT"
         FAIL=$((FAIL + 1))
     fi
 }
@@ -63,7 +61,8 @@ case_text() {
     local language=$2
     local text=$3
     local expected=$4
-    local transcript="${TMP_DIR}/transcripts/${PASS}-${FAIL}.jsonl"
+    CASE_ID=$((CASE_ID + 1))
+    local transcript="${TMP_DIR}/transcripts/case-${CASE_ID}.jsonl"
     printf '{"language":"%s"}\n' "$language" > "$HOME/.claude/settings.json"
     write_transcript "$transcript" "$text"
     run_hook "$(jq -cn --arg path "$transcript" '{transcript_path:$path}')"
@@ -84,7 +83,7 @@ record 'stop_hook_active allows' allow
 run_hook '{}'
 record 'missing transcript allows' allow
 run_hook '{broken json'
-record_fail_open 'invalid hook input JSON fails open silently'
+record 'invalid hook input JSON fails open silently' allow true
 run_hook '{"transcript_path":"/does/not/exist"}'
 record 'nonexistent transcript allows' allow
 empty_transcript="${TMP_DIR}/transcripts/empty.jsonl"
@@ -103,7 +102,7 @@ for command_path in /bin/cat /bin/dirname; do
 done
 OUTPUT=$(printf '{}' | PATH="$no_jq_bin" /bin/bash "$HOOK" 2>/dev/null)
 STATUS=$?
-record_fail_open 'missing jq fails open silently'
+record 'missing jq fails open silently' allow true
 
 broken_plugin="${TMP_DIR}/broken-plugin"
 mkdir -p "$broken_plugin/scripts/lib"
@@ -111,7 +110,7 @@ cp "$HOOK" "$broken_plugin/scripts/check-body-ending.sh"
 printf 'return 1\n' > "$broken_plugin/scripts/lib/config.sh"
 OUTPUT=$(printf '{}' | bash "$broken_plugin/scripts/check-body-ending.sh" 2>/dev/null)
 STATUS=$?
-record_fail_open 'config source failure fails open silently'
+record 'config source failure fails open silently' allow true
 
 case_text 'Japanese body plus fenced code allows' japanese $'作業が完了しました。\n```sh\necho done\n```' allow
 case_text 'fenced code only allows' japanese $'```sh\necho done\n```' allow
@@ -142,36 +141,35 @@ write_transcript "$independent_transcript" '日本語本文で完了します。
 input=$(jq -cn --arg path "$independent_transcript" '{transcript_path:$path}')
 run_hook "$input"
 record 'body hook allows valid body without speak call' allow
-SPEAK_OUTPUT=$(printf '%s' "$input" | bash "$SPEAK_HOOK" 2>/dev/null)
-SPEAK_STATUS=$?
-OUTPUT=$SPEAK_OUTPUT
-STATUS=$SPEAK_STATUS
+run_speak_hook "$input"
 record 'existing speak hook independently blocks missing call' block
 
 simultaneous_transcript="${TMP_DIR}/transcripts/simultaneous.jsonl"
 write_transcript "$simultaneous_transcript" 'Voice: "Task completed."'
 input=$(jq -cn --arg path "$simultaneous_transcript" '{transcript_path:$path}')
 run_hook "$input"
-if [ "$STATUS" -eq 0 ] && \
-   [ "$(printf '%s' "$OUTPUT" | jq -r '.decision // empty')" = "block" ] && \
-   ! printf '%s' "$OUTPUT" | grep -q '再度呼ばない'; then
-    printf 'PASS: simultaneous violation body reason requires speak without contradiction\n'
-    PASS=$((PASS + 1))
-else
-    printf 'FAIL: simultaneous violation body reason contradicts speak hook (status=%s output=%s)\n' "$STATUS" "$OUTPUT"
-    FAIL=$((FAIL + 1))
+if printf '%s' "$OUTPUT" | grep -q '再度呼ばない'; then
+    OUTPUT='{"decision":"invalid"}'
 fi
-OUTPUT=$(printf '%s' "$input" | bash "$SPEAK_HOOK" 2>/dev/null)
-STATUS=$?
+record 'simultaneous violation body reason requires speak without contradiction' block
+run_speak_hook "$input"
 record 'simultaneous violation speak hook blocks missing call' block
 
 jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"Skill",input:{skill:"cvi:speak"}}]}}' >> "$simultaneous_transcript"
 jq -cn '{type:"assistant",message:{content:[{type:"text",text:"作業が完了しました。"}]}}' >> "$simultaneous_transcript"
 run_hook "$input"
 record 'corrected retry body hook allows' allow
-OUTPUT=$(printf '%s' "$input" | bash "$SPEAK_HOOK" 2>/dev/null)
-STATUS=$?
+run_speak_hook "$input"
 record 'corrected retry speak hook allows' allow
+
+printf '{"language":"japanese","sandbox":{"enabled":true}}\n' > "$HOME/.claude/settings.json"
+sandbox_transcript="${TMP_DIR}/transcripts/sandbox.jsonl"
+write_transcript "$sandbox_transcript" 'Voice: "Task completed."'
+input=$(jq -cn --arg path "$sandbox_transcript" '{transcript_path:$path}')
+run_hook "$input"
+record 'sandbox enabled skips body hook' allow true
+run_speak_hook "$input"
+record 'sandbox enabled skips speak hook' allow true
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 if [ "$FAIL" -ne 0 ]; then
