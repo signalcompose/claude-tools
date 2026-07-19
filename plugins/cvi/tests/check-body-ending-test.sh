@@ -70,9 +70,11 @@ case_text() {
 }
 
 case_text 'Voice-only ending blocks' japanese 'Voice: "Task completed."' block
-case_text 'Voice-only ending blocks in English mode' english 'Voice: "Task completed."' block
+case_text 'Voice-only ending allows in English mode' english 'Voice: "Task completed."' allow
 case_text 'Japanese multiline body allows' japanese $'作業が完了しました。\n変更内容を確認済みです。' allow
 case_text 'Japanese text after Voice allows' japanese $'Voice: "Task completed."\n作業は完了しました。' allow
+case_text 'Japanese body followed by invalid English prose blocks' japanese $'作業が完了しました。\nFinal English only.' block
+case_text 'Japanese body with Japanese final line allows' japanese $'作業を実施しました。\n確認も完了しました。' allow
 case_text 'English-only ending blocks in Japanese mode' japanese 'Task completed successfully.' block
 case_text 'English-only ending allows in English mode' english 'Task completed successfully.' allow
 
@@ -145,8 +147,96 @@ case_text 'Japanese body plus fenced code allows' japanese $'作業が完了し�
 case_text 'fenced code only allows' japanese $'```sh\necho done\n```' allow
 case_text 'Voice inside fenced code allows' japanese $'```text\nVoice: "example"\n```' allow
 case_text 'English prose plus fenced code blocks' japanese $'Task completed.\n```sh\necho done\n```' block
-case_text 'unquoted Voice blocks' japanese 'Voice: Task completed.' block
-case_text 'bold Voice blocks' japanese '**Voice:** "Task completed."' block
+case_text 'unquoted Voice without Japanese blocks' japanese 'Voice: Task completed.' block
+case_text 'bold Voice without Japanese blocks' japanese '**Voice:** "Task completed."' block
+case_text 'Japanese body with unformatted Voice ending blocks via invalid ending' japanese $'日本語の本文です。\nVoice "Task completed."' block
+case_text 'Japanese body with bulleted Voice ending blocks via invalid ending' japanese $'日本語の本文です。\n- Voice: "Task completed."' block
+
+unclosed_fence_transcript="${TMP_DIR}/transcripts/unclosed-fence-block.jsonl"
+write_transcript "$unclosed_fence_transcript" $'```sh\necho hello'
+jq -cn '{type:"assistant",message:{content:[{type:"text",text:"English prose after the broken fence."}]}}' >> "$unclosed_fence_transcript"
+run_hook "$(jq -cn --arg path "$unclosed_fence_transcript" '{transcript_path:$path}')"
+record 'unclosed fence in one block does not hide later English prose' block
+
+unclosed_fence_japanese_transcript="${TMP_DIR}/transcripts/unclosed-fence-japanese-block.jsonl"
+write_transcript "$unclosed_fence_japanese_transcript" $'```sh\necho hello'
+jq -cn '{type:"assistant",message:{content:[{type:"text",text:"後続ブロックの日本語本文です。"}]}}' >> "$unclosed_fence_japanese_transcript"
+run_hook "$(jq -cn --arg path "$unclosed_fence_japanese_transcript" '{transcript_path:$path}')"
+record 'unclosed fence in one block does not hide later Japanese prose' allow
+
+cross_block_closed_japanese_transcript="${TMP_DIR}/transcripts/cross-block-closed-japanese.jsonl"
+write_transcript "$cross_block_closed_japanese_transcript" $'```sh\necho hello'
+jq -cn '{type:"assistant",message:{content:[{type:"text",text:"done\n```\n日本語の本文です。"}]}}' >> "$cross_block_closed_japanese_transcript"
+run_hook "$(jq -cn --arg path "$cross_block_closed_japanese_transcript" '{transcript_path:$path}')"
+record 'fence opened in one block and closed in another preserves later Japanese prose' allow
+
+cross_block_closed_english_transcript="${TMP_DIR}/transcripts/cross-block-closed-english.jsonl"
+write_transcript "$cross_block_closed_english_transcript" $'```sh\necho hello'
+jq -cn '{type:"assistant",message:{content:[{type:"text",text:"done\n```\nEnglish prose after the closed fence."}]}}' >> "$cross_block_closed_english_transcript"
+run_hook "$(jq -cn --arg path "$cross_block_closed_english_transcript" '{transcript_path:$path}')"
+record 'fence opened in one block and closed in another exposes later English prose' block
+
+case_text 'unclosed English code fence only allows' japanese $'```sh\necho hello' allow
+case_text 'unclosed code fence with Japanese comment only allows' japanese $'```sh\necho hello  # 日本語コメントだけ' allow
+case_text 'quadruple fence wrapping inner triple fences allows as code-only' japanese $'````markdown\n# Title\n```bash\necho hi\n```\n````' allow
+case_text 'Japanese prose around quadruple fence with inner fences allows' japanese $'説明します。\n````markdown\n```bash\necho hi\n```\n````\n以上です。' allow
+case_text 'Japanese only inside quadruple-fenced inner code does not count as prose' japanese $'Task done.\n````md\n```\n# 日本語コメント\n```\n````' block
+case_text 'unclosed quadruple fence with complete inner pair allows as code-only' japanese $'````md\n```bash\necho hi\n```' allow
+case_text 'fenced code with trailing whitespace-only line allows as code-only' japanese $'```sh\necho done\n```\n  ' allow
+case_text 'junk-suffixed fence line does not close the fence' japanese $'```sh\necho hi\n```oops\nEnglish inside fence\n```\n日本語で締めます。' allow
+case_text 'junk-suffixed fence keeps later English hidden as code' japanese $'日本語の説明です。\n```sh\necho hi\n```oops\nEnglish only after junk.' allow
+case_text 'closing fence with trailing spaces still closes' japanese $'```sh\necho hi\n```  \nFinal English only.' block
+case_text 'backtick in info string is not a fence start' japanese $'```sh`bad\nEnglish prose stays visible.' block
+case_text 'four-space indented backticks are not a fence start' japanese $'    ```\nEnglish prose stays visible.' block
+case_text 'tab-indented backticks are not a fence start' japanese $'\t```\nEnglish prose stays visible.' block
+case_text 'three-space indented fence still opens and closes' japanese $'日本語の本文です。\n   ```sh\necho hi\n   ```' allow
+
+odd_fence_transcript="${TMP_DIR}/transcripts/odd-fence-jq-failures.jsonl"
+write_transcript "$odd_fence_transcript" $'```sh\necho hello'
+odd_fence_input=$(jq -cn --arg path "$odd_fence_transcript" '{transcript_path:$path}')
+REAL_JQ=$(command -v jq)
+block_jq_bin="${TMP_DIR}/block-jq-bin"
+mkdir -p "$block_jq_bin"
+cat > "$block_jq_bin/jq" <<'EOF'
+#!/bin/bash
+if [ "${FAIL_BLOCK_JQ_STAGE:-}" = "enumerate" ] && [ "${*: -1}" = ".[]" ]; then
+    echo 'simulated block enumeration failure' >&2
+    exit 6
+fi
+if [ "${FAIL_BLOCK_JQ_STAGE:-}" = "decode" ] && [ "${*: -1}" = "." ]; then
+    echo 'simulated block decode failure' >&2
+    exit 7
+fi
+exec "$REAL_JQ" "$@"
+EOF
+chmod +x "$block_jq_bin/jq"
+
+OUTPUT=$(printf '%s' "$odd_fence_input" | PATH="$block_jq_bin:$PATH" \
+    FAIL_BLOCK_JQ_STAGE=enumerate REAL_JQ="$REAL_JQ" bash "$HOOK" \
+    2>"${TMP_DIR}/block-enumeration-failure.stderr")
+STATUS=$?
+if ! grep -q 'Failed to enumerate assistant text blocks (jq exit 6)' \
+    "${TMP_DIR}/block-enumeration-failure.stderr"; then
+    OUTPUT='{"decision":"invalid"}'
+fi
+record 'per-block jq enumeration failure is explicit and fails open' allow true
+
+OUTPUT=$(printf '%s' "$odd_fence_input" | PATH="$block_jq_bin:$PATH" \
+    FAIL_BLOCK_JQ_STAGE=decode REAL_JQ="$REAL_JQ" bash "$HOOK" \
+    2>"${TMP_DIR}/block-decode-failure.stderr")
+STATUS=$?
+if ! grep -q 'Failed to decode assistant text block (jq exit 7)' \
+    "${TMP_DIR}/block-decode-failure.stderr"; then
+    OUTPUT='{"decision":"invalid"}'
+fi
+record 'per-block jq decode failure is explicit and fails open' allow true
+
+japanese_then_voice_transcript="${TMP_DIR}/transcripts/japanese-then-voice.jsonl"
+write_transcript "$japanese_then_voice_transcript" '作業が完了しました。'
+jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"mcp__plugin_cvi_cvi-voice__speak",input:{text:"done"}}]}}' >> "$japanese_then_voice_transcript"
+jq -cn '{type:"assistant",message:{content:[{type:"text",text:"Voice: \"Task completed.\""}]}}' >> "$japanese_then_voice_transcript"
+run_hook "$(jq -cn --arg path "$japanese_then_voice_transcript" '{transcript_path:$path}')"
+record 'Japanese body before tool call and Voice-only final block allows' allow
 
 printf '{"language":"japanese"}\n' > "$HOME/.claude/settings.json"
 boundary_transcript="${TMP_DIR}/transcripts/boundaries.jsonl"
@@ -159,7 +249,18 @@ jq -cn '{type:"user",isMeta:true,message:{content:"metadata"}}' >> "$boundary_tr
 jq -cn '{type:"user",toolUseResult:{ok:true},message:{content:"tool result"}}' >> "$boundary_transcript"
 jq -cn '{type:"assistant",message:{content:[{type:"text",text:"Final English only."}]}}' >> "$boundary_transcript"
 run_hook "$(jq -cn --arg path "$boundary_transcript" '{transcript_path:$path}')"
-record 'last block after non-real users controls decision' block
+record 'Japanese earlier in turn does not excuse an invalid final line' block
+
+past_turn_transcript="${TMP_DIR}/transcripts/past-turn-boundary.jsonl"
+jq -cn '{type:"user",message:{content:"old request"}}' > "$past_turn_transcript"
+jq -cn '{type:"assistant",message:{content:[{type:"text",text:"以前の日本語です。"}]}}' >> "$past_turn_transcript"
+jq -cn '{type:"user",message:{content:"current request"}}' >> "$past_turn_transcript"
+jq -cn '{type:"user",message:{content:[{type:"tool_result",content:"ok"}]}}' >> "$past_turn_transcript"
+jq -cn '{type:"user",isMeta:true,message:{content:"metadata"}}' >> "$past_turn_transcript"
+jq -cn '{type:"user",toolUseResult:{ok:true},message:{content:"tool result"}}' >> "$past_turn_transcript"
+jq -cn '{type:"assistant",message:{content:[{type:"text",text:"Final English only."}]}}' >> "$past_turn_transcript"
+run_hook "$(jq -cn --arg path "$past_turn_transcript" '{transcript_path:$path}')"
+record 'Japanese from past turn does not cross real-user boundary' block
 
 printf 'CVI_ENABLED=off\n' > "$HOME/.cvi/config"
 case_text 'CVI disabled allows Voice and English ending' japanese 'Voice: "Task completed."' allow
@@ -183,6 +284,51 @@ fi
 record 'simultaneous violation body reason requires speak without contradiction' block
 run_speak_hook "$input"
 record 'simultaneous violation speak hook blocks missing call' block
+
+invalid_ending_transcript="${TMP_DIR}/transcripts/invalid-ending-reasons.jsonl"
+write_transcript "$invalid_ending_transcript" $'日本語の本文です。\nFinal English only.'
+invalid_ending_input=$(jq -cn --arg path "$invalid_ending_transcript" '{transcript_path:$path}')
+run_hook "$invalid_ending_input"
+if ! printf '%s' "$OUTPUT" | grep -q '締めた上で /cvi:speak も呼んでください'; then
+    OUTPUT='{"decision":"invalid"}'
+fi
+record 'invalid ending reason requires speak when not called' block
+jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"mcp__plugin_cvi_cvi-voice__speak",input:{text:"done"}}]}}' >> "$invalid_ending_transcript"
+run_hook "$invalid_ending_input"
+if ! printf '%s' "$OUTPUT" | grep -q '締めてください。/cvi:speak は再度呼ばないでください'; then
+    OUTPUT='{"decision":"invalid"}'
+fi
+record 'invalid ending reason forbids duplicate speak when called' block
+
+REAL_JQ=$(command -v jq)
+second_regex_bin="${TMP_DIR}/second-regex-jq-bin"
+mkdir -p "$second_regex_bin"
+cat > "$second_regex_bin/jq" <<'EOF'
+#!/bin/bash
+if printf '%s\n' "$*" | grep -q 'test('; then
+    count=0
+    [ ! -f "$JQ_REGEX_COUNT_FILE" ] || count=$(cat "$JQ_REGEX_COUNT_FILE")
+    count=$((count + 1))
+    printf '%s\n' "$count" > "$JQ_REGEX_COUNT_FILE"
+    if [ "$count" -eq 2 ]; then
+        echo 'simulated final-line regex failure' >&2
+        exit 5
+    fi
+fi
+exec "$REAL_JQ" "$@"
+EOF
+chmod +x "$second_regex_bin/jq"
+regex_failure_transcript="${TMP_DIR}/transcripts/final-regex-failure.jsonl"
+write_transcript "$regex_failure_transcript" $'日本語の本文です。\nFinal English only.'
+JQ_REGEX_COUNT_FILE="${TMP_DIR}/jq-regex-count" REAL_JQ="$REAL_JQ" \
+    OUTPUT=$(printf '%s' "$(jq -cn --arg path "$regex_failure_transcript" '{transcript_path:$path}')" | \
+        PATH="$second_regex_bin:$PATH" JQ_REGEX_COUNT_FILE="${TMP_DIR}/jq-regex-count" REAL_JQ="$REAL_JQ" \
+        bash "$HOOK" 2>"${TMP_DIR}/final-regex-failure.stderr")
+STATUS=$?
+if ! grep -q 'final-line.*validation failed.*allowing response (fail-open' "${TMP_DIR}/final-regex-failure.stderr"; then
+    OUTPUT='{"decision":"invalid"}'
+fi
+record 'final-line jq regex failure is explicit and fails open' allow true
 
 jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"Skill",input:{skill:"cvi:speak"}}]}}' >> "$simultaneous_transcript"
 jq -cn '{type:"assistant",message:{content:[{type:"text",text:"作業が完了しました。"}]}}' >> "$simultaneous_transcript"
