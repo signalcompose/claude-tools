@@ -26,11 +26,12 @@ Codex ジョブが外部から kill されても `status` は `running` のま�
 
 | 行 | 意味 | exit |
 |---|---|---|
-| `MILESTONE` | コマンド完了 | - |
+| `MILESTONE` | コマンド完了/失敗 | - |
 | `PHASE` | フェーズ遷移 | - |
 | `STALL` | ログが伸びない・**プロセスは生存** | 2 |
 | `KILLED` | **pid 消滅・state は running のまま** | 3 |
-| `DONE` | ジョブ終了 | 0 |
+| `DONE` | `status=completed` で正常終了 | 0 |
+| `FAILED` | `failed`/`cancelled` 等で終了 | 4 |
 
 停滞時の切り分け手順は [references/codex-stall-triage.md](./references/codex-stall-triage.md)。
 

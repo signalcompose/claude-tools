@@ -17,12 +17,13 @@
 #     - pid の生存（kill -0。ps/pgrep は sandbox で拒否されうるがシェル組み込みは通る）
 #
 # 出力する行（＝通知される事象）と exit code:
-#   MILESTONE …  コマンド完了（exit code つき）             -
+#   MILESTONE …  コマンド完了/失敗（exit code つき）        -
 #   PHASE     …  editing -> verifying などの遷移            -
 #   STALL     …  ログが伸びていない・**プロセスは生存**      2
 #   KILLED    …  **pid 消滅・status は running のまま**      3
-#   DONE      …  ジョブが running/queued から外れた          0
-#   ERROR     …  監視対象を解決できない                      1
+#   DONE      …  status=completed で正常終了                0
+#   FAILED    …  status=failed/cancelled 等で終了           4
+#   ERROR     …  監視対象を解決できない / 監視を継続できない  1
 #
 # STALL と KILLED を分けるのが要点。原因が違えば対処も違う（ハング→原因調査 / kill→再開）。
 
@@ -53,16 +54,25 @@ Options:
                         ~/.claude/plugins/data/codex-openai-codex/state）
   -h, --help          このヘルプ
 
-Exit codes: 0=DONE  1=ERROR  2=STALL  3=KILLED
+Exit codes: 0=DONE  1=ERROR  2=STALL  3=KILLED  4=FAILED
 USAGE
+}
+
+# 値を取るフラグは shift 2 の前に引数の存在を確かめる。確かめないと、フラグが
+# 最後の引数だった時に shift が失敗して $# が減らず、同じ引数で無限ループする。
+need_value() {
+  if (( $2 < 2 )); then
+    echo "ERROR: $1 には値が必要" >&2
+    exit 1
+  fi
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --stall-secs)  STALL_SECS="${2:-}"; shift 2 ;;
-    --interval)    INTERVAL="${2:-}";   shift 2 ;;
-    --workspace)   WORKSPACE="${2:-}";  shift 2 ;;
-    --state-root)  STATE_ROOT="${2:-}"; shift 2 ;;
+    --stall-secs)  need_value "$1" $#; STALL_SECS="$2"; shift 2 ;;
+    --interval)    need_value "$1" $#; INTERVAL="$2";   shift 2 ;;
+    --workspace)   need_value "$1" $#; WORKSPACE="$2";  shift 2 ;;
+    --state-root)  need_value "$1" $#; STATE_ROOT="$2"; shift 2 ;;
     -h|--help)     usage; exit 0 ;;
     -*)            echo "ERROR: unknown option: $1" >&2; usage >&2; exit 1 ;;
     *)             JOB_ID="$1"; shift ;;
@@ -91,8 +101,12 @@ fi
 WORKSPACE="$(cd "$WORKSPACE" 2>/dev/null && pwd -P)" || {
   echo "ERROR: workspace に到達できない" >&2; exit 1; }
 
+# 🔴 CLAUDE_PLUGIN_DATA を使ってはいけない。あれは「実行中プラグインごと」の
+# データディレクトリで、このスクリプトは utils プラグインから起動されるため
+# .../data/utils-claude-tools を指す。読みたいのは codex プラグインの領域なので
+# 常に codex 側のパスを見る。別の場所にあるなら --state-root で明示する。
 if [[ -z "$STATE_ROOT" ]]; then
-  STATE_ROOT="${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/codex-openai-codex}/state"
+  STATE_ROOT="$HOME/.claude/plugins/data/codex-openai-codex/state"
 fi
 
 if [[ ! -d "$STATE_ROOT" ]]; then
@@ -119,19 +133,27 @@ def real(path):
 
 want = real(workspace)
 best = None
+read_errors = 0
 
 for state_file in glob.glob(os.path.join(state_root, '*', 'state.json')):
     try:
         with open(state_file, encoding='utf-8') as handle:
             data = json.load(handle)
     except Exception:
+        # 上流は state.json を非アトミックに書く（temp+rename ではない）ので、
+        # 書き込み中のポーリングは空・不完全なファイルを見ることがある。
+        # 「読めなかった」を「無かった」に畳むと、監視が DONE を誤報する。
+        read_errors += 1
         continue
     for job in data.get('jobs') or []:
         if job_id:
             if job.get('id') != job_id:
                 continue
         else:
-            if real(job.get('workspaceRoot') or '') != want:
+            root = job.get('workspaceRoot')
+            # os.path.realpath('') は cwd を返すため、空を素通しすると
+            # workspaceRoot 未設定のジョブが誤ってマッチする。
+            if not root or real(root) != want:
                 continue
             if job.get('status') not in ('running', 'queued'):
                 continue
@@ -139,7 +161,9 @@ for state_file in glob.glob(os.path.join(state_root, '*', 'state.json')):
             best = job
 
 if best is None:
-    sys.exit(4)
+    # 読めなかったファイルがある以上「ジョブが無い」と断定できない。
+    # 5 = 取得失敗（不明）、4 = 確かに該当なし。
+    sys.exit(5 if read_errors else 4)
 
 fields = [
     best.get('id') or '',
@@ -169,12 +193,34 @@ read_snapshot() {
   return 0
 }
 
-file_mtime() {
-  stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || echo 0
-}
+# stat の方言を起動時に一度だけ判定する。GNU では -f が --file-system の意味に
+# なり、%m がファイル操作対象として扱われて stdout にゴミが出るため、
+# `stat -f %m || stat -c %Y` のフォールバックは Linux で壊れる。
+if stat -c %Y . >/dev/null 2>&1; then
+  file_mtime() { stat -c %Y "$1" 2>/dev/null || echo 0; }
+elif stat -f %m . >/dev/null 2>&1; then
+  file_mtime() { stat -f %m "$1" 2>/dev/null || echo 0; }
+else
+  echo "ERROR: 対応する stat が見つからない（GNU の -c も BSD の -f も使えない）" >&2
+  exit 1
+fi
 
 # ログに ANSI は現状含まれないが、混ざっても行が読めるよう保険で落とす。
 strip_ansi() { sed $'s/\x1b\\[[0-9;]*m//g'; }
+
+# 件数と本文は必ず同じパイプラインから採る。生の grep -c で数えて
+# strip_ansi 経由で表示すると、両者の行数がずれた時に取りこぼしが恒久化する。
+# 失敗したコマンドこそ通知したい事象なので completed だけでなく failed も拾う。
+milestone_lines() {
+  [[ -n "$LOG" && -f "$LOG" ]] || return 0
+  strip_ansi < "$LOG" | grep -aE "Command (completed|failed)" || true
+}
+
+count_nonempty() {
+  local n
+  n="$(grep -c . || true)"
+  echo "${n:-0}"
+}
 
 last_command() {
   if [[ -n "$LOG" && -f "$LOG" ]]; then
@@ -211,13 +257,10 @@ query_failures=0
 
 # 起動時点の完了済みコマンド数を基準にする。監視は「これから起きる事象」を報告するもので、
 # 途中から張り付いた時に過去のマイルストーンを全部読み上げても通知として役に立たない。
-last_count=0
-if [[ -n "$LOG" && -f "$LOG" ]]; then
-  last_count="$(grep -ac "Command completed" "$LOG" 2>/dev/null || true)"
-  last_count="${last_count:-0}"
-  if (( last_count > 0 )); then
-    echo "MILESTONE (既に完了 ${last_count} 件) 直近: $(strip_ansi < "$LOG" | grep -a "Command completed" | tail -1 | cut -c1-200)"
-  fi
+milestones="$(milestone_lines)"
+last_count="$(printf '%s\n' "$milestones" | count_nonempty)"
+if (( last_count > 0 )); then
+  echo "MILESTONE (既に完了 ${last_count} 件) 直近: $(printf '%s\n' "$milestones" | tail -1 | cut -c1-200)"
 fi
 
 while true; do
@@ -243,16 +286,13 @@ while true; do
   fi
 
   # --- 進捗: 前回以降に増えた "Command completed" 行をすべて出す ---
-  if [[ -n "$LOG" && -f "$LOG" ]]; then
-    count="$(grep -ac "Command completed" "$LOG" 2>/dev/null || true)"
-    count="${count:-0}"
-    if (( count > last_count )); then
-      while IFS= read -r line; do
-        [[ -n "$line" ]] && echo "MILESTONE $line"
-      done < <(strip_ansi < "$LOG" | grep -a "Command completed" \
-               | tail -n +"$((last_count + 1))" | cut -c1-200)
-      last_count="$count"
-    fi
+  milestones="$(milestone_lines)"
+  count="$(printf '%s\n' "$milestones" | count_nonempty)"
+  if (( count > last_count )); then
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && echo "MILESTONE $line"
+    done < <(printf '%s\n' "$milestones" | tail -n +"$((last_count + 1))" | cut -c1-200)
+    last_count="$count"
   fi
 
   # --- フェーズ遷移 ---
@@ -263,8 +303,15 @@ while true; do
 
   # --- 正常終了 ---
   if [[ "$STATUS" != "running" && "$STATUS" != "queued" ]]; then
-    echo "DONE ジョブが status=$STATUS になった（phase=${PHASE:-?}）"
-    exit 0
+    # 成功と失敗を同じ exit 0 に畳まない。畳むと呼び出し側が終了コードで
+    # 区別できず、「running でなくなった＝成功」という元の誤りに戻る。
+    if [[ "$STATUS" == "completed" ]]; then
+      echo "DONE ジョブが status=completed になった（phase=${PHASE:-?}）"
+      exit 0
+    fi
+    echo "FAILED ジョブが status=${STATUS} で終了した（phase=${PHASE:-?}）"
+    echo "FAILED 最後のコマンド: $(last_command)"
+    exit 4
   fi
 
   # --- プロセスの生存を先に確定させる ---

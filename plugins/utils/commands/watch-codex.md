@@ -35,12 +35,16 @@ watch-codex.sh [job-id] [--stall-secs N] [--interval N] [--workspace PATH] [--st
 
 | 行 | 意味 | exit |
 |---|---|---|
-| `MILESTONE` | コマンド完了（exit code つき） | - |
+| `MILESTONE` | コマンド完了/**失敗**（exit code つき） | - |
 | `PHASE` | `editing -> verifying` などの遷移 | - |
 | `STALL` | ログが N 秒伸びていない・**プロセスは生存** | 2 |
 | `KILLED` | **pid 消滅・state は running のまま** | 3 |
-| `DONE` | ジョブが running/queued から外れた | 0 |
-| `ERROR` | 監視対象を解決できない | 1 |
+| `DONE` | `status=completed` で正常終了 | 0 |
+| `FAILED` | `status=failed`/`cancelled` 等で終了 | 4 |
+| `ERROR` | 監視対象を解決できない / 監視を継続できない | 1 |
+
+成功と失敗を同じ exit 0 に畳まない。畳むと呼び出し側が終了コードで区別できず、
+「running でなくなった＝成功」という元の誤りに戻る。
 
 起動時点で完了済みのマイルストーンは再生しない（件数と直近1件だけ表示）。
 
