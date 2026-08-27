@@ -31,6 +31,7 @@ set -uo pipefail
 STALL_SECS=420
 INTERVAL=30
 KILL_GRACE=10
+MAX_QUERY_FAILURES=3
 JOB_ID=""
 WORKSPACE=""
 STATE_ROOT=""
@@ -152,13 +153,13 @@ print('\t'.join(field.replace('\t', ' ') for field in fields))
 PY
 }
 
+# 戻り値を潰さないこと。0=取得成功 / 4=該当ジョブなし / その他=クエリ自体の失敗。
+# この3つを1つの「失敗」に畳むと、クエリが壊れただけで「ジョブが消えた」と読めてしまう。
 read_snapshot() {
   local snapshot rc
   snapshot="$(query_job)"; rc=$?
-  if (( rc == 4 )); then
-    return 4
-  elif (( rc != 0 )); then
-    return 1
+  if (( rc != 0 )); then
+    return "$rc"
   fi
   IFS=$'\t' read -r JOB_ID STATUS PHASE PID LOG UPDATED <<<"$snapshot"
   return 0
@@ -181,13 +182,18 @@ last_command() {
 
 STATUS=""; PHASE=""; PID=""; LOG=""; UPDATED=""
 
-if ! read_snapshot; then
+read_snapshot; rc=$?
+if (( rc == 4 )); then
   if [[ -n "$JOB_ID" ]]; then
     echo "ERROR: ジョブ '$JOB_ID' が state に見つからない"
   else
     echo "ERROR: $WORKSPACE で running/queued の Codex ジョブが見つからない"
     echo "ERROR: 発注前に監視を起動した場合は、ジョブ開始後に再実行するか job-id を渡す。"
   fi
+  exit 1
+elif (( rc != 0 )); then
+  echo "ERROR: state の読み取り自体に失敗した (rc=$rc)。'$STATE_ROOT' と python3 を確認する。"
+  echo "ERROR: これは「ジョブが無い」とは別の事象なので、無いものとして扱わない。"
   exit 1
 fi
 
@@ -197,6 +203,7 @@ echo "MILESTONE watching $JOB_ID  workspace=$(basename "$WORKSPACE")  stall=${ST
 
 last_phase="$PHASE"
 dead_since=0
+query_failures=0
 
 # 起動時点の完了済みコマンド数を基準にする。監視は「これから起きる事象」を報告するもので、
 # 途中から張り付いた時に過去のマイルストーンを全部読み上げても通知として役に立たない。
@@ -210,9 +217,25 @@ if [[ -n "$LOG" && -f "$LOG" ]]; then
 fi
 
 while true; do
-  if ! read_snapshot; then
+  read_snapshot; rc=$?
+  if (( rc == 4 )); then
     echo "DONE ジョブ $JOB_ID が state から消えた（履歴上限で削除された可能性）"
     exit 0
+  elif (( rc != 0 )); then
+    # 🔴 クエリの失敗を DONE として報告しない。
+    # 監視ツールが自分の故障を「対象の正常完了」と報告するのが最悪の壊れ方であり、
+    # このスクリプトが存在する理由そのもの。数回は一過性として許容し、続くなら ERROR で落とす。
+    query_failures=$(( query_failures + 1 ))
+    echo "WARN state の読み取りに失敗した (rc=$rc) ${query_failures}/${MAX_QUERY_FAILURES}"
+    if (( query_failures >= MAX_QUERY_FAILURES )); then
+      echo "ERROR state を連続 ${MAX_QUERY_FAILURES} 回読めなかった。監視を継続できない。"
+      echo "ERROR ジョブの生死は不明。DONE ではない。"
+      exit 1
+    fi
+    sleep "$INTERVAL"
+    continue
+  else
+    query_failures=0
   fi
 
   # --- 進捗: 前回以降に増えた "Command completed" 行をすべて出す ---
