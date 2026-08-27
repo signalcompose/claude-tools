@@ -84,7 +84,7 @@ require_positive_int() {
   local flag="$1" value="$2"
   case "$value" in
     ''|*[!0-9]*) ;;
-    *) if (( value >= 1 )); then return 0; fi ;;
+    *) if (( 10#$value >= 1 )); then return 0; fi ;;
   esac
   echo "ERROR: $flag には 1 以上の整数を指定する（受け取った値: '$value'）" >&2
   exit 1
@@ -124,6 +124,17 @@ query_job() {
 import glob, json, os, sys
 
 state_root, workspace, job_id = sys.argv[1], sys.argv[2], sys.argv[3]
+
+def to_epoch(iso):
+    # ログが無いジョブでも停滞を判定できるよう、state の更新時刻を時計として渡す。
+    if not iso:
+        return ''
+    try:
+        from datetime import datetime
+        return str(int(datetime.fromisoformat(iso.replace('Z', '+00:00')).timestamp()))
+    except Exception:
+        return ''
+
 
 def real(path):
     try:
@@ -172,6 +183,7 @@ fields = [
     str(best.get('pid') or ''),
     best.get('logFile') or '',
     best.get('updatedAt') or '',
+    to_epoch(best.get('updatedAt')),
 ]
 # 区切りに TAB を使ってはいけない。TAB は IFS の空白文字なので、bash の read は
 # 連続する TAB を1個の区切りに潰す。pid が null のジョブ（queued 等）で空フィールドが
@@ -189,7 +201,7 @@ read_snapshot() {
   if (( rc != 0 )); then
     return "$rc"
   fi
-  IFS=$'\x1f' read -r JOB_ID STATUS PHASE PID LOG UPDATED <<<"$snapshot"
+  IFS=$'\x1f' read -r JOB_ID STATUS PHASE PID LOG UPDATED UPDATED_EPOCH <<<"$snapshot"
   return 0
 }
 
@@ -197,9 +209,9 @@ read_snapshot() {
 # なり、%m がファイル操作対象として扱われて stdout にゴミが出るため、
 # `stat -f %m || stat -c %Y` のフォールバックは Linux で壊れる。
 if stat -c %Y . >/dev/null 2>&1; then
-  file_mtime() { stat -c %Y "$1" 2>/dev/null || echo 0; }
+  file_mtime() { stat -c %Y "$1" 2>/dev/null || true; }
 elif stat -f %m . >/dev/null 2>&1; then
-  file_mtime() { stat -f %m "$1" 2>/dev/null || echo 0; }
+  file_mtime() { stat -f %m "$1" 2>/dev/null || true; }
 else
   echo "ERROR: 対応する stat が見つからない（GNU の -c も BSD の -f も使えない）" >&2
   exit 1
@@ -222,6 +234,26 @@ count_nonempty() {
   echo "${n:-0}"
 }
 
+# 停滞を測る基準時刻を返す（"<epoch> <ラベル>"）。
+# ログが無い・読めない場合は state の updatedAt を代替の時計にする。
+# ここで何も返さないと、ログ未生成のジョブに対して停滞判定が丸ごと飛ばされ、
+# 「無音のまま永久に回る待機ループ」になる。それはこのツールが排除する対象そのもの。
+stall_reference() {
+  local m
+  if [[ -n "$LOG" && -f "$LOG" ]]; then
+    m="$(file_mtime "$LOG")"
+    if [[ -n "$m" ]]; then
+      echo "$m ログ"
+      return 0
+    fi
+  fi
+  if [[ -n "$UPDATED_EPOCH" && "$UPDATED_EPOCH" != "0" ]]; then
+    echo "$UPDATED_EPOCH state の更新"
+    return 0
+  fi
+  return 1
+}
+
 last_command() {
   if [[ -n "$LOG" && -f "$LOG" ]]; then
     strip_ansi < "$LOG" | grep -a "Running command" | tail -1 | cut -c1-200
@@ -230,7 +262,7 @@ last_command() {
   fi
 }
 
-STATUS=""; PHASE=""; PID=""; LOG=""; UPDATED=""
+STATUS=""; PHASE=""; PID=""; LOG=""; UPDATED=""; UPDATED_EPOCH=""
 
 read_snapshot; rc=$?
 if (( rc == 4 )); then
@@ -338,17 +370,27 @@ while true; do
     dead_since=0
 
     # --- 停滞の検出（プロセスは生きている）---
-    if [[ -n "$LOG" && -f "$LOG" ]]; then
-      age=$(( $(date +%s) - $(file_mtime "$LOG") ))
+    if ref="$(stall_reference)"; then
+      ref_epoch="${ref%% *}"
+      ref_label="${ref#* }"
+      age=$(( $(date +%s) - ref_epoch ))
       if (( age > STALL_SECS )); then
         if [[ -n "$PID" ]]; then
-          echo "STALL ログが ${age}s 伸びていない（pid $PID は生存）。ハングか長時間コマンドの可能性。"
+          echo "STALL ${ref_label}が ${age}s 伸びていない（pid $PID は生存）。ハングか長時間コマンドの可能性。"
+          # pid が再利用されていると、kill された古いジョブが「生存」に見えて
+          # STALL に化ける。長期の沈黙ではその可能性を明示しておく。
+          if (( age > STALL_SECS * 4 )); then
+            echo "STALL 沈黙が長い。pid $PID が別プロセスに再利用され、実際は kill 済みの可能性がある。"
+          fi
         else
-          echo "STALL ログが ${age}s 伸びていない（pid 未記録・status=${STATUS}）。"
+          echo "STALL ${ref_label}が ${age}s 伸びていない（pid 未記録・status=${STATUS}）。"
         fi
         echo "STALL 最後のコマンド: $(last_command)"
         exit 2
       fi
+    else
+      echo "ERROR 停滞を判定できる時刻が無い（ログも updatedAt も読めない）。監視を継続できない。"
+      exit 1
     fi
   fi
 
