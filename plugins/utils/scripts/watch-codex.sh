@@ -149,7 +149,11 @@ fields = [
     best.get('logFile') or '',
     best.get('updatedAt') or '',
 ]
-print('\t'.join(field.replace('\t', ' ') for field in fields))
+# 区切りに TAB を使ってはいけない。TAB は IFS の空白文字なので、bash の read は
+# 連続する TAB を1個の区切りに潰す。pid が null のジョブ（queued 等）で空フィールドが
+# 生じるとフィールド全体が左へずれ、PID にログのパスが入る。
+# 空白文字でない US (0x1f) なら空フィールドがそのまま保たれる。
+print('\x1f'.join(field.replace('\x1f', ' ') for field in fields))
 PY
 }
 
@@ -161,7 +165,7 @@ read_snapshot() {
   if (( rc != 0 )); then
     return "$rc"
   fi
-  IFS=$'\t' read -r JOB_ID STATUS PHASE PID LOG UPDATED <<<"$snapshot"
+  IFS=$'\x1f' read -r JOB_ID STATUS PHASE PID LOG UPDATED <<<"$snapshot"
   return 0
 }
 
@@ -293,7 +297,7 @@ while true; do
         if [[ -n "$PID" ]]; then
           echo "STALL ログが ${age}s 伸びていない（pid $PID は生存）。ハングか長時間コマンドの可能性。"
         else
-          echo "STALL ログが ${age}s 伸びていない（pid 未記録・status=$STATUS）。"
+          echo "STALL ログが ${age}s 伸びていない（pid 未記録・status=${STATUS}）。"
         fi
         echo "STALL 最後のコマンド: $(last_command)"
         exit 2
